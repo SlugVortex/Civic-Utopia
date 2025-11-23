@@ -1,0 +1,259 @@
+/* Floating Labels
+******************************************************************************* */
+
+.form-floating {
+  > label {
+    color: var(--#{$prefix}secondary-color);
+    inline-size: 100%;
+    inset-inline-start: 0;
+    padding-block: .8125rem;
+    padding-inline: $form-floating-padding-x;
+  }
+  > .form-control:focus,
+  > .form-select:focus {
+    ~ .form-floating-focused {
+      background-color: $component-active-bg;
+      transform: scaleX(1);
+    }
+  }
+  & ~ .form-text,
+  .form-text {
+    margin-inline-start: $input-padding-x;
+  }
+  > .form-control:focus,
+  > .form-control:focus:not(:placeholder-shown),
+  > .form-select:focus,
+  > .form-select:focus:not(:placeholder-shown) {
+    ~ label {
+      color: $component-active-bg;
+    }
+  }
+  // File Upload : Floating label File and text alignment
+  .form-control {
+    &::file-selector-button {
+      margin-block: (-$form-floating-padding-y);
+      margin-inline: (-$form-floating-padding-x);
+      margin-inline-end: $form-floating-padding-x;
+      padding-block: $form-floating-padding-y;
+      padding-inline: $form-floating-padding-x;
+    }
+  }
+  > .form-control-plaintext:not(:placeholder-shown) {
+    padding-block-start: 2.1895rem;
+  }
+  > .form-control:focus,
+  > .form-select {
+    & ~ label::after {
+      @include border-radius(0);
+    }
+  }
+  > .form-control,
+  > .form-control-plaintext,
+  > .form-select {
+    &:focus,
+    &:not(:placeholder-shown) {
+      ~ label {
+        &::after {
+          background-color: var(--#{$prefix}paper-bg);
+        }
+      }
+    }
+  }
+}
+
+// Floating label (Filled) border bottom
+.form-floating-focused {
+  position: relative;
+  z-index: 9;
+  display: block;
+  block-size: $input-focus-border-width;
+  inline-size: 100%;
+  inset-block-start: -1px;
+  transform: scaleX(0);
+  @include transition(transform .2s cubic-bezier(.4, 0, .2, 1) 0s);
+}
+
+// Floating label (Filled)
+.form-floating:not(.form-floating-outline) {
+  > .form-control,
+  > .form-control-plaintext,
+  > .form-select {
+    border: 0;
+    background-color: $form-floating-input-bg;
+    border-block-end: 1px solid var(--#{$prefix}body-color);
+    padding-block-end: calc($form-floating-padding-y - $input-border-width);
+    @include border-bottom-start-radius(0);
+    @include border-bottom-end-radius(0);
+    &.is-invalid {
+      border-block-end-width: 2px;
+    }
+    &:hover {
+      background-color: $form-floating-hover-bg;
+    }
+    &:focus,
+    &:not(:placeholder-shown) {
+      padding-block: $form-floating-input-padding-top $form-floating-input-padding-bottom;
+      padding-inline: $form-floating-padding-x;
+      &::placeholder {
+        color: $input-placeholder-color;
+      }
+      ~ label {
+        &::after {
+          background-color: transparent !important;
+        }
+      }
+    }
+    // Duplicated because `:-webkit-autofill` invalidates other selectors when grouped
+    &:-webkit-autofill {
+      padding-block: $form-floating-input-padding-top calc($form-floating-input-padding-bottom - 1px);
+      padding-inline: $form-floating-padding-x;
+    }
+    &:disabled {
+      opacity: $form-floating-disabled-opacity;
+      pointer-events: none;
+    }
+  }
+  // Transform bottom bordered
+  > .form-control:focus,
+  > .form-select:focus {
+    ~ .form-floating-focused {
+      transform: scaleX(1);
+    }
+  }
+  > .form-select {
+    &:focus,
+    &:focus-within,
+    .was-validated &:invalid,
+    .was-validated &:valid,
+    &.is-invalid,
+    &.is-valid {
+      background-position: right $form-select-padding-x center;
+      :dir(rtl) & {
+        background-position: left $form-select-padding-x center;
+      }
+    }
+  }
+}
+
+// Floating label (Outlined)
+.form-floating.form-floating-outline {
+  > .form-control,
+  > .form-select {
+    padding-block: calc($form-floating-padding-y - $input-border-width);
+    padding-inline: calc($form-floating-padding-x - $input-border-width);
+    &:focus,
+    &:not(:placeholder-shown) {
+      padding-block: $form-floating-padding-y;
+      &::placeholder {
+        color: $input-placeholder-color;
+      }
+      // Floating (outline) label position on focus
+      ~ label {
+        block-size: auto;
+        font-size: $font-size-sm;
+        inline-size: auto;
+        margin-block-start: .125rem;
+        margin-inline-start: $form-floating-label-margin;
+        opacity: 1;
+        padding-block: $input-focus-border-width;
+        padding-inline: $form-floating-label-padding-x;
+        transform: $form-floating-outline-label-transform;
+        &::after {
+          position: absolute;
+          z-index: -1;
+          block-size: $form-floating-label-height;
+          content: "";
+          inline-size: 100%;
+          inset-block-start: .5rem;
+          inset-inline-start: 0;
+        }
+      }
+    }
+    .was-validated & {
+      padding-block: calc($form-floating-padding-y - $input-border-width);
+      padding-inline: calc($form-floating-padding-x - $input-focus-border-width);
+    }
+    // Duplicated because `:-webkit-autofill` invalidates other selectors when grouped
+    &:-webkit-autofill {
+      padding-block: $form-floating-padding-y;
+      ~ label {
+        opacity: 1;
+        transform: $form-floating-outline-label-transform;
+      }
+    }
+  }
+
+  // Form control padding on focus
+  &:focus-within {
+    > .form-control:first-child,
+    > .form-select:first-child {
+      padding-block: calc($form-floating-padding-y - 1px);
+      padding-inline: calc($form-floating-padding-x - 2px);
+    }
+  }
+
+  // Input group (not first-child) floating (outline) label position
+  .input-group & {
+    &:not(:first-child) {
+      > .form-control:focus,
+      > .form-control:not(:placeholder-shown),
+      > .form-select {
+        ~ label {
+          margin-inline-start: calc($input-focus-border-width * -1);
+          padding-block: calc($input-focus-border-width * .5);
+          padding-inline: $form-floating-label-padding-x;
+          transform: $form-floating-outline-label-transform;
+        }
+      }
+    }
+  }
+}
+
+:dir(rtl) {
+  .form-floating {
+    > label {
+      transform-origin: 100% 0;
+    }
+    > .form-control:focus,
+    > .form-control:not(:placeholder-shown),
+    > .form-select,
+    > .form-control:-webkit-autofill {
+      ~ label {
+        transform: $form-floating-label-transform-rtl;
+      }
+    }
+  }
+
+  // Floating label (Outlined)
+  .form-floating.form-floating-outline {
+    > label {
+      inset-inline-end: inherit;
+      transform-origin: 100% 0;
+    }
+    // Floating (outline) label position
+    > .form-control:focus,
+    > .form-control:not(:placeholder-shown),
+    > .form-select {
+      ~ label {
+        transform: $form-floating-outline-label-transform-rtl;
+      }
+    }
+
+    > .form-control:-webkit-autofill {
+      ~ label {
+        transform: $form-floating-outline-label-transform-rtl;
+      }
+    }
+  }
+  .input-group {
+    .form-floating.form-floating-outline:not(:first-child) {
+      > .form-control:focus,
+      > .form-control:not(:placeholder-shown),
+      > .form-select {
+        ~ label {
+          transform: $form-floating-outline-label-transform-rtl;
+        }
+      }
+    }
+  }
+}

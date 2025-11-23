@@ -1,0 +1,558 @@
+@import "../../scss/_bootstrap-extended/include";
+@import "bs-stepper/dist/css/bs-stepper";
+
+$bs-stepper-header-padding-y: 1.25rem !default;
+$bs-stepper-header-padding-x: $bs-stepper-header-padding-y !default;
+$bs-stepper-content-padding-x: 1.25rem !default;
+$bs-stepper-content-padding-y: $bs-stepper-content-padding-x !default;
+$bs-stepper-trigger-padding-y: 0 !default;
+$bs-stepper-trigger-padding-x: .5rem !default;
+$bd-stepper-circle-size: 1.25rem !default;
+$bs-stepper-trigger-padding: 1.25rem !default;
+$bs-stepper-trigger-padding-vertical: .5rem !default;
+$bs-stepper-icon-border-size: 3px !default;
+$bs-stepper-active-icon-border-size: 5px !default;
+$bs-stepper-label-max-width: 224px !default;
+$bs-stepper-svg-icon-height: 3.75rem !default;
+$bs-stepper-svg-icon-width: 3.75rem !default;
+$bs-stepper-icon-font-size: 1.6rem !default;
+$bs-stepper-vertical-separator-height: 2.5rem !default;
+$bs-stepper-vertical-header-min-width: 18rem !default;
+$bs-stepper-line-bg: var(--#{$prefix}primary-bg-subtle) !default;
+$bs-stepper-crossed-bg: rgba(var(--#{$prefix}primary-rgb), .16) !default;
+$bs-stepper-circle-bg: rgba(var(--#{$prefix}primary-rgb), .16) !default;
+$bs-stepper-active-bg: var(--#{$prefix}primary) !default;
+$bs-stepper-active-color: var(--#{$prefix}primary-contrast) !default;
+$bs-stepper-active-shadow: 0 .125rem .375rem 0 rgba(var(--#{$prefix}primary-rgb), .4) !default;
+
+/* Default Styles */
+.bs-stepper {
+  @include border-radius($border-radius-lg);
+  background-color: var(--#{$prefix}paper-bg);
+  .line {
+    flex: 0;
+    margin: 0;
+    background-color: transparent;
+    min-block-size: auto;
+    min-inline-size: auto;
+    .icon-base {
+      color: var(--#{$prefix}secondary-color);
+    }
+  }
+
+  .bs-stepper-header {
+    border-block-end: 1px solid var(--#{$prefix}border-color);
+    padding-block: $bs-stepper-header-padding-y;
+    padding-inline: $bs-stepper-header-padding-x;
+
+    .line {
+      flex: 0;
+      margin: 0;
+      background-color: transparent;
+      min-block-size: auto;
+      min-inline-size: auto;
+      .icon-base {
+        @include icon-base(1.25rem);
+        :dir(rtl) &{
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    .step {
+      .step-trigger {
+        flex-wrap: nowrap;
+        font-size: $font-size-base;
+        font-weight: $font-weight-medium;
+        line-height: $line-height-base;
+        padding-block: $bs-stepper-trigger-padding-y;
+        padding-inline: $bs-stepper-trigger-padding-x;
+        .bs-stepper-label {
+          display: inline-flex;
+          overflow: hidden;
+          align-items: center;
+          margin: 0;
+          color: var(--#{$prefix}body-color);
+          font-size: $font-size-base;
+          font-weight: $font-weight-medium;
+          line-height: $line-height-base;
+          margin-inline-start: .5rem;
+          max-inline-size: $bs-stepper-label-max-width;
+          text-align: start;
+          text-overflow: ellipsis;
+
+          .bs-stepper-number {
+            color: var(--#{$prefix}secondary-color);
+            font-size: 1.5rem;
+            font-weight: $font-weight-medium;
+          }
+
+          .bs-stepper-title {
+            color: var(--#{$prefix}heading-color);
+            font-size: $font-size-base;
+            font-weight: $font-weight-medium;
+          }
+
+          .bs-stepper-subtitle {
+            color: var(--#{$prefix}secondary-color);
+            font-size: $small-font-size;
+            font-weight: $font-weight-normal;
+          }
+        }
+        &:hover {
+          background-color: transparent;
+        }
+        &:focus {
+          color: inherit;
+        }
+        @include media-breakpoint-down(lg) {
+          padding-block: calc($bs-stepper-trigger-padding * .5);
+          padding-inline: 0;
+        }
+        &:disabled {
+          opacity: 1;
+          .bs-stepper-label {
+            .bs-stepper-number {
+              color: var(--#{$prefix}secondary-color);
+            }
+          }
+        }
+      }
+      &.active{
+        .bs-stepper-circle{
+          border: $bs-stepper-active-icon-border-size solid $bs-stepper-active-bg;
+          background-color: transparent;
+          color: $bs-stepper-active-color;
+          @include border-radius(50%);
+        }
+        .bs-stepper-icon svg{
+          fill: $bs-stepper-active-bg;
+        }
+        .bs-stepper-icon .icon-base{
+          color: $bs-stepper-active-bg;
+        }
+        .bs-stepper-label {
+          .bs-stepper-number {
+            color: var(--#{$prefix}heading-color);
+          }
+          .bs-stepper-subtitle {
+            color: var(--#{$prefix}body-color);
+          }
+        }
+      }
+      &:not(.active) {
+        .bs-stepper-circle {
+          border: $bs-stepper-icon-border-size solid $bs-stepper-circle-bg;
+          background-color: transparent;
+          color: var(--#{$prefix}gray-400);
+          @include border-radius(50%);
+        }
+      }
+      &:not(.crossed) + .line {
+        border-color: $bs-stepper-line-bg;
+      }
+      &.crossed {
+        .step-trigger {
+          .bs-stepper-label {
+            .bs-stepper-number {
+              color: var(--#{$prefix}headings-color);
+            }
+            .bs-stepper-subtitle {
+              color: var(--#{$prefix}body-color);
+            }
+          }
+          .bs-stepper-circle {
+            border-color: $bs-stepper-active-bg;
+            background-color: $bs-stepper-active-bg;
+            .icon-base {
+              color: $bs-stepper-active-color;
+              visibility: visible;
+            }
+          }
+
+          /* stepper icons color */
+          .bs-stepper-icon svg {
+            fill: $bs-stepper-active-bg;
+          }
+          .bs-stepper-icon .icon-base {
+            color: $bs-stepper-active-bg;
+          }
+        }
+        & + .line {
+          border-color: $bs-stepper-active-bg;
+        }
+      }
+
+      // stepper circle / pill styles
+      .bs-stepper-circle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        @include border-radius($border-radius);
+        padding: unset;
+        block-size: $bd-stepper-circle-size;
+        font-size: $h5-font-size;
+        font-weight: $font-weight-medium;
+        inline-size: $bd-stepper-circle-size;
+        .icon-base {
+          @include icon-base($bd-stepper-circle-size - .375rem);
+          visibility: hidden;
+        }
+      }
+    }
+  }
+
+  /* stepper content padding */
+  .bs-stepper-content {
+    padding-block: $bs-stepper-content-padding-y;
+    padding-inline: $bs-stepper-content-padding-x;
+    @include border-radius($border-radius-lg);
+    .btn-next,
+    .btn-prev {
+      .icon-base {
+        :dir(rtl) & {
+          transform: rotate(180deg);
+        }
+      }
+    }
+  }
+
+  &.vertical {
+    .bs-stepper-header {
+      border-block-end: none;
+      min-inline-size: $bs-stepper-vertical-header-min-width;
+      @include media-breakpoint-down(lg) {
+        border-block-end: 1px solid var(--#{$prefix}border-color);
+        border-inline-end: none;
+        border-inline-start: none;
+      }
+
+      .step {
+        .step-trigger {
+          padding-block: $bs-stepper-trigger-padding-vertical;
+          padding-inline: 0;
+        }
+
+        &:first-child {
+          .step-trigger {
+            padding-block-start: 0;
+          }
+        }
+
+        &:last-child {
+          .step-trigger {
+            padding-block-end: 0;
+          }
+        }
+        &.crossed + .line::before {
+          background-color: $bs-stepper-active-bg;
+        }
+      }
+
+      .line {
+        position: relative;
+        border: none;
+        min-block-size: 1px;
+        &::before {
+          position: absolute;
+          display: block;
+          @include border-radius($bs-stepper-icon-border-size);
+          block-size: $bs-stepper-vertical-separator-height;
+          content: "";
+          inline-size: $bs-stepper-icon-border-size;
+          inset-block-start: -.75rem;
+          inset-inline-start: .8rem;
+        }
+      }
+    }
+
+    .bs-stepper-content {
+      inline-size: 100%;
+
+      .content {
+        &:not(.active) {
+          display: none;
+        }
+      }
+    }
+
+    &.wizard-icons {
+      .step {
+        padding-block: .75rem;
+        padding-inline: 0;
+        text-align: center;
+      }
+    }
+  }
+
+  &.wizard-icons {
+    .bs-stepper-header {
+      justify-content: center;
+      .step {
+        .step-trigger {
+          flex-direction: column;
+          padding: $bs-stepper-trigger-padding;
+          gap: .5rem;
+          .bs-stepper-icon {
+            svg {
+              block-size: $bs-stepper-svg-icon-height;
+              fill: var(--#{$prefix}heading-color);
+              inline-size: $bs-stepper-svg-icon-width;
+            }
+            .icon-base {
+              fill: var(--#{$prefix}heading-color);
+              font-size: $bs-stepper-icon-font-size;
+            }
+          }
+        }
+        &.active{
+          .step-trigger{
+            .bs-stepper-icon svg{
+              fill: $bs-stepper-active-bg;
+            }
+            .bs-stepper-label,
+            .bs-stepper-icon .icon-base {
+              color: $bs-stepper-active-bg;
+            }
+          }
+        }
+        &:first-child {
+          .step-trigger {
+            padding-inline-start: $bs-stepper-header-padding-y;
+          }
+        }
+        &:last-child {
+          .step-trigger {
+            padding-inline-end: 1.25rem;
+          }
+        }
+      }
+      @include media-breakpoint-up(lg) {
+        justify-content: space-around;
+      }
+    }
+    .step.crossed {
+      .step-trigger{
+        .bs-stepper-label {
+          color: $bs-stepper-active-bg;
+        }
+        .bs-stepper-icon svg {
+          fill: $bs-stepper-active-bg;
+        }
+        .bs-stepper-icon .icon-base {
+          color: $bs-stepper-active-bg;
+        }
+      }
+      & + {
+        .line {
+          .icon-base {
+            color: $bs-stepper-active-bg;
+          }
+        }
+      }
+    }
+  }
+
+  &.wizard-vertical-icons.vertical {
+    .bs-stepper-header {
+      min-inline-size: calc($bs-stepper-vertical-header-min-width - 3rem);
+      .step {
+        .avatar-initial {
+          background-color: var(--#{$prefix}gray-50);
+          color: var(--#{$prefix}heading-color);
+        }
+        &.crossed {
+          .avatar-initial {
+            background-color: $bs-stepper-crossed-bg;
+            color: $bs-stepper-active-bg;
+          }
+        }
+        &.active {
+          .avatar-initial {
+            background-color: $bs-stepper-active-bg;
+            box-shadow: var(--#{$prefix}box-shadow-xs);
+            color: $bs-stepper-active-color;
+          }
+        }
+        .step-trigger {
+          padding-block: .875rem;
+        }
+        &:first-child {
+          .step-trigger {
+            padding-block-start: 0;
+          }
+        }
+        &:last-child {
+          .step-trigger {
+            padding-block-end: 0;
+          }
+        }
+      }
+    }
+  }
+  &:not(.wizard-icons) {
+    &:not(.vertical) .bs-stepper-header {
+      .line {
+        flex-basis: auto;
+        border-width: 0;
+        border-style: solid;
+        @include border-radius($bs-stepper-icon-border-size);
+        border-block-start-width: 3.9px;
+        inline-size: 100%;
+      }
+    }
+    .bs-stepper-header .line::before {
+      background-color: $bs-stepper-line-bg;
+    }
+    &:not(.wizard-vertical-icons) {
+      &.vertical {
+        .bs-stepper-header {
+          .step {
+            &:not(:last-child) {
+              margin-block-end: .5rem;
+            }
+            &:not(:first-child) {
+              margin-block-start: .5rem;
+            }
+          }
+          @include media-breakpoint-up(lg) {
+            .step {
+              .step-trigger {
+                padding: 0;
+              }
+            }
+          }
+          .line {
+            &::before {
+              inset-block-start: -1.2rem;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* Remove borders from wizard modern */
+  &.wizard-modern {
+    background-color: transparent;
+    .bs-stepper-header {
+      border-block-end: none;
+    }
+
+    .bs-stepper-content {
+      @include border-radius($border-radius);
+      background-color: var(--#{$prefix}paper-bg);
+      box-shadow: $card-box-shadow;
+    }
+  }
+
+  &:not(.wizard-modern) {
+    box-shadow: $card-box-shadow;
+  }
+}
+
+
+/* Media Queries */
+@include media-breakpoint-down(lg) {
+  .bs-stepper {
+    .bs-stepper-header {
+      flex-direction: column;
+      align-items: flex-start;
+      .step {
+        .step-trigger {
+          flex-direction: row;
+          .bs-stepper-label {
+            margin-inline-start: .35rem;
+          }
+        }
+        &:first-child {
+          .step-trigger {
+            padding-block-start: 0;
+          }
+        }
+        &:last-child {
+          .step-trigger {
+            padding-block-end: 0;
+          }
+        }
+      }
+    }
+    &.vertical {
+      flex-direction: column;
+      .bs-stepper-header {
+        align-items: flex-start;
+      }
+
+      &.wizard-icons {
+        .bs-stepper-header {
+          .line::before {
+            inset-inline-start: .75rem;
+            margin-inline-start: 0;
+          }
+        }
+      }
+    }
+    &.wizard-icons {
+      .bs-stepper-header {
+        .step {
+          &:first-child {
+            .step-trigger {
+              padding-inline-start: $bs-stepper-header-padding-y;
+            }
+          }
+          .step-trigger {
+            flex-direction: row;
+          }
+        }
+      }
+    }
+    &:not(.wizard-icons):not(.vertical) {
+      .bs-stepper-header {
+        .line {
+          position: relative;
+          border: none;
+          min-block-size: 1px;
+          &::before {
+            position: absolute;
+            display: block;
+            @include border-radius($bs-stepper-icon-border-size);
+            block-size: $bs-stepper-vertical-separator-height;
+            content: "";
+            inline-size: $bs-stepper-icon-border-size;
+            inset-block-start: -.75rem;
+            inset-inline-start: .8rem;
+          }
+        }
+      }
+    }
+    &:not(.vertical) {
+      .bs-stepper-header {
+        .line {
+          .icon-base {
+            display: none;
+          }
+        }
+        .step:not(:first-child) .step-trigger {
+          margin-block-start: 1rem;
+        }
+      }
+    }
+  }
+}
+
+/* Styles for Modal example Create App wizard */
+#wizard-create-app {
+  &.vertical {
+    .bs-stepper-header {
+      min-inline-size: $bs-stepper-vertical-header-min-width - 3;
+    }
+  }
+}
+
+@media (max-width: 520px) {
+  /* To set minus margin in mobile screen
+  as that affects border */
+  .bs-stepper-header {
+    margin: 0;
+  }
+}

@@ -1,0 +1,15 @@
+/* Wizard checkout
+******************************************************************************* */
+
+@import "../_bootstrap-extended/include";
+
+$checkout-wizard-header-width: 800px !default;
+
+#wizard-checkout {
+  .bs-stepper-header {
+    max-inline-size: $checkout-wizard-header-width;
+  }
+  .raty img {
+    @include icon-base(1.5rem);
+  }
+}

@@ -1,0 +1,14 @@
+// * Cards gamifications
+// *******************************************************************************
+
+@import "../_bootstrap-extended/include";
+
+// card image position
+.card-img-position {
+  position: absolute;
+  block-size: 190px;
+  @include media-breakpoint-down(md) {
+    position: static;
+    block-size: 160px;
+  }
+}

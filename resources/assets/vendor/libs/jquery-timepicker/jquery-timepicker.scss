@@ -1,0 +1,52 @@
+@import "../../scss/_bootstrap-extended/include";
+@import "../../scss/_components/include";
+@import "timepicker/jquery.timepicker";
+
+
+.ui-timepicker-wrapper {
+  z-index: $picker-zindex;
+  border-color: var(--#{$prefix}border-color);
+  background: var(--#{$prefix}paper-bg);
+  box-shadow: var(--#{$prefix}box-shadow-lg);
+  margin-block: .125rem;
+  padding-block: $dropdown-padding-y;
+  padding-inline: $dropdown-padding-y;
+  @include border-radius($border-radius);
+  .ui-timepicker-duration {
+    margin-inline-start: .25rem;
+  }
+  .ui-timepicker-list li{
+    color: var(--#{$prefix}body-color);
+    cursor: pointer;
+    list-style: none;
+    margin-block: .2rem;
+    margin-inline: .75rem;
+    padding-block: .4rem;
+    padding-inline: .75rem;
+    white-space: nowrap;
+    @include border-radius($border-radius-lg);
+    &:hover {
+      background: $dropdown-link-hover-bg;
+    }
+    &:not(.ui-timepicker-selected) {
+      .ui-timepicker-duration {
+        color: var(--#{$prefix}secondary-color);
+      }
+    }
+
+    &.ui-timepicker-selected,
+    .ui-timepicker-selected:hover {
+      background: var(--#{$prefix}primary);
+      color: var(--#{$prefix}primary-contrast);
+      .ui-timepicker-duration {
+        color: var(--#{$prefix}primary-contrast);
+      }
+    }
+
+    &.ui-timepicker-disabled,
+    &.ui-timepicker-selected.ui-timepicker-disabled {
+      color: $dropdown-link-disabled-color;
+      pointer-events: none;
+    }
+  }
+}

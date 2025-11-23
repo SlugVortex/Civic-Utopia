@@ -1,0 +1,69 @@
+/* Pricing
+******************************************************************************* */
+
+@import "../_bootstrap-extended/include";
+
+.pricing-plans {
+  ul {
+    list-style-type: circle;
+    li::marker {
+      font-size: 1.4rem;
+    }
+  }
+}
+
+.pricing-free-trial {
+  background-color: rgba(var(--#{prefix}primary-rgb), .04);
+}
+.badge-pro {
+  margin-inline-start: 1px !important;
+}
+.pricing-plans-comparison {
+  .table {
+    thead {
+      tr {
+        th {
+          background-color: transparent !important;
+          vertical-align: middle;
+        }
+      }
+    }
+    tr {
+      > th:first-child,
+      > td:first-child {
+        text-align: start;
+        white-space: nowrap;
+      }
+    }
+
+    tbody {
+      tr:last-child {
+        td {
+          border-block-end: 0;
+        }
+      }
+    }
+  }
+}
+
+.price-yearly-toggle {
+  position: absolute;
+  margin: auto;
+  inset-inline: 0;
+}
+.bg-alt-pricing {
+  background-color: var(--#{prefix}body-bg);
+}
+
+/* To position illustration */
+@include media-breakpoint-up(lg) {
+  .pricing-free-trial {
+    img {
+      position: absolute;
+      block-size: 115%;
+      inline-size: auto;
+      inset-block-end: 0;
+      inset-inline-end: 0;
+    }
+  }
+}

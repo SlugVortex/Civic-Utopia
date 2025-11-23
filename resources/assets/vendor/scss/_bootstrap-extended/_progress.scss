@@ -1,0 +1,33 @@
+/* Progress
+******************************************************************************* */
+
+.progress-bar {
+  background-color: var(--#{$prefix}primary);
+  color: var(--#{$prefix}white);
+}
+
+.progress-bar:first-child {
+  @include border-start-radius($progress-border-radius);
+}
+.progress-bar:last-child {
+  @include border-end-radius($progress-border-radius);
+}
+
+/* RTL
+******************************************************************************* */
+
+:dir(rtl) {
+  .progress-bar-striped {
+    @include gradient-striped(rgba(var(--#{$prefix}white-rgb), .15), -45deg);
+  }
+
+  .progress-bar-animated {
+    animation-direction: reverse;
+  }
+}
+
+[data-bs-theme="dark"] {
+  .progress {
+    --#{$prefix}progress-bg: #{$gray-100-dark};
+  }
+}

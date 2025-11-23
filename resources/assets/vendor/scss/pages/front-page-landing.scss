@@ -1,0 +1,299 @@
+/* Landing
+******************************************************************************* */
+
+@import "../_bootstrap-extended/include";
+
+// Variables
+@import "./front/variables";
+
+.section-py {
+  padding-block: 6.25rem;
+  padding-inline: 0;
+  @include media-breakpoint-down(xl) {
+    padding-block: 5rem;
+    padding-inline: 0;
+  }
+  @include media-breakpoint-down(md) {
+    padding-block: 3rem;
+    padding-inline: 0;
+  }
+}
+
+/* Hero */
+.landing-hero {
+  background-position: bottom;
+  background-repeat: no-repeat;
+  background-size: cover;
+  padding-block-start: 8.125rem;
+  @include media-breakpoint-up(lg) {
+    .hero-text-box {
+      margin-block: 0;
+      margin-inline: auto;
+      max-inline-size: 34.0625rem;
+    }
+  }
+
+  .hero-title {
+    font-size: 2.375rem;
+    font-weight: 800;
+    line-height: 1.16;
+    @include media-breakpoint-down(lg) {
+      font-size: 2.5rem;
+    }
+    @include media-breakpoint-down(sm) {
+      font-size: 2rem;
+    }
+  }
+  .hero-animation-img {
+    margin-block-end: -16rem;
+    @include media-breakpoint-down(lg) {
+      margin-block-end: -10rem;
+    }
+    @include media-breakpoint-down(sm) {
+      margin-block-end: -4rem;
+    }
+    .hero-dashboard-img {
+      img {
+        inline-size: 85%;
+        margin-block: 0;
+        margin-inline: auto;
+      }
+    }
+    .hero-elements-img {
+      inline-size: 100%;
+      inset-block-start: 50%;
+      inset-inline-start: 50%;
+      transform: translate(-50%, -50%);
+      :dir(rtl) & {
+        transform: translate(50%, -50%);
+      }
+      img {
+        inline-size: 100%;
+      }
+    }
+  }
+}
+.landing-hero-blank {
+  padding-block-start: 26rem;
+  @include media-breakpoint-down(xl) {
+    padding-block-start: 15rem;
+  }
+  @include media-breakpoint-down(sm) {
+    padding-block-start: 7rem;
+  }
+}
+@keyframes shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  80% {
+    background-position: 50% 90%;
+  }
+  100% {
+    background-position: 91% 100%;
+  }
+}
+
+/* Useful features */
+.landing-features {
+  padding-block-start: 16rem;
+  @include media-breakpoint-down(lg) {
+    padding-block-start: 10rem;
+  }
+  @include media-breakpoint-down(sm) {
+    padding-block-start: 4rem;
+  }
+  .features-icon-wrapper {
+    .features-icon-box {
+      .features-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid color-mix(in sRGB, var(--#{$prefix}paper-bg) 68%, var(--#{$prefix}primary));
+        border-width: 2px;
+        border-style: solid;
+        @include border-radius($border-radius-pill);
+        block-size: 5.125rem;
+        inline-size: 5.125rem;
+        margin-inline: auto;
+        @include transition(all .3s ease-in-out);
+      }
+      &:hover {
+        .features-icon {
+          background: color-mix(in sRGB, var(--#{$prefix}paper-bg) 84%, var(--#{$prefix}primary));
+        }
+      }
+      .features-icon-description {
+        margin-block: 0;
+        margin-inline: auto;
+        max-inline-size: 310px;
+      }
+    }
+  }
+}
+
+/* Real customers reviews */
+.landing-reviews {
+  .swiper-reviews-carousel {
+    .swiper {
+      overflow: visible !important;
+      padding-block-end: 3rem;
+      @include media-breakpoint-down(lg) {
+        padding-block-end: 2.5rem;
+      }
+      @include media-breakpoint-down(md) {
+        padding-block: 0 2rem;
+        padding-inline: 1rem;
+      }
+    }
+    .swiper-slide {
+      block-size: auto;
+      opacity: .5;
+      padding-block: 1rem;
+      padding-inline: 0;
+      @include transition(all .3s ease-in-out);
+      &.swiper-slide-active {
+        padding: 0;
+        opacity: 1;
+      }
+    }
+    .swiper-pagination {
+      inset-block-end: 0;
+      .swiper-pagination-bullet {
+        background-color: var(--#{$prefix}gray-100);
+        block-size: .625rem;
+        inline-size: .625rem;
+        opacity: 1;
+        &.swiper-pagination-bullet-active {
+          background-color: var(--#{$prefix}gray-300);
+        }
+      }
+    }
+    .client-logo {
+      block-size: 1.75rem;
+      object-fit: contain;
+    }
+  }
+  .swiper-logo-carousel {
+    .swiper {
+      max-inline-size: 60rem;
+      .swiper-slide {
+        display: flex;
+        justify-content: center;
+      }
+      .client-logo {
+        block-size: 1.75rem;
+        max-inline-size: 95%;
+        object-fit: contain;
+      }
+    }
+  }
+}
+
+/* our great team */
+.landing-team {
+  .team-image-box {
+    block-size: 11.5625rem;
+    @include border-top-radius(var(--#{$prefix}card-border-radius));
+    .card-img-position {
+      block-size: 15rem;
+      transform: translateX(-50%);
+      @include media-breakpoint-down(lg) {
+        block-size: 13rem;
+      }
+    }
+    @include media-breakpoint-down(sm) {
+      block-size: 11rem;
+    }
+  }
+  .card {
+    .team-media-icons {
+      .icon-base {
+        @include transition($card-transition);
+      }
+    }
+    &:hover {
+      .team-media-icons {
+        .icon-base[class*="facebook"] {
+          color: var(--#{$prefix}facebook);
+        }
+        .icon-base[class*="twitter"] {
+          color: var(--#{$prefix}twitter);
+        }
+        .icon-base[class*="linkedin"] {
+          color: var(--#{$prefix}linkedin);
+        }
+      }
+    }
+  }
+}
+
+/* Pricing plans */
+.landing-pricing {
+  .noUi-target,
+  .noUi-target .noUi-connect {
+    @include border-radius(.625rem);
+  }
+  #slider-pricing {
+    block-size: .375rem;
+    @include media-breakpoint-up(lg) {
+      inline-size: 75%;
+      margin-block: 0;
+      margin-inline: auto;
+    }
+  }
+  .card {
+    .card-header,
+    .card-body {
+      padding: 2rem;
+    }
+    .card-body {
+      padding-block-start: 0;
+    }
+  }
+}
+
+/* Fun facts */
+.landing-fun-facts {
+  .fun-facts-icon {
+    block-size: 5.125rem;
+    inline-size: 5.125rem;
+    @include transition(all .3s ease-in-out);
+  }
+  .fun-facts-text {
+    font-size: 2.125rem;
+  }
+}
+
+/* FAQs */
+.landing-faq {
+  .faq-image {
+    inline-size: 80%;
+    max-inline-size: 320px;
+  }
+}
+
+/* Contact US */
+.landing-contact {
+  .bg-icon-left {
+    .tagline,
+    .title {
+      opacity: .92;
+    }
+    .description {
+      opacity: .78;
+    }
+  }
+}
+
+
+:dir(rtl) {
+  // our great team
+  .landing-team {
+    .team-image-box {
+      .card-img-position {
+        transform: translateX(50%) !important;
+      }
+    }
+  }
+}

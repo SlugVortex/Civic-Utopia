@@ -1,0 +1,94 @@
+// * Cards Advance
+// *******************************************************************************
+
+@import "../_bootstrap-extended/include";
+
+// card illustration position image
+.card-img-position {
+  block-size: 115%;
+}
+
+.transparent-card {
+  .avatar {
+    .avatar-initial {
+      background-color: var(--#{$prefix}paper-bg);
+    }
+  }
+}
+
+.swiper-container {
+  background-color: var(--#{$prefix}paper-bg);
+  box-shadow: var(--#{$prefix}card-box-shadow);
+  @include border-radius($border-radius-lg);
+  &.swiper-sales {
+    .swiper-slide {
+      color: var(--#{$prefix}body-color);
+    }
+    .sales-text-bg {
+      @include border-radius($border-radius);
+      background-color: var(--#{$prefix}gray-75);
+      color: var(--#{$prefix}body-color);
+      min-inline-size: 34px;
+      padding-block: .25rem;
+      padding-inline: .5rem;
+      text-align: center;
+    }
+  }
+  .swiper-wrapper {
+    .swiper-slide {
+      padding: 1.5rem;
+      white-space: nowrap;
+      .weekly-sales-text-bg-primary {
+        @include border-radius($border-radius);
+        background-color: color-mix(in sRGB, var(--#{$prefix}primary) 90%, var(--#{$prefix}pure-black));
+        min-inline-size: 43px;
+        padding-block: .25rem;
+        padding-inline: .75rem;
+        text-align: center;
+      }
+    }
+  }
+  // bullet color for swiper with card bg
+  &.swiper-container-horizontal > .swiper-pagination-bullets {
+    inset-block: 1rem auto;
+    inset-inline: auto 1rem;
+    text-align: end;
+    .swiper-pagination-bullet {
+      background: rgba($pure-black, .26);
+      opacity: unset;
+
+      &.swiper-pagination-bullet-active {
+        background: var(--#{$prefix}primary);
+      }
+    }
+  }
+  &.swiper-container-horizontal:not(.swiper-sales) > .swiper-pagination-bullets .swiper-pagination-bullet.swiper-pagination-bullet-active {
+    background: var(--#{$prefix}white);
+  }
+}
+
+// For responsive carousel
+@include media-breakpoint-up(md) {
+  .swiper-container {
+    .swiper-wrapper {
+      .swiper-slide {
+        .weekly-sales-img {
+          position: absolute;
+          inset-block-start: 14%;
+          inset-inline-end: 3%;
+        }
+      }
+    }
+  }
+}
+@include media-breakpoint-up(xxl) {
+  .swiper-container {
+    .swiper-wrapper {
+      .swiper-slide {
+        .weekly-sales-img {
+          inset-inline-end: 4%;
+        }
+      }
+    }
+  }
+}

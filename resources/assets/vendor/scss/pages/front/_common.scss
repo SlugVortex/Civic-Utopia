@@ -1,0 +1,73 @@
+// scss
+body {
+  background-color: var(--#{$prefix}paper-bg);
+}
+.section-py {
+  padding-block: 6.25rem;
+  padding-inline: 0;
+  @include media-breakpoint-down(xl) {
+    padding-block: 4rem;
+    padding-inline: 0;
+  }
+  @include media-breakpoint-down(md) {
+    padding-block: 3rem;
+    padding-inline: 0;
+  }
+}
+
+.first-section-pt {
+  padding-block-start: 10.3rem;
+  @include media-breakpoint-down(xl) {
+    padding-block-start: 6.5rem;
+  }
+}
+
+.card {
+  /* card hover border color */
+  &[class*="card-hover-border-"] {
+    transition: $card-transition;
+  }
+}
+
+.banner-bg-img {
+  position: absolute;
+  z-index: -1;
+  block-size: 100%;
+  inline-size: 100%;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  object-fit: cover;
+  object-position: left;
+}
+
+.section-title-img {
+  block-size: 100%;
+  inline-size: 120%;
+  inset-block-start: 10px;
+  inset-inline-start: -12%;
+}
+.bg-icon-left,
+.bg-icon-right {
+  position: relative;
+  &::before {
+    position: absolute;
+    display: block;
+    inset-block-start: 0;
+  }
+}
+.bg-icon-left {
+  &::before {
+    inset-inline-start: 0;
+    @include media-breakpoint-down(sm) {
+      inset-inline-start: .625rem;
+    }
+  }
+}
+.bg-icon-right {
+  &::before {
+    inset-inline-end: 0;
+    @include media-breakpoint-down(sm) {
+      inset-inline-end: .625rem;
+    }
+  }
+}
