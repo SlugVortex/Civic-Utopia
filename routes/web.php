@@ -5,6 +5,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthenticationsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\DocumentController; // <-- THIS IS THE MISSING LINE
 
 // Redirect homepage to dashboard
 Route::redirect('/', '/dashboard');
@@ -29,12 +30,12 @@ Route::middleware('auth')->group(function () {
 
     // Posts
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
+    Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
 
     // --- ROUTES FOR COMMENTS ---
 
@@ -47,4 +48,11 @@ Route::middleware('auth')->group(function () {
 
     // Store a new comment for a specific post
     Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
+
+    // --- NEW AI ROUTE ---
+    Route::post('/posts/{post}/summarize', [PostController::class, 'summarize'])->name('posts.summarize');
+
+    // --- NEW DOCUMENT MANAGEMENT ROUTES ---
+    Route::get('/admin/documents', [DocumentController::class, 'index'])->name('admin.documents.index');
+    Route::post('/admin/documents', [DocumentController::class, 'store'])->name('admin.documents.store');
 });
