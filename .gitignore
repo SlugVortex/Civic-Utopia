@@ -8,6 +8,7 @@
 /vendor
 
 # .env
+.env
 .env.backup
 .env.production
 .phpactor.json
@@ -42,3 +43,5 @@ yarn-error.log
 
 # Except for 'template-customizer.js' inside 'resources/assets/vendor/js/'
 !/resources/assets/vendor/js/template-customizer.js
+
+
