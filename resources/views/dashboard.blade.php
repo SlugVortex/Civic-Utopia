@@ -16,7 +16,7 @@ $pageConfigs = ['myLayout' => 'vertical'];
         <div class="col-md-12">
             <div class="card">
                 <div class="card-body">
-                    <!-- ... (Post Creation Form remains the same) ... -->
+                    {{-- Post Creation Form --}}
                     <div class="mb-6 card p-4 shadow-sm">
                         <h5 class="card-title mb-4">Create a New Post</h5>
                         <form action="{{ route('posts.store') }}" method="POST">
@@ -29,11 +29,24 @@ $pageConfigs = ['myLayout' => 'vertical'];
 
                     <hr class="my-4">
 
-                    <!-- Real-time Post Feed Container -->
+                    {{-- Post Feed --}}
                     <h5 class="mb-4">Community Feed</h5>
                     <div id="post-feed-container" class="space-y-4">
                         @forelse ($posts as $post)
-                            <div class="card p-4 mb-3 border" id="post-{{ $post->id }}">
+                            {{-- 1. ADDED position-relative to the card --}}
+                            <div class="card p-4 mb-3 border position-relative" id="post-{{ $post->id }}">
+
+                                {{-- 2. MOVED DELETE BUTTON to the top right --}}
+                                @if ($post->user_id === Auth::id())
+                                    <form class="delete-post-form" action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-icon btn-sm btn-outline-danger">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </form>
+                                @endif
+
                                 <div class="d-flex align-items-start">
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center">
@@ -42,11 +55,17 @@ $pageConfigs = ['myLayout' => 'vertical'];
                                         </div>
                                         <p class="mt-2 mb-0 post-content" style="white-space: pre-wrap;">{{ $post->content }}</p>
 
-                                        {{-- UPDATED: Added Summarize button --}}
-                                        <div class="mt-3">
-                                            <a href="{{ route('posts.show', $post) }}" class="btn btn-sm btn-outline-secondary">View Comments</a>
-                                            <button class="btn btn-sm btn-outline-primary btn-summarize" data-post-id="{{ $post->id }}">
-                                                <i class="ri-sparkling-2-line me-1"></i> Summarize
+                                        <div class="summary-container alert alert-primary mt-3" style="display: none;">
+                                            <strong class="d-block mb-1"><i class="ri-sparkling-2-line me-1"></i>AI Summary</strong>
+                                            <p class="mb-0 summary-content"></p>
+                                        </div>
+
+                                        {{-- 3. REMOVED DELETE BUTTON from this action group --}}
+                                        <div class="mt-3 d-flex align-items-center">
+                                            <a href="{{ route('posts.show', $post) }}" class="btn btn-sm btn-outline-secondary me-2">View Comments</a>
+                                            <button class="btn btn-sm btn-outline-primary btn-summarize me-2" data-post-id="{{ $post->id }}">
+                                                <i class="ri-sparkling-2-line me-1"></i>
+                                                <span class="button-text">Summarize</span>
                                             </button>
                                         </div>
                                     </div>
@@ -61,55 +80,124 @@ $pageConfigs = ['myLayout' => 'vertical'];
         </div>
     </div>
 </div>
-
-<!-- Modal for displaying the summary -->
-<div class="modal fade" id="summaryModal" tabindex="-1" aria-labelledby="summaryModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="summaryModalLabel">AI Summary</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p id="summary-content">Loading...</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
 @endsection
 
 @push('scripts')
-{{-- ... (The style and script for real-time posts remain the same) ... --}}
+{{-- This section contains ALL necessary styles and scripts for the dashboard --}}
 <style>
-    /* ... existing styles ... */
+    /* Animation for new posts/comments */
+    .post-flash {
+        animation: flash-bg 2s ease-out;
+    }
+    @keyframes flash-bg {
+        from { background-color: #e0f2fe; }
+        to { background-color: transparent; }
+    }
+
+    /* 4. NEW CSS for the delete button positioning */
+    .delete-post-form {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+    }
 </style>
+
 <script>
-    // ... (existing script for real-time posts) ...
-
-    // --- NEW JAVASCRIPT FOR AI SUMMARIZER ---
     document.addEventListener('DOMContentLoaded', function () {
-        const summaryModal = new bootstrap.Modal(document.getElementById('summaryModal'));
-        const summaryContent = document.getElementById('summary-content');
 
-        // Use event delegation to handle clicks on buttons that might not exist yet
-        document.getElementById('post-feed-container').addEventListener('click', function (event) {
-            if (event.target.classList.contains('btn-summarize')) {
-                handleSummarizeClick(event.target);
+        // --- SCRIPT FOR REAL-TIME POSTS ---
+        const postFeedContainer = document.getElementById('post-feed-container');
+        const noPostsMessage = document.getElementById('no-posts-message');
+        console.log('[CivicUtopia] DOM loaded. Initializing Echo listener for posts channel.');
+
+        window.Echo.channel('posts')
+            .listen('PostCreated', (event) => {
+                console.log('[CivicUtopia] Received Broadcast Event: PostCreated', event);
+                if (noPostsMessage) {
+                    noPostsMessage.style.display = 'none';
+                }
+                const newPostHtml = createPostHtml(event.post);
+                postFeedContainer.insertAdjacentHTML('afterbegin', newPostHtml);
+            });
+
+        // 5. UPDATED JAVASCRIPT TEMPLATE to match new structure
+        function createPostHtml(post) {
+            const postUrl = `{{ url('/posts') }}/${post.id}`;
+            const postDestroyUrl = `{{ url('/posts') }}/${post.id}`;
+            const currentUserId = {{ Auth::id() }};
+
+            let deleteForm = '';
+            if (post.user_id === currentUserId) {
+                deleteForm = `
+                    <form class="delete-post-form" action="${postDestroyUrl}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" class="btn btn-icon btn-sm btn-outline-danger">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                    </form>
+                `;
+            }
+
+            return `
+                <div class="card p-4 mb-3 border" id="post-${post.id}">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <p class="fw-bold mb-0">${post.user.name}</p>
+                                <small class="text-muted">just now</small>
+                            </div>
+                            <p class="mt-2 mb-0 post-content" style="white-space: pre-wrap;">${escapeHtml(post.content)}</p>
+                            <div class="summary-container alert alert-primary mt-3" style="display: none;">
+                                <strong class="d-block mb-1"><i class="ri-sparkling-2-line me-1"></i>AI Summary</strong>
+                                <p class="mb-0 summary-content"></p>
+                            </div>
+                            <div class="mt-3 d-flex align-items-center">
+                                <a href="${postUrl}" class="btn btn-sm btn-outline-secondary me-2">
+                                    View Comments
+                                </a>
+                                <button class="btn btn-sm btn-outline-primary btn-summarize me-2" data-post-id="${post.id}">
+                                    <i class="ri-sparkling-2-line me-1"></i>
+                                    <span class="button-text">Summarize</span>
+                                </button>
+                                ${deleteForm}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+
+        // --- SCRIPT FOR AI SUMMARIZER & DYNAMIC BUTTONS ---
+        postFeedContainer.addEventListener('click', function (event) {
+            const button = event.target.closest('.btn-summarize');
+            if (button) {
+                handleSummarizeClick(button);
             }
         });
 
         async function handleSummarizeClick(button) {
             const postId = button.dataset.postId;
             const postElement = document.getElementById(`post-${postId}`);
-            const postContent = postElement.querySelector('.post-content').innerText;
+            const summaryContainer = postElement.querySelector('.summary-container');
+            const summaryContent = summaryContainer.querySelector('.summary-content');
+            const buttonText = button.querySelector('.button-text');
 
-            // Show the modal and set loading state
-            summaryContent.textContent = 'Generating summary, please wait...';
-            summaryModal.show();
+            if (summaryContainer.style.display === 'block') {
+                summaryContainer.style.display = 'none';
+                buttonText.textContent = 'Summarize';
+                return;
+            }
+
             button.disabled = true;
+            buttonText.textContent = 'Generating...';
 
             try {
                 const response = await fetch(`/posts/${postId}/summarize`, {
@@ -118,21 +206,22 @@ $pageConfigs = ['myLayout' => 'vertical'];
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({ content: postContent })
                 });
 
-                if (!response.ok) {
-                    throw new Error('Network response was not ok.');
-                }
+                if (!response.ok) { throw new Error('Network error.'); }
 
                 const data = await response.json();
                 summaryContent.textContent = data.summary;
+                summaryContainer.style.display = 'block';
+                buttonText.textContent = 'Hide Summary';
 
             } catch (error) {
                 console.error('Error fetching summary:', error);
-                summaryContent.textContent = 'Sorry, we could not generate a summary at this time.';
+                summaryContent.textContent = 'Could not generate a summary.';
+                summaryContainer.style.display = 'block';
+                buttonText.textContent = 'Summarize';
             } finally {
-                button.disabled = false; // Re-enable the button
+                button.disabled = false;
             }
         }
     });
