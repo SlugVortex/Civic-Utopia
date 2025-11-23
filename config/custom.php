@@ -17,7 +17,7 @@ return [
   'layout' => 'vertical', // vertical, horizontal
   'theme' => 'theme-default', // theme-default, theme-bordered, theme-semi-dark
   'style' => 'light', // light, dark, system
-  'textDirection' => 'ltr', // ltr, rtl  <-- THIS KEY IS ESSENTIAL
+  'textDirection' => 'ltr', // ltr, rtl  <-- CHANGE THIS TO 'ltr'
   'menuCollapsed' => false,
   'navbarType' => 'fixed', // fixed, static, hidden
   'footerType' => 'static', // static, fixed, hidden

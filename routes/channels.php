@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Broadcast;
+use App\Models\Post;
+use App\Models\User;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,11 +16,16 @@ use Illuminate\Support\Facades\Broadcast;
 */
 
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-return (int) $user->id === (int) $id;
+    return (int) $user->id === (int) $id;
 });
 
-// This defines the public 'posts' channel.
-// Since it's public, we just return true.
 Broadcast::channel('posts', function () {
-return true;
+    return true; // Public channel for new posts
+});
+
+// --- NEW CHANNEL AUTHORIZATION ---
+// Authorize users to listen on a specific post's channel.
+// We'll just check if the user is authenticated.
+Broadcast::channel('posts.{post}', function (User $user, Post $post) {
+    return Auth::check();
 });
