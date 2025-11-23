@@ -1,6 +1,4 @@
 @php
-// This is the new block.
-// It tells the layout helper that this page has no special configurations.
 $pageConfigs = ['myLayout' => 'vertical'];
 @endphp
 
@@ -56,6 +54,13 @@ $pageConfigs = ['myLayout' => 'vertical'];
                                             <small class="text-muted">{{ $post->created_at->diffForHumans() }}</small>
                                         </div>
                                         <p class="mt-2 mb-0" style="white-space: pre-wrap;">{{ $post->content }}</p>
+
+                                        {{-- NEW: Link to view the post and its comments --}}
+                                        <div class="mt-3">
+                                            <a href="{{ route('posts.show', $post) }}" class="btn btn-sm btn-outline-secondary">
+                                                View Post & Comments
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -74,36 +79,29 @@ $pageConfigs = ['myLayout' => 'vertical'];
 @endsection
 
 @push('scripts')
+{{-- The script section for real-time post updates remains the same --}}
 <style>
-    /* A simple animation to highlight new posts */
     .post-flash {
         animation: flash-bg 2s ease-out;
     }
-
     @keyframes flash-bg {
         from { background-color: #e0f2fe; }
         to { background-color: transparent; }
     }
 </style>
-
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const postFeedContainer = document.getElementById('post-feed-container');
         const noPostsMessage = document.getElementById('no-posts-message');
-
         console.log('[CivicUtopia] DOM loaded. Initializing Echo listener for posts channel.');
-
         window.Echo.channel('posts')
             .listen('PostCreated', (event) => {
                 console.log('[CivicUtopia] Received Broadcast Event: PostCreated', event);
-
                 if (noPostsMessage) {
                     noPostsMessage.style.display = 'none';
                 }
-
                 const newPostHtml = createPostHtml(event.post);
                 postFeedContainer.insertAdjacentHTML('afterbegin', newPostHtml);
-
                 const newPostElement = document.getElementById(`post-${event.post.id}`);
                 if (newPostElement) {
                     newPostElement.classList.add('post-flash');
@@ -111,6 +109,8 @@ $pageConfigs = ['myLayout' => 'vertical'];
             });
 
         function createPostHtml(post) {
+            // Note: We need to build the URL dynamically in JavaScript
+            const postUrl = `{{ url('/posts') }}/${post.id}`;
             return `
                 <div class="card p-4 mb-3 border" id="post-${post.id}">
                     <div class="d-flex align-items-start">
@@ -120,19 +120,20 @@ $pageConfigs = ['myLayout' => 'vertical'];
                                 <small class="text-muted">just now</small>
                             </div>
                             <p class="mt-2 mb-0" style="white-space: pre-wrap;">${escapeHtml(post.content)}</p>
+                            <div class="mt-3">
+                                <a href="${postUrl}" class="btn btn-sm btn-outline-secondary">
+                                    View Post & Comments
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
         }
-
         function escapeHtml(unsafe) {
             return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
     });
 </script>
