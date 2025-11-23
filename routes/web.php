@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthenticationsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DocumentController; // <-- THIS IS THE MISSING LINE
+use App\Http\Controllers\SearchController; // <-- Import the new controller
 
 // Redirect homepage to dashboard
 Route::redirect('/', '/dashboard');
@@ -20,6 +21,9 @@ Route::post('register', [AuthenticationsController::class, 'storeRegistration'])
 
 // --- Main Application Routes ---
 Route::middleware('auth')->group(function () {
+  // --- NEW SEARCH ROUTES ---
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
+    Route::post('/search', [SearchController::class, 'search'])->name('search.perform');
 
     // Dashboard
     Route::get('/dashboard', function () {

@@ -61,6 +61,7 @@ return [
             'driver' => 'azure',
             'connection_string' => env('AZURE_STORAGE_CONNECTION_STRING'),
             'container' => env('AZURE_STORAGE_CONTAINER'),
+            'url' => 'https://'.env('AZURE_STORAGE_ACCOUNT').'.blob.core.windows.net',
         ],
 
     ],
