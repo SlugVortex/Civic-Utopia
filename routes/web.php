@@ -47,4 +47,7 @@ Route::middleware('auth')->group(function () {
 
     // Store a new comment for a specific post
     Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
+     //
+     // --- NEW AI ROUTE ---
+    Route::post('/posts/{post}/summarize', [PostController::class, 'summarize'])->name('posts.summarize');
 });
