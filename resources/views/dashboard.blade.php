@@ -1,4 +1,3 @@
-{{-- Use the same layout as the other template pages for consistency --}}
 @extends('layouts/layoutMaster')
 
 @section('title', 'Digital Town Square')
