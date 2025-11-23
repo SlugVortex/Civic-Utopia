@@ -2,8 +2,13 @@
 
 namespace App\Providers;
 
+use Illuminate\Filesystem\FilesystemAdapter; // <-- 1. IMPORT LARAVEL'S ADAPTER
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Vite;
+use League\Flysystem\AzureBlobStorage\AzureBlobStorageAdapter;
+use League\Flysystem\Filesystem;
+use MicrosoftAzure\Storage\Blob\BlobRestProxy;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,13 +25,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
-            if ($src !== null) {
-                return [
-                    'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' : (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : '')
-                ];
-            }
-            return [];
-        });
+        try {
+            Storage::extend('azure', function ($app, $config) {
+                $client = BlobRestProxy::createBlobService($config['connection_string']);
+                $adapter = new AzureBlobStorageAdapter($client, $config['container']);
+                $filesystem = new Filesystem($adapter);
+
+                // 2. WRAP THE CORE FILESYSTEM IN LARAVEL'S ADAPTER
+                return new FilesystemAdapter($filesystem, $adapter, $config);
+            });
+        } catch (\Exception $e) {
+            Log::error('Could not register Azure Storage driver: ' . $e->getMessage());
+        }
     }
 }
