@@ -1,37 +1,33 @@
 <?php
 
-// Custom Configuration Settings
-// -------------------------------------------------------------------------------------
-// IMPORTANT: Ensure that you clear your browser's local storage to properly view the configuration changes in the template.
-// To clear local storage, follow this guide: (https://www.leadshook.com/help/how-to-clear-local-storage-in-google-chrome-browser/).
-
+// config/custom.php
 return [
-    'custom' => [
-        'myLayout' => 'vertical', // Layout type: 'vertical' (default), 'horizontal'
-        // 'primaryColor' => '#FF4646', // Set the primary color
-        'myTheme' => 'light', // Theme options: 'light' (default), 'dark', 'system'
-        'mySkins' => 'default', // Skin options: 'default', 'bordered'
-        'hasSemiDark' => false, // Semi-dark mode: true/false (false by default)
-        'myRTLMode' => false, // Right-to-left (RTL) layout: true/false (false by default)
-        'hasCustomizer' => true, // Enable/Disable customizer: true (default) or false
-        'displayCustomizer' => true, // Display customizer UI: true (default) or false
-        'contentLayout' => 'compact', // Layout size: 'compact' (container-xxl) or 'wide' (container-fluid)
-        'navbarType' => 'sticky', // Navbar type: 'sticky', 'static', or 'hidden' (only for vertical layout)
-        'footerFixed' => false, // Footer fixed position: true/false (false by default)
-        'menuFixed' => true, // Menu fixed position: true (default) or false (only for vertical layout)
-        'menuCollapsed' => false, // Menu collapsed state: true/false (false by default)
-        'headerType' => 'fixed', // Header type: 'static' or 'fixed' (only for horizontal layout)
-        'showDropdownOnHover' => true, // Dropdown on hover for horizontal layout: true/false
-        'customizerControls' => [
-            'color', // Enable/Disable color picker in customizer
-            'theme', // Enable/Disable theme selection in customizer
-            'skins', // Enable/Disable skin options in customizer
-            'semiDark', // Enable/Disable semi-dark mode in customizer
-            'layoutCollapsed', // Enable/Disable collapsed layout in customizer
-            'layoutNavbarOptions', // Enable/Disable navbar options in customizer
-            'headerType', // Enable/Disable header type selection in customizer
-            'contentLayout', // Enable/Disable content layout options in customizer
-            'rtl', // Enable/Disable RTL layout options in customizer
-        ], // List of available customizer controls
-    ],
+  'template' => [
+    'name' => 'Materialize',
+    'version' => '1.0.0',
+    'project_url' => 'https://themeselection.com/item/materialize-html-laravel-admin-template/',
+    'documentation_url' => 'https://demos.themeselection.com/materialize-html-laravel-admin-template/documentation/laravel-introduction.html',
+    'release_notes_url' => 'https://demos.themeselection.com/materialize-html-laravel-admin-template/documentation/laravel-changelog.html',
+    'github_url' => 'https://github.com/themeselection/materialize-html-laravel-admin-template-free',
+    'facebook_url' => 'https://www.facebook.com/ThemeSelections/',
+    'twitter_url' => 'https://twitter.com/Theme_Selection',
+    'dribbble_url' => 'https://dribbble.com/themeselection',
+    'instagram_url' => 'https://www.instagram.com/themeselection/',
+  ],
+  'layout' => 'vertical', // vertical, horizontal
+  'theme' => 'theme-default', // theme-default, theme-bordered, theme-semi-dark
+  'style' => 'light', // light, dark, system
+  'textDirection' => 'ltr', // ltr, rtl  <-- THIS KEY IS ESSENTIAL
+  'menuCollapsed' => false,
+  'navbarType' => 'fixed', // fixed, static, hidden
+  'footerType' => 'static', // static, fixed, hidden
+  'contentWidth' => 'compact', // compact, fluid
+  'showMenu' => true,
+  'hasCustomizer' => true,
+  'customizerStyle' => 'light',
+  'isCardShadow' => true,
+  'isRippleEffect' => true,
+  'isNavbarBlur' => true,
+  'isSwitcherEnabled' => true,
+  'isSidebarCollapsed' => false,
 ];

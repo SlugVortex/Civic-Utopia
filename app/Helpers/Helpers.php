@@ -27,7 +27,8 @@ class Helpers
   public static function appClasses()
   {
 
-    $data = config('custom.custom');
+    // THIS IS THE CRITICAL FIX: Changed from config('custom.custom') to config('custom')
+    $data = config('custom');
 
 
     // default data array
@@ -177,7 +178,8 @@ class Helpers
     // Get Header type from cookie or fall back to config
     $headerTypeFromCookie = isset($_COOKIE['headerType']) ? $_COOKIE['headerType'] : $data['headerType'];
 
-    $directionVal = isset($_COOKIE['direction']) ? ($_COOKIE['direction'] === 'true' ? 'rtl' : 'ltr') : $data['myRTLMode'];
+    // THIS IS THE LINE THAT CALCULATES textDirection
+    $directionVal = isset($_COOKIE['direction']) ? ($_COOKIE['direction'] === 'true' ? 'rtl' : 'ltr') : ($data['myRTLMode'] ? 'rtl' : 'ltr');
 
     //layout classes
     $layoutClasses = [
@@ -190,7 +192,7 @@ class Helpers
       'themeOpt' => $data['myTheme'],
       'themeOptVal' => $themeUpdatedVal,
       'rtlMode' => $data['myRTLMode'],
-      'textDirection' => $directionVal,
+      'textDirection' => $directionVal, // <-- AND THIS IS WHERE IT'S SET FOR THE VIEW
       'menuCollapsed' => $menuCollapsedFromCookie,
       'hasCustomizer' => $data['hasCustomizer'],
       'showDropdownOnHover' => $data['showDropdownOnHover'],
@@ -235,14 +237,22 @@ class Helpers
       $layoutClasses['footerFixed'] = 'layout-footer-fixed';
     }
 
-    // RTL Layout/Mode
-    if ($layoutClasses['rtlMode'] == true) {
+    // RTL Layout/Mode - I've updated this logic slightly for clarity
+    if ($data['myRTLMode'] == true) {
       $layoutClasses['rtlMode'] = 'rtl';
-      $layoutClasses['textDirection'] = isset($_COOKIE['direction']) ? ($_COOKIE['direction'] === 'true' ? 'rtl' : 'ltr') : 'rtl';
+      $layoutClasses['textDirection'] = 'rtl';
     } else {
       $layoutClasses['rtlMode'] = 'ltr';
-      $layoutClasses['textDirection'] = isset($_COOKIE['direction']) && $_COOKIE['direction'] === 'true' ? 'rtl' : 'ltr';
+      $layoutClasses['textDirection'] = 'ltr';
     }
+
+    // Override with cookie if set
+    if (isset($_COOKIE['direction']) && $_COOKIE['direction'] === 'true') {
+        $layoutClasses['textDirection'] = 'rtl';
+    } elseif (isset($_COOKIE['direction'])) {
+        $layoutClasses['textDirection'] = 'ltr';
+    }
+
 
     // Show DropdownOnHover for Horizontal Menu
     if ($layoutClasses['showDropdownOnHover'] == true) {

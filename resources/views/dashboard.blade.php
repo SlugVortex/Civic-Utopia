@@ -1,3 +1,9 @@
+@php
+// This is the new block.
+// It tells the layout helper that this page has no special configurations.
+$pageConfigs = ['myLayout' => 'vertical'];
+@endphp
+
 @extends('layouts/layoutMaster')
 
 @section('title', 'Digital Town Square')

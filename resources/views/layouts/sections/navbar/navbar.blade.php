@@ -1,5 +1,6 @@
 @php
-$containerNav = $configData['contentWidth'] === 'compact' ? 'container-xxl' : 'container-fluid';
+// THIS IS THE FIX: Changed 'contentWidth' to 'contentLayout' to match the key provided by Helpers.php
+$containerNav = $configData['contentLayout'] === 'compact' ? 'container-xxl' : 'container-fluid';
 $navbarDetached = ($navbarDetached ?? '');
 @endphp
 
