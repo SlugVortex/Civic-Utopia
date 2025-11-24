@@ -9,6 +9,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Admin\TopicController as AdminTopicController;
 use App\Http\Controllers\TopicController; // Frontend Topic Controller
+use App\Http\Controllers\SpeechController;
 use App\Models\Post;
 use App\Models\Topic;
 
@@ -64,4 +65,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('documents', DocumentController::class)->only(['index', 'store']);
         Route::resource('topics', AdminTopicController::class)->except(['show', 'edit', 'update']);
     });
+
+     // --- NEW SPEECH ROUTE ---
+    Route::post('/speech/generate', [SpeechController::class, 'generate'])->name('speech.generate');
 });

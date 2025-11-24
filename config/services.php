@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    'azure' => [
+        'openai' => [
+            'endpoint' => env('AZURE_AI_PROJECT_ENDPOINT'),
+            'api_key' => env('AZURE_AI_API_KEY'),
+            'deployment' => env('AZURE_AI_MODEL_DEPLOYMENT_NAME'),
+            'api_version' => env('AZURE_API_VERSION', '2024-05-01-preview'),
+        ],
+        'vision' => [
+            'endpoint' => env('AZURE_AI_VISION_ENDPOINT'),
+            'api_key' => env('AZURE_AI_VISION_API_KEY'),
+        ],
+        'speech' => [
+            'key' => env('AZURE_AI_SPEECH_KEY'),
+            'region' => env('AZURE_AI_SPEECH_REGION'),
+        ],
+    ],
+
 ];

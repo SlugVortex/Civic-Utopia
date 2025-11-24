@@ -4,13 +4,10 @@
   'resources/assets/vendor/js/helpers.js'
 ])
 
-@if ($configData['hasCustomizer'])
-  <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
-  @vite([
-    'resources/assets/vendor/js/template-customizer.js',
+{{-- Customizer scripts have been removed from this file. --}}
+@vite([
     'resources/assets/js/config.js'
-  ])
-@endif
+])
 
 <!-- END: Core JS-->
 <!-- BEGIN: Vendor JS-->
@@ -22,12 +19,10 @@
   'resources/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js',
   'resources/assets/vendor/libs/hammer/hammer.js',
   'resources/assets/vendor/libs/typeahead-js/typeahead.js',
-  'resources/assets/vendor/js/menu.js'
+  'resources/assets/vendor/js/menu.js',
+  'resources/assets/vendor/libs/pickr/pickr.js' {{-- We keep pickr for the profile page --}}
 ])
 
-@if ($configData['hasCustomizer'])
-  @vite('resources/assets/vendor/libs/pickr/pickr.js')
-@endif
 <!-- END: Page Vendor JS-->
 
 <!-- BEGIN: Theme JS-->

@@ -12,7 +12,8 @@ $pageConfigs = ['myLayout' => 'vertical'];
         <div class="col-lg-8 col-md-10">
             {{-- Back Button --}}
             <div class="mb-3">
-                <a href="{{ url()->previous(route('dashboard')) }}" class="btn btn-light"><i class="ri-arrow-left-s-line me-1"></i> Back to Feed</a>
+                {{--! FIX: Changed url()->previous() to a direct route() call --}}
+                <a href="{{ route('dashboard') }}" class="btn btn-light"><i class="ri-arrow-left-s-line me-1"></i> Back to Feed</a>
             </div>
 
             {{-- Main Post Card --}}

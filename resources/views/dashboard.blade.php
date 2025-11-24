@@ -12,7 +12,6 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
     <div class="row">
         {{-- Sidebar Column --}}
         <div class="col-lg-3 col-md-5 order-0 order-md-0">
-            {{-- Added pt-lg-4 for top padding on large screens --}}
             <div class="sticky-sidebar pt-lg-4">
                 {{-- Live Feeds Widget --}}
                 <div class="card mb-4 sidebar-widget">
@@ -67,7 +66,6 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
 
         {{-- Main Feed Column --}}
         <div class="col-lg-9 col-md-7 order-1 order-md-1">
-            {{-- Adjusted heading style for better alignment and appearance --}}
             <h4 class="py-lg-4 py-3 mb-4 text-body-secondary">{{ $activeTopic ? 'Topic: ' . $activeTopic->name : 'Digital Town Square' }}</h4>
 
             {{-- Post Creation Form --}}
@@ -82,7 +80,6 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
                             <div class="flex-grow-1">
                                 <textarea name="content" rows="3" class="form-control border-0 p-0 shadow-none" placeholder="What's happening in your community?" required></textarea>
 
-                                {{-- TOPIC SELECTOR --}}
                                 <div class="mt-3">
                                     <label for="topic_id" class="form-label">Select a Topic (Optional)</label>
                                     <select class="form-select form-select-sm" name="topic_id" id="topic_id">
@@ -94,6 +91,8 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
                                         @endforeach
                                     </select>
                                 </div>
+
+                                <div id="media-preview" class="mt-3"></div>
 
                                 <div class="mt-3 d-flex justify-content-between align-items-center">
                                     <label for="media-upload" class="btn btn-sm btn-outline-primary mb-0">
@@ -109,7 +108,6 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
                 </div>
             </div>
 
-            {{-- Post Feed --}}
             <div id="post-feed-container">
                 @forelse ($posts as $post)
                     @include('posts._post_card', ['post' => $post])
@@ -123,35 +121,128 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
     </div>
 </div>
 
-{{-- Image Modal --}}
 <div id="image-modal-container"></div>
 @endsection
 
-
 @push('scripts')
-{{-- The Javascript for social actions is now included here --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const postFeedContainer = document.getElementById('post-feed-container');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    let currentAudio = null;
+    let lastPlayedButton = null;
 
-    // === DELEGATED EVENT LISTENERS for social actions ===
-    postFeedContainer.addEventListener('click', function (event) {
+    document.body.addEventListener('click', function (event) {
         const likeButton = event.target.closest('.btn-like');
         const bookmarkButton = event.target.closest('.btn-bookmark');
         const shareButton = event.target.closest('.btn-share');
         const summarizeButton = event.target.closest('.btn-summarize');
+        const readAloudButton = event.target.closest('.btn-read-aloud');
+        const imageModalTrigger = event.target.closest('.carousel-image');
+        const modalClose = event.target.closest('.image-modal-close');
+        const modalBackdrop = event.target.closest('.image-modal');
 
-        if (likeButton) {
-            handleLikeClick(likeButton);
-        } else if (bookmarkButton) {
-            handleBookmarkClick(bookmarkButton);
-        } else if (shareButton) {
-            handleShareClick(shareButton);
-        } else if (summarizeButton) {
-            handleSummarizeClick(summarizeButton);
+        if (likeButton) handleLikeClick(likeButton);
+        else if (bookmarkButton) handleBookmarkClick(bookmarkButton);
+        else if (shareButton) handleShareClick(shareButton);
+        else if (summarizeButton) handleSummarizeClick(summarizeButton);
+        else if (readAloudButton) handleReadAloudClick(readAloudButton);
+        else if (imageModalTrigger) openImageModal(imageModalTrigger);
+        else if (modalClose) closeModal();
+        else if (modalBackdrop && event.target === modalBackdrop) closeModal();
+    });
+
+    const mediaUploadInput = document.getElementById('media-upload');
+    const mediaPreviewContainer = document.getElementById('media-preview');
+
+    mediaUploadInput.addEventListener('change', function() {
+        mediaPreviewContainer.innerHTML = '';
+        if (this.files.length > 0) {
+            const fileList = document.createElement('ul');
+            fileList.className = 'list-unstyled mb-0 small text-muted';
+            Array.from(this.files).forEach(file => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `📎 ${file.name}`;
+                fileList.appendChild(listItem);
+            });
+            mediaPreviewContainer.appendChild(fileList);
         }
     });
+
+    async function handleReadAloudClick(button) {
+        const postId = button.dataset.postId;
+        const icon = button.querySelector('i');
+
+        if (currentAudio && !currentAudio.paused && lastPlayedButton === button) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            icon.className = 'ri-volume-up-line';
+            currentAudio = null;
+            lastPlayedButton = null;
+            return;
+        }
+
+        if (currentAudio && !currentAudio.paused) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            if (lastPlayedButton) {
+                lastPlayedButton.querySelector('i').className = 'ri-volume-up-line';
+            }
+        }
+
+        icon.className = 'ri-loader-4-line';
+        lastPlayedButton = button;
+
+        try {
+            console.log(`[Speech] Requesting audio for post ${postId}`);
+            const response = await fetch('{{ route("speech.generate") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ post_id: postId })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('[Speech] Server responded with an error:', errorData);
+                throw new Error(errorData.error || 'Speech generation failed on the server.');
+            }
+
+            const data = await response.json();
+            if (!data.audio) {
+                throw new Error('No audio data received from server.');
+            }
+
+            console.log(`[Speech] Received audio for post ${postId}. Playing now.`);
+            const audioSrc = `data:audio/mp3;base64,${data.audio}`;
+            currentAudio = new Audio(audioSrc);
+
+            icon.className = 'ri-stop-circle-line';
+
+            currentAudio.play().catch(e => {
+                console.error("Audio playback failed:", e);
+                alert("Audio playback was blocked by the browser. Please interact with the page first.");
+                icon.className = 'ri-volume-up-line';
+            });
+
+            currentAudio.onended = () => {
+                console.log(`[Speech] Finished playing audio for post ${postId}.`);
+                icon.className = 'ri-volume-up-line';
+                currentAudio = null;
+                lastPlayedButton = null;
+            };
+
+        } catch (error) {
+            console.error('[Speech] Error generating or playing speech:', error);
+            icon.className = 'ri-volume-up-line';
+            alert('Could not generate audio for this post. Please check the console and logs for more details.');
+            currentAudio = null;
+            lastPlayedButton = null;
+        }
+    }
 
     async function handleLikeClick(button) {
         const postId = button.dataset.postId;
@@ -163,14 +254,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
             });
-
             if (!response.ok) throw new Error('Like failed');
             const data = await response.json();
 
             countSpan.textContent = data.likes_count > 0 ? data.likes_count : '';
             button.classList.toggle('liked', data.action === 'liked');
             icon.className = data.action === 'liked' ? 'ri-heart-fill me-1' : 'ri-heart-line me-1';
-
         } catch (error) {
             console.error('Error liking post:', error);
         }
@@ -188,7 +277,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             if (!response.ok) throw new Error('Bookmark failed');
             const data = await response.json();
-
             button.classList.toggle('active', data.action === 'bookmarked');
             icon.className = data.action === 'bookmarked' ? 'ri-bookmark-fill me-1' : 'ri-bookmark-line me-1';
         } catch (error) {
@@ -212,103 +300,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-
-    // === CAROUSEL FUNCTIONALITY ===
-    document.querySelectorAll('.post-carousel').forEach(carousel => {
-        const slides = carousel.querySelectorAll('.carousel-slide');
-        const indicators = carousel.querySelectorAll('.indicator');
-        const prevBtn = carousel.querySelector('.prev-btn');
-        const nextBtn = carousel.querySelector('.next-btn');
-        let currentSlide = 0;
-
-        function showSlide(index) {
-            slides.forEach((slide, i) => {
-                slide.classList.remove('active');
-                if (indicators[i]) indicators[i].classList.remove('active');
-            });
-
-            currentSlide = index;
-            if (index >= slides.length) currentSlide = 0;
-            if (index < 0) currentSlide = slides.length - 1;
-
-            if (slides[currentSlide]) {
-                slides[currentSlide].classList.add('active');
-            }
-            if (indicators[currentSlide]) {
-                indicators[currentSlide].classList.add('active');
-            }
-        }
-
-        if (prevBtn && nextBtn) { // Only add listeners if buttons exist
-            prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
-            nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
-        }
-
-        indicators.forEach((indicator, index) => {
-            indicator.addEventListener('click', () => showSlide(index));
-        });
-    });
-
-    // === IMAGE MODAL ===
-    const modalContainer = document.getElementById('image-modal-container');
-    modalContainer.innerHTML = `
-        <div class="image-modal">
-            <span class="image-modal-close">&times;</span>
-            <img src="" alt="Expanded image">
-        </div>
-    `;
-    const modal = modalContainer.querySelector('.image-modal');
-    const modalImg = modal.querySelector('img');
-    const closeBtn = modal.querySelector('.image-modal-close');
-
-    function closeModal() {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('carousel-image')) {
-            modalImg.src = e.target.dataset.fullImage;
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-    });
-    closeBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(); });
-
-    // === POST FORM SUBMISSION ===
-    const createPostForm = document.querySelector('#post-creation-form');
-    const postSubmitButton = createPostForm.querySelector('button[type="submit"]');
-
-    createPostForm.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        postSubmitButton.disabled = true;
-        postSubmitButton.textContent = 'Posting...';
-        const formData = new FormData(createPostForm);
-
-        try {
-            const response = await fetch('{{ route("posts.store") }}', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                body: formData
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Could not create post.');
-            }
-            createPostForm.reset();
-            location.reload();
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message);
-        } finally {
-            postSubmitButton.disabled = false;
-            postSubmitButton.textContent = 'Post';
-        }
-    });
-
-    // === SUMMARIZE FUNCTIONALITY ===
     async function handleSummarizeClick(button) {
         const postId = button.dataset.postId;
         const postElement = document.getElementById(`post-${postId}`);
@@ -348,6 +339,84 @@ document.addEventListener('DOMContentLoaded', function () {
             buttonIcon.className = 'ri-sparkling-2-line me-1';
         }
     }
+
+    // === CAROUSEL, MODAL, AND POST FORM SUBMISSION LOGIC... ===
+    // This logic remains the same as the previous correct version.
+
+    // CAROUSEL
+    document.querySelectorAll('.post-carousel').forEach(carousel => {
+        const slides = carousel.querySelectorAll('.carousel-slide');
+        const indicators = carousel.querySelectorAll('.indicator');
+        const prevBtn = carousel.querySelector('.prev-btn');
+        const nextBtn = carousel.querySelector('.next-btn');
+        let currentSlide = 0;
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                if (indicators[i]) indicators[i].classList.remove('active');
+            });
+            currentSlide = index;
+            if (index >= slides.length) currentSlide = 0;
+            if (index < 0) currentSlide = slides.length - 1;
+            if (slides[currentSlide]) slides[currentSlide].classList.add('active');
+            if (indicators[currentSlide]) indicators[currentSlide].classList.add('active');
+        }
+        if (prevBtn && nextBtn) {
+            prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
+            nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
+        }
+        indicators.forEach((indicator, index) => {
+            indicator.addEventListener('click', () => showSlide(index));
+        });
+    });
+
+    // MODAL
+    const modalContainer = document.getElementById('image-modal-container');
+    modalContainer.innerHTML = `<div class="image-modal"><span class="image-modal-close">&times;</span><img src="" alt="Expanded image"></div>`;
+    const modal = modalContainer.querySelector('.image-modal');
+    const modalImg = modal.querySelector('img');
+    const closeBtn = modal.querySelector('.image-modal-close');
+    function closeModal() {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    function openImageModal(trigger) {
+        modalImg.src = trigger.dataset.fullImage;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(); });
+
+    // POST FORM
+    const createPostForm = document.querySelector('#post-creation-form');
+    const postSubmitButton = createPostForm.querySelector('button[type="submit"]');
+    createPostForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        postSubmitButton.disabled = true;
+        postSubmitButton.textContent = 'Posting...';
+        const formData = new FormData(createPostForm);
+        try {
+            const response = await fetch('{{ route("posts.store") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                body: formData
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Could not create post.');
+            }
+            createPostForm.reset();
+            mediaPreviewContainer.innerHTML = '';
+            location.reload();
+        } catch (error) {
+            console.error('Error:', error);
+            alert(error.message);
+        } finally {
+            postSubmitButton.disabled = false;
+            postSubmitButton.textContent = 'Post';
+        }
+    });
+
 });
 </script>
 @endpush

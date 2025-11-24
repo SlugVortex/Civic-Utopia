@@ -11,26 +11,33 @@
                         <small class="text-muted ms-2">@.{{ Str::of($post->user->email)->before('@') }}</small>
                         <small class="text-muted ms-2">· {{ $post->created_at->diffForHumans() }}</small>
                     </div>
-                    @if (Auth::check() && $post->user_id === Auth::id())
-                      <div class="dropdown">
-                        <button class="btn p-0" type="button" id="postAction-{{ $post->id }}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                          <i class="ri-more-2-line"></i>
+                    <div class="d-flex align-items-center">
+                        {{-- NEW: Read Aloud Button --}}
+                        <button class="btn btn-sm btn-text-secondary btn-read-aloud p-0 me-2" data-post-id="{{ $post->id }}" title="Read post aloud">
+                            <i class="ri-volume-up-line"></i>
                         </button>
-                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="postAction-{{ $post->id }}">
-                            <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="dropdown-item text-danger"><i class="ri-delete-bin-line me-2"></i>Delete Post</button>
-                            </form>
-                        </div>
-                      </div>
-                    @endif
+
+                        @if (Auth::check() && $post->user_id === Auth::id())
+                          <div class="dropdown">
+                            <button class="btn p-0" type="button" id="postAction-{{ $post->id }}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                              <i class="ri-more-2-line"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="postAction-{{ $post->id }}">
+                                <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="dropdown-item text-danger"><i class="ri-delete-bin-line me-2"></i>Delete Post</button>
+                                </form>
+                            </div>
+                          </div>
+                        @endif
+                    </div>
                 </div>
 
                 <p class="post-content mb-3" style="white-space: pre-wrap;">{{ $post->content }}</p>
 
                 {{-- Image Carousel --}}
-                @if($post->media && $post->media->isNotEmpty())
+                 @if($post->media && $post->media->isNotEmpty())
                     @php
                         $images = $post->media->where('file_type', 'image');
                         $videos = $post->media->where('file_type', 'video');
@@ -86,7 +93,6 @@
                         <button class="btn btn-sm btn-text-secondary btn-share" data-url="{{ route('posts.show', $post) }}">
                             <i class="ri-share-forward-line me-1"></i> Share
                         </button>
-                        {{-- RESTORED SUMMARIZE BUTTON --}}
                         <button class="btn btn-sm btn-text-secondary btn-summarize" data-post-id="{{ $post->id }}">
                             <i class="ri-sparkling-2-line me-1"></i>
                             <span class="button-text">Summarize</span>
