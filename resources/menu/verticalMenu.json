@@ -4,7 +4,13 @@
       "url": "/",
       "name": "Home",
       "icon": "menu-icon icon-base ri ri-home-smile-line",
-      "slug": "pages-home"
+      "slug": "dashboard"
+    },
+    {
+      "url": "/ballots",
+      "name": "Ballot Box",
+      "icon": "menu-icon icon-base ri ri-government-line",
+      "slug": "ballots.index"
     },
     {
       "url": "/page-2",

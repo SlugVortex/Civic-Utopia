@@ -50,9 +50,6 @@ class PostController extends Controller
             $post->load('user', 'media', 'topics');
             Log::info('[CivicUtopia] New post created successfully.', ['post_id' => $post->id]);
 
-            Log::warning('[CivicUtopia] Broadcasting is temporarily disabled.');
-
-
             if ($request->wantsJson()) {
                 return response()->json($post, 201);
             }
@@ -105,7 +102,6 @@ class PostController extends Controller
             }
 
             $summary = trim($response->json('choices.0.message.content'));
-
             $post->update(['summary' => $summary]);
             Log::info('[CivicUtopia] AI summary generated and SAVED for Post ID: ' . $post->id);
 
@@ -165,7 +161,6 @@ class PostController extends Controller
         }
     }
 
-     // --- NEW METHOD FOR "EXPLAIN LIKE I'M 5" ---
     public function explain(Request $request, Post $post)
     {
         Log::info('[PostController] Generating ELI5 explanation for Post ID: ' . $post->id);
@@ -226,9 +221,7 @@ class PostController extends Controller
 
         Log::info('[PostController] Analyzing ' . $images->count() . ' images for Post ID: ' . $post->id);
 
-        // !CHANGE: Request 'denseCaptions' for more detail instead of just 'caption'
         $requestUrl = rtrim($visionEndpoint, '/') . '/computervision/imageanalysis:analyze?api-version=2023-10-01&features=denseCaptions';
-
         $descriptions = [];
 
         foreach ($images as $image) {
@@ -251,7 +244,6 @@ class PostController extends Controller
                 ->post($requestUrl);
 
                 if ($response->successful()) {
-                    // !CHANGE: Process the 'denseCaptionsResult' array to get detailed descriptions.
                     $denseCaptions = $response->json('denseCaptionsResult.values');
                     if (is_array($denseCaptions)) {
                         foreach ($denseCaptions as $caption) {
@@ -271,7 +263,6 @@ class PostController extends Controller
             }
         }
 
-        // We only want the most relevant descriptions, so we'll take up to 5 to avoid a very long prompt.
         $uniqueDescriptions = array_unique($descriptions);
         Log::info('[PostController] Image analysis complete.', ['descriptions' => $uniqueDescriptions]);
         return array_slice($uniqueDescriptions, 0, 5);

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthenticationsController;
 use App\Http\Controllers\ProfileController;
@@ -8,8 +9,9 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Admin\TopicController as AdminTopicController;
-use App\Http\Controllers\TopicController; // Frontend Topic Controller
+use App\Http\Controllers\TopicController;
 use App\Http\Controllers\SpeechController;
+use App\Http\Controllers\BallotController;
 use App\Models\Post;
 use App\Models\Topic;
 
@@ -44,7 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/posts/{post}/summarize', [PostController::class, 'summarize'])->name('posts.summarize');
     Route::post('/posts/{post}/like', [PostController::class, 'toggleLike'])->name('posts.like');
     Route::post('/posts/{post}/bookmark', [PostController::class, 'toggleBookmark'])->name('posts.bookmark');
-    Route::post('/posts/{post}/explain', [PostController::class, 'explain'])->name('posts.explain'); // <-- ADD THIS LINE
+    Route::post('/posts/{post}/explain', [PostController::class, 'explain'])->name('posts.explain');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -67,6 +69,14 @@ Route::middleware('auth')->group(function () {
         Route::resource('topics', AdminTopicController::class)->except(['show', 'edit', 'update']);
     });
 
-     // --- NEW SPEECH ROUTE ---
+    // --- SPEECH ROUTE ---
     Route::post('/speech/generate', [SpeechController::class, 'generate'])->name('speech.generate');
+
+    // --- BALLOT ROUTES ---
+    Route::get('/ballots', [BallotController::class, 'index'])->name('ballots.index');
+    Route::get('/ballots/create', [BallotController::class, 'create'])->name('ballots.create'); // <-- New Create Form
+    Route::post('/ballots', [BallotController::class, 'store'])->name('ballots.store');         // <-- Store new ballot
+    Route::get('/ballots/{ballot}', [BallotController::class, 'show'])->name('ballots.show');
+    Route::post('/ballots/{ballot}/analyze', [BallotController::class, 'analyze'])->name('ballots.analyze');
+    Route::post('/ballots/{ballot}/ask', [BallotController::class, 'askBot'])->name('ballots.ask'); // <-- New Chat Route
 });
