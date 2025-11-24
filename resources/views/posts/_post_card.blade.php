@@ -23,11 +23,18 @@
                               <i class="ri-more-2-line"></i>
                             </button>
                             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="postAction-{{ $post->id }}">
-                                <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="dropdown-item text-danger"><i class="ri-delete-bin-line me-2"></i>Delete Post</button>
-                                </form>
+                                {{-- NEW "Explain" Button --}}
+      <button class="dropdown-item btn-explain" data-post-id="{{ $post->id }}">
+          <i class="ri-rocket-line me-2"></i>Explain Like I'm 5
+      </button>
+
+      <div class="dropdown-divider"></div>
+
+      <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+          @csrf
+          @method('DELETE')
+          <button type="submit" class="dropdown-item text-danger"><i class="ri-delete-bin-line me-2"></i>Delete Post</button>
+      </form>
                             </div>
                           </div>
                         @endif

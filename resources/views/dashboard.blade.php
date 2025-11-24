@@ -122,6 +122,23 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
 </div>
 
 <div id="image-modal-container"></div>
+{{--! NEW: Explanation Modal --}}
+<div class="modal fade" id="explanation-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="ri-rocket-line me-2"></i>Explain Like I'm 5</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="explanation-content">Generating explanation...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -132,12 +149,17 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentAudio = null;
     let lastPlayedButton = null;
 
+    const explainModalEl = document.getElementById('explanation-modal');
+    const explainModal = new bootstrap.Modal(explainModalEl);
+    const explanationContent = document.getElementById('explanation-content');
+
     document.body.addEventListener('click', function (event) {
         const likeButton = event.target.closest('.btn-like');
         const bookmarkButton = event.target.closest('.btn-bookmark');
         const shareButton = event.target.closest('.btn-share');
         const summarizeButton = event.target.closest('.btn-summarize');
         const readAloudButton = event.target.closest('.btn-read-aloud');
+        const explainButton = event.target.closest('.btn-explain');
         const imageModalTrigger = event.target.closest('.carousel-image');
         const modalClose = event.target.closest('.image-modal-close');
         const modalBackdrop = event.target.closest('.image-modal');
@@ -147,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
         else if (shareButton) handleShareClick(shareButton);
         else if (summarizeButton) handleSummarizeClick(summarizeButton);
         else if (readAloudButton) handleReadAloudClick(readAloudButton);
+        else if (explainButton) handleExplainClick(explainButton);
         else if (imageModalTrigger) openImageModal(imageModalTrigger);
         else if (modalClose) closeModal();
         else if (modalBackdrop && event.target === modalBackdrop) closeModal();
@@ -155,19 +178,43 @@ document.addEventListener('DOMContentLoaded', function () {
     const mediaUploadInput = document.getElementById('media-upload');
     const mediaPreviewContainer = document.getElementById('media-preview');
 
-    mediaUploadInput.addEventListener('change', function() {
-        mediaPreviewContainer.innerHTML = '';
-        if (this.files.length > 0) {
-            const fileList = document.createElement('ul');
-            fileList.className = 'list-unstyled mb-0 small text-muted';
-            Array.from(this.files).forEach(file => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `📎 ${file.name}`;
-                fileList.appendChild(listItem);
+    if (mediaUploadInput) {
+        mediaUploadInput.addEventListener('change', function() {
+            mediaPreviewContainer.innerHTML = '';
+            if (this.files.length > 0) {
+                const fileList = document.createElement('ul');
+                fileList.className = 'list-unstyled mb-0 small text-muted';
+                Array.from(this.files).forEach(file => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `📎 ${file.name}`;
+                    fileList.appendChild(listItem);
+                });
+                mediaPreviewContainer.appendChild(fileList);
+            }
+        });
+    }
+
+    async function handleExplainClick(button) {
+        const postId = button.dataset.postId;
+        explanationContent.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+        explainModal.show();
+        try {
+            const response = await fetch(`/posts/${postId}/explain`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
             });
-            mediaPreviewContainer.appendChild(fileList);
+            if (!response.ok) throw new Error('Explanation failed');
+            const data = await response.json();
+            explanationContent.textContent = data.explanation;
+        } catch (error) {
+            console.error('Error explaining post:', error);
+            explanationContent.textContent = 'Sorry, something went wrong while trying to explain this.';
         }
-    });
+    }
 
     async function handleReadAloudClick(button) {
         const postId = button.dataset.postId;
@@ -194,51 +241,38 @@ document.addEventListener('DOMContentLoaded', function () {
         lastPlayedButton = button;
 
         try {
-            console.log(`[Speech] Requesting audio for post ${postId}`);
             const response = await fetch('{{ route("speech.generate") }}', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
                 body: JSON.stringify({ post_id: postId })
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('[Speech] Server responded with an error:', errorData);
-                throw new Error(errorData.error || 'Speech generation failed on the server.');
+                throw new Error(errorData.error || 'Speech generation failed.');
             }
-
             const data = await response.json();
-            if (!data.audio) {
-                throw new Error('No audio data received from server.');
-            }
+            if (!data.audio) throw new Error('No audio data received.');
 
-            console.log(`[Speech] Received audio for post ${postId}. Playing now.`);
             const audioSrc = `data:audio/mp3;base64,${data.audio}`;
             currentAudio = new Audio(audioSrc);
-
             icon.className = 'ri-stop-circle-line';
 
             currentAudio.play().catch(e => {
                 console.error("Audio playback failed:", e);
-                alert("Audio playback was blocked by the browser. Please interact with the page first.");
+                alert("Audio playback was blocked by the browser.");
                 icon.className = 'ri-volume-up-line';
             });
 
             currentAudio.onended = () => {
-                console.log(`[Speech] Finished playing audio for post ${postId}.`);
                 icon.className = 'ri-volume-up-line';
                 currentAudio = null;
                 lastPlayedButton = null;
             };
-
         } catch (error) {
-            console.error('[Speech] Error generating or playing speech:', error);
+            console.error('[Speech] Error:', error);
             icon.className = 'ri-volume-up-line';
-            alert('Could not generate audio for this post. Please check the console and logs for more details.');
+            alert('Could not generate audio for this post.');
             currentAudio = null;
             lastPlayedButton = null;
         }
@@ -340,42 +374,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // === CAROUSEL, MODAL, AND POST FORM SUBMISSION LOGIC... ===
-    // This logic remains the same as the previous correct version.
-
-    // CAROUSEL
-    document.querySelectorAll('.post-carousel').forEach(carousel => {
-        const slides = carousel.querySelectorAll('.carousel-slide');
-        const indicators = carousel.querySelectorAll('.indicator');
-        const prevBtn = carousel.querySelector('.prev-btn');
-        const nextBtn = carousel.querySelector('.next-btn');
-        let currentSlide = 0;
-        function showSlide(index) {
-            slides.forEach((slide, i) => {
-                slide.classList.remove('active');
-                if (indicators[i]) indicators[i].classList.remove('active');
-            });
-            currentSlide = index;
-            if (index >= slides.length) currentSlide = 0;
-            if (index < 0) currentSlide = slides.length - 1;
-            if (slides[currentSlide]) slides[currentSlide].classList.add('active');
-            if (indicators[currentSlide]) indicators[currentSlide].classList.add('active');
-        }
-        if (prevBtn && nextBtn) {
-            prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
-            nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
-        }
-        indicators.forEach((indicator, index) => {
-            indicator.addEventListener('click', () => showSlide(index));
-        });
-    });
-
-    // MODAL
     const modalContainer = document.getElementById('image-modal-container');
     modalContainer.innerHTML = `<div class="image-modal"><span class="image-modal-close">&times;</span><img src="" alt="Expanded image"></div>`;
     const modal = modalContainer.querySelector('.image-modal');
     const modalImg = modal.querySelector('img');
-    const closeBtn = modal.querySelector('.image-modal-close');
     function closeModal() {
         modal.classList.remove('active');
         document.body.style.overflow = '';
@@ -387,36 +389,36 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(); });
 
-    // POST FORM
     const createPostForm = document.querySelector('#post-creation-form');
-    const postSubmitButton = createPostForm.querySelector('button[type="submit"]');
-    createPostForm.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        postSubmitButton.disabled = true;
-        postSubmitButton.textContent = 'Posting...';
-        const formData = new FormData(createPostForm);
-        try {
-            const response = await fetch('{{ route("posts.store") }}', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                body: formData
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Could not create post.');
+    if (createPostForm) {
+        const postSubmitButton = createPostForm.querySelector('button[type="submit"]');
+        createPostForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            postSubmitButton.disabled = true;
+            postSubmitButton.textContent = 'Posting...';
+            const formData = new FormData(createPostForm);
+            try {
+                const response = await fetch('{{ route("posts.store") }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                    body: formData
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Could not create post.');
+                }
+                createPostForm.reset();
+                if (mediaPreviewContainer) mediaPreviewContainer.innerHTML = '';
+                location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message);
+            } finally {
+                postSubmitButton.disabled = false;
+                postSubmitButton.textContent = 'Post';
             }
-            createPostForm.reset();
-            mediaPreviewContainer.innerHTML = '';
-            location.reload();
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message);
-        } finally {
-            postSubmitButton.disabled = false;
-            postSubmitButton.textContent = 'Post';
-        }
-    });
-
+        });
+    }
 });
 </script>
 @endpush

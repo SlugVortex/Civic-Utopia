@@ -44,6 +44,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/posts/{post}/summarize', [PostController::class, 'summarize'])->name('posts.summarize');
     Route::post('/posts/{post}/like', [PostController::class, 'toggleLike'])->name('posts.like');
     Route::post('/posts/{post}/bookmark', [PostController::class, 'toggleBookmark'])->name('posts.bookmark');
+    Route::post('/posts/{post}/explain', [PostController::class, 'explain'])->name('posts.explain'); // <-- ADD THIS LINE
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
