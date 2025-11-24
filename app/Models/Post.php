@@ -11,14 +11,10 @@ class Post extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'content',
-        'user_id',
-        'summary', // <-- ADD THIS
-    ];
+    protected $fillable = ['content', 'user_id', 'summary'];
 
-    // ... (rest of the file is the same)
-    protected $with = ['user'];
+    // Eager load media along with the user and comments
+    protected $with = ['user', 'comments', 'media'];
 
     public function user(): BelongsTo
     {
@@ -28,5 +24,11 @@ class Post extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class)->latest();
+    }
+
+    // New relationship to the Media model
+    public function media(): HasMany
+    {
+        return $this->hasMany(Media::class);
     }
 }
