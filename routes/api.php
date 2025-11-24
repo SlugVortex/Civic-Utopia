@@ -17,3 +17,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+
+// --- AZURE FUNCTION WEBHOOK ---
+// This endpoint allows Azure Serverless functions to trigger updates
+Route::post('/webhooks/azure/trigger-news', [NewsController::class, 'fetchLocal'])
+    ->name('api.azure.trigger');

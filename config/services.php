@@ -52,4 +52,15 @@ return [
         ],
     ],
 
+     // --- ADDED FOR CIVIC UTOPIA ---
+    'rapidapi' => [
+        'key' => env('RAPIDAPI_KEY'),
+        'host' => env('RAPIDAPI_HOST'),
+    ],
+
+    'azure_dalle' => [
+        'endpoint' => env('AZURE_DALLE_ENDPOINT'),
+        'key' => env('AZURE_DALLE_API_KEY'),
+    ],
+
 ];

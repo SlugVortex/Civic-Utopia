@@ -1,6 +1,6 @@
 @php
 $pageConfigs = ['myLayout' => 'vertical'];
-$activeTopic = $activeTopic ?? null; // Set default null if not passed
+$activeTopic = $activeTopic ?? null;
 @endphp
 
 @extends('layouts/layoutMaster')
@@ -13,6 +13,34 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
         {{-- Sidebar Column --}}
         <div class="col-lg-3 col-md-5 order-0 order-md-0">
             <div class="sticky-sidebar pt-lg-4">
+
+                {{-- NEW: AI News Agent Widget --}}
+                <div class="card mb-4 sidebar-widget border-primary">
+                    <div class="card-body">
+                        <h6 class="card-title text-primary"><i class="ri-robot-2-line me-2"></i>Civic Pulse AI</h6>
+                        <p class="small text-muted mb-3">
+                            Use your location to generate hyper-localized, illustrated news reports.
+                        </p>
+
+                        <button id="btn-localize-news" class="btn btn-sm btn-primary w-100">
+                            <i class="ri-map-pin-user-line me-1"></i> Generate Local Feed
+                        </button>
+
+                        {{-- Progress Bar Container (Hidden initially) --}}
+                        <div id="ai-progress-container" class="mt-3" style="display: none;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="small fw-bold text-primary">AI Status</span>
+                                <span id="ai-progress-percent" class="small text-muted">0%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div id="ai-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div id="ai-progress-text" class="small text-center text-muted mt-2">Initializing...</div>
+                        </div>
+
+                    </div>
+                </div>
+
                 {{-- Live Feeds Widget --}}
                 <div class="card mb-4 sidebar-widget">
                     <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#liveFeeds">
@@ -62,7 +90,6 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
                 </div>
             </div>
         </div>
-
 
         {{-- Main Feed Column --}}
         <div class="col-lg-9 col-md-7 order-1 order-md-1">
@@ -127,8 +154,90 @@ $activeTopic = $activeTopic ?? null; // Set default null if not passed
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const postFeedContainer = document.getElementById('post-feed-container');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // --- NEW: Progress Bar Logic ---
+    const localizeBtn = document.getElementById('btn-localize-news');
+    const progressContainer = document.getElementById('ai-progress-container');
+    const progressBar = document.getElementById('ai-progress-bar');
+    const progressText = document.getElementById('ai-progress-text');
+    const progressPercent = document.getElementById('ai-progress-percent');
+
+    function updateProgress(width, text) {
+        progressBar.style.width = width + '%';
+        progressPercent.textContent = width + '%';
+        progressText.innerHTML = text;
+    }
+
+    if(localizeBtn) {
+        localizeBtn.addEventListener('click', function() {
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser");
+                return;
+            }
+
+            // 1. Start UI
+            localizeBtn.disabled = true;
+            const originalBtnText = localizeBtn.innerHTML;
+            localizeBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Working...';
+
+            progressContainer.style.display = 'block';
+            updateProgress(15, '<i class="ri-map-pin-user-line"></i> Acquiring GPS location...');
+
+            navigator.geolocation.getCurrentPosition(success, error);
+
+            function success(position) {
+                // 2. Location Found
+                updateProgress(50, '<i class="ri-broadcast-line"></i> Contacting News Agents...');
+
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                // Call Laravel Backend
+                fetch('{{ route("news.fetch") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ lat: lat, lon: lon })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // 3. Job Started
+                    updateProgress(90, '<i class="ri-quill-pen-line"></i> Generating summaries & images... (~45s)');
+                    progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+
+                    // Wait 15s then reload (time for ~3 posts)
+                    setTimeout(() => {
+                        updateProgress(100, '<i class="ri-check-double-line"></i> Done! Reloading...');
+                        setTimeout(() => window.location.reload(), 1000);
+                    }, 15000);
+                })
+                .catch(err => {
+                    console.error(err);
+                    progressBar.classList.remove('bg-primary');
+                    progressBar.classList.add('bg-danger');
+                    updateProgress(100, 'Connection failed.');
+                    localizeBtn.disabled = false;
+                    localizeBtn.innerHTML = originalBtnText;
+                });
+            }
+
+            function error() {
+                progressBar.classList.remove('bg-primary');
+                progressBar.classList.add('bg-danger');
+                updateProgress(100, 'GPS Error. Allow location access.');
+                localizeBtn.disabled = false;
+                localizeBtn.innerHTML = originalBtnText;
+            }
+        });
+    }
+    // --- END Progress Bar Logic ---
+
+    // === EXISTING JS (Unchanged) ===
+    const postFeedContainer = document.getElementById('post-feed-container');
     let currentAudio = null;
     let lastPlayedButton = null;
 
@@ -155,19 +264,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const mediaUploadInput = document.getElementById('media-upload');
     const mediaPreviewContainer = document.getElementById('media-preview');
 
-    mediaUploadInput.addEventListener('change', function() {
-        mediaPreviewContainer.innerHTML = '';
-        if (this.files.length > 0) {
-            const fileList = document.createElement('ul');
-            fileList.className = 'list-unstyled mb-0 small text-muted';
-            Array.from(this.files).forEach(file => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `📎 ${file.name}`;
-                fileList.appendChild(listItem);
-            });
-            mediaPreviewContainer.appendChild(fileList);
-        }
-    });
+    if(mediaUploadInput) {
+        mediaUploadInput.addEventListener('change', function() {
+            mediaPreviewContainer.innerHTML = '';
+            if (this.files.length > 0) {
+                const fileList = document.createElement('ul');
+                fileList.className = 'list-unstyled mb-0 small text-muted';
+                Array.from(this.files).forEach(file => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `📎 ${file.name}`;
+                    fileList.appendChild(listItem);
+                });
+                mediaPreviewContainer.appendChild(fileList);
+            }
+        });
+    }
 
     async function handleReadAloudClick(button) {
         const postId = button.dataset.postId;
@@ -194,7 +305,6 @@ document.addEventListener('DOMContentLoaded', function () {
         lastPlayedButton = button;
 
         try {
-            console.log(`[Speech] Requesting audio for post ${postId}`);
             const response = await fetch('{{ route("speech.generate") }}', {
                 method: 'POST',
                 headers: {
@@ -207,38 +317,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('[Speech] Server responded with an error:', errorData);
-                throw new Error(errorData.error || 'Speech generation failed on the server.');
+                throw new Error(errorData.error || 'Speech generation failed.');
             }
 
             const data = await response.json();
-            if (!data.audio) {
-                throw new Error('No audio data received from server.');
-            }
+            if (!data.audio) throw new Error('No audio data received.');
 
-            console.log(`[Speech] Received audio for post ${postId}. Playing now.`);
             const audioSrc = `data:audio/mp3;base64,${data.audio}`;
             currentAudio = new Audio(audioSrc);
 
             icon.className = 'ri-stop-circle-line';
 
             currentAudio.play().catch(e => {
-                console.error("Audio playback failed:", e);
                 alert("Audio playback was blocked by the browser. Please interact with the page first.");
                 icon.className = 'ri-volume-up-line';
             });
 
             currentAudio.onended = () => {
-                console.log(`[Speech] Finished playing audio for post ${postId}.`);
                 icon.className = 'ri-volume-up-line';
                 currentAudio = null;
                 lastPlayedButton = null;
             };
 
         } catch (error) {
-            console.error('[Speech] Error generating or playing speech:', error);
+            console.error('[Speech] Error:', error);
             icon.className = 'ri-volume-up-line';
-            alert('Could not generate audio for this post. Please check the console and logs for more details.');
+            alert('Could not generate audio.');
             currentAudio = null;
             lastPlayedButton = null;
         }
@@ -295,7 +399,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 button.innerHTML = originalText;
             }, 2000);
         }).catch(err => {
-            console.error('Could not copy text: ', err);
             alert('Failed to copy link.');
         });
     }
@@ -321,7 +424,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const response = await fetch(`/posts/${postId}/summarize`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
             });
             if (!response.ok) throw new Error('Network error.');
             const data = await response.json();
@@ -330,7 +433,6 @@ document.addEventListener('DOMContentLoaded', function () {
             summaryContainer.style.display = 'block';
             buttonText.textContent = 'Hide Summary';
         } catch (error) {
-            console.error('Error:', error);
             summaryContent.textContent = 'Could not generate a summary.';
             summaryContainer.style.display = 'block';
             buttonText.textContent = 'Summarize';
@@ -339,9 +441,6 @@ document.addEventListener('DOMContentLoaded', function () {
             buttonIcon.className = 'ri-sparkling-2-line me-1';
         }
     }
-
-    // === CAROUSEL, MODAL, AND POST FORM SUBMISSION LOGIC... ===
-    // This logic remains the same as the previous correct version.
 
     // CAROUSEL
     document.querySelectorAll('.post-carousel').forEach(carousel => {
@@ -372,50 +471,53 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // MODAL
     const modalContainer = document.getElementById('image-modal-container');
-    modalContainer.innerHTML = `<div class="image-modal"><span class="image-modal-close">&times;</span><img src="" alt="Expanded image"></div>`;
-    const modal = modalContainer.querySelector('.image-modal');
-    const modalImg = modal.querySelector('img');
-    const closeBtn = modal.querySelector('.image-modal-close');
-    function closeModal() {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
+    if(modalContainer) {
+        modalContainer.innerHTML = `<div class="image-modal"><span class="image-modal-close">&times;</span><img src="" alt="Expanded image"></div>`;
+        const modal = modalContainer.querySelector('.image-modal');
+        const modalImg = modal.querySelector('img');
+
+        function closeModal() {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        function openImageModal(trigger) {
+            modalImg.src = trigger.dataset.fullImage;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(); });
     }
-    function openImageModal(trigger) {
-        modalImg.src = trigger.dataset.fullImage;
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(); });
 
     // POST FORM
     const createPostForm = document.querySelector('#post-creation-form');
-    const postSubmitButton = createPostForm.querySelector('button[type="submit"]');
-    createPostForm.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        postSubmitButton.disabled = true;
-        postSubmitButton.textContent = 'Posting...';
-        const formData = new FormData(createPostForm);
-        try {
-            const response = await fetch('{{ route("posts.store") }}', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                body: formData
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Could not create post.');
+    if(createPostForm) {
+        const postSubmitButton = createPostForm.querySelector('button[type="submit"]');
+        createPostForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            postSubmitButton.disabled = true;
+            postSubmitButton.textContent = 'Posting...';
+            const formData = new FormData(createPostForm);
+            try {
+                const response = await fetch('{{ route("posts.store") }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                    body: formData
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Could not create post.');
+                }
+                createPostForm.reset();
+                if(mediaPreviewContainer) mediaPreviewContainer.innerHTML = '';
+                location.reload();
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                postSubmitButton.disabled = false;
+                postSubmitButton.textContent = 'Post';
             }
-            createPostForm.reset();
-            mediaPreviewContainer.innerHTML = '';
-            location.reload();
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message);
-        } finally {
-            postSubmitButton.disabled = false;
-            postSubmitButton.textContent = 'Post';
-        }
-    });
+        });
+    }
 
 });
 </script>

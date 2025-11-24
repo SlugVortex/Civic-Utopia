@@ -13,6 +13,7 @@ use App\Http\Controllers\SpeechController;
 use App\Models\Post;
 use App\Models\Topic;
 
+use App\Http\Controllers\NewsController;
 // Redirect homepage to dashboard
 Route::redirect('/', '/dashboard');
 
@@ -36,6 +37,8 @@ Route::middleware('auth')->group(function () {
         $topics = Topic::withCount('posts')->orderBy('name')->get();
         Log::info('[CivicUtopia] Loading dashboard view.', ['post_count' => $posts->count(), 'topic_count' => $topics->count()]);
         return view('dashboard', compact('posts', 'topics'));
+
+
     })->name('dashboard');
 
     // Posts
@@ -68,4 +71,8 @@ Route::middleware('auth')->group(function () {
 
      // --- NEW SPEECH ROUTE ---
     Route::post('/speech/generate', [SpeechController::class, 'generate'])->name('speech.generate');
+
+
+    // --- CIVIC NEWS AGENT ---
+Route::post('/news/fetch-local', [NewsController::class, 'fetchLocal'])->name('news.fetch');
 });
