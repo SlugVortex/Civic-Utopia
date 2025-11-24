@@ -1,103 +1,348 @@
-/*
-* demo.css
-* File include item demo only specific css only
-******************************************************************************/
+/* --- START: Custom styles for CivicUtopia Dashboard --- */
 
-.menu .app-brand.demo {
-  height: 64px;
+/* Base Styles & Enhancements */
+.layout-content-navbar .layout-page {
+    background-color: #f1f3f5; /* Lighter page background for light mode */
 }
 
-.app-brand-logo.demo svg {
-  width: 38px;
-  height: 20px;
+.create-post-card, .post-card, .sidebar-widget {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
+    transition: box-shadow 0.2s ease-in-out;
+    background-color: var(--bs-card-bg);
 }
 
-.app-brand-text.demo {
-  font-size: 1.25rem;
-  letter-spacing: 0.15px;
+.post-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border-color: var(--bs-border-color-translucent);
 }
 
-.authentication-wrapper .app-brand-text.demo {
-  text-transform: capitalize;
+.card-title {
+    color: var(--bs-heading-color);
 }
 
-/* ! For .layout-navbar-fixed added fix padding top to .layout-page */
-/* Default navbar */
-.layout-navbar-fixed .layout-wrapper:not(.layout-without-menu) .layout-page {
-  padding-top: 64px !important;
+.sticky-sidebar {
+    position: sticky;
+    top: 80px; /* Adjust based on your navbar height */
 }
 
-/* Navbar page z-index issue solution */
-.content-wrapper .navbar {
-  z-index: auto;
+.sidebar-widget .card-header {
+    background-color: var(--bs-tertiary-bg);
+    border-bottom: 1px solid var(--bs-border-color);
 }
 
-/*
-* Content
-******************************************************************************/
-
-.demo-blocks > * {
-  display: block !important;
+.sidebar-widget .list-group-item {
+    transition: background-color 0.2s;
+    background-color: var(--bs-list-group-bg);
+    border-color: var(--bs-list-group-border-color);
 }
 
-.demo-inline-spacing > * {
-  margin: 1rem 0.375rem 0 0 !important;
+.sidebar-widget .list-group-item:hover, .sidebar-widget .list-group-item.active {
+    background-color: var(--bs-list-group-hover-bg);
 }
 
-/* ? .demo-vertical-spacing class is used to have vertical margins between elements. To remove margin-top from the first-child, use .demo-only-element class with .demo-vertical-spacing class. For example, we have used this class in forms-input-groups.html file. */
-.demo-vertical-spacing > * {
-  margin-top: 1.25rem !important;
-  margin-bottom: 0 !important;
-}
-.demo-vertical-spacing.demo-only-element > :first-child {
-  margin-top: 0 !important;
+.sidebar-widget .list-group-item.active {
+    font-weight: bold;
+    color: var(--bs-primary);
 }
 
-.demo-vertical-spacing-lg > * {
-  margin-top: 1.875rem !important;
-  margin-bottom: 0 !important;
-}
-.demo-vertical-spacing-lg.demo-only-element > :first-child {
-  margin-top: 0 !important;
+/* Post Creation Form */
+.create-post-card textarea.form-control {
+    background-color: transparent !important;
 }
 
-.demo-vertical-spacing-xl > * {
-  margin-top: 5rem !important;
-  margin-bottom: 0 !important;
-}
-.demo-vertical-spacing-xl.demo-only-element > :first-child {
-  margin-top: 0 !important;
+.create-post-card textarea.form-control::placeholder {
+    color: var(--bs-secondary-color);
+    font-size: 1.1rem;
 }
 
-/* Dropdown buttons going out of small screens */
-@media (max-width: 576px) {
-  #dropdown-variation-demo .btn-group .text-truncate {
-    width: 300px;
+.create-post-card textarea.form-control:focus {
+    box-shadow: none;
+}
+
+/* Social Action Buttons */
+.post-actions .btn {
+    color: #6c757d;
+}
+
+.post-actions .btn:hover {
+    color: var(--bs-primary);
+    background-color: var(--bs-tertiary-bg);
+}
+
+.post-actions .btn.active {
+    color: var(--bs-primary);
+    font-weight: bold;
+}
+
+.post-actions .btn.liked {
+    color: #ff3e5e; /* A distinct 'like' color */
+}
+
+/* Carousel Styles */
+.post-carousel {
     position: relative;
-  }
-  #dropdown-variation-demo .btn-group .text-truncate::after {
-    position: absolute;
-    top: 45%;
-    right: 0.65rem;
-  }
+    width: 100%;
+    max-width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #e9ecef;
 }
-/*
-* Layout demo
-******************************************************************************/
 
-.layout-demo-wrapper {
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-align: center;
-  align-items: center;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  margin-top: 1.25rem;
+.carousel-track {
+    height: 400px;
 }
-.layout-demo-placeholder img {
-  width: 900px;
+
+.carousel-slide {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+    overflow: hidden;
 }
-.layout-demo-info {
-  text-align: center;
-  margin-top: 1.25rem;
+
+.carousel-slide.active {
+    opacity: 1;
 }
+
+.carousel-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: zoom-in;
+    transition: transform 0.2s;
+}
+
+.carousel-image:hover {
+    transform: scale(1.02);
+}
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(33, 37, 41, 0.5);
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: background 0.2s, transform 0.2s, opacity 0.3s;
+    opacity: 0;
+}
+
+.post-carousel:hover .carousel-btn {
+    opacity: 1;
+}
+
+.carousel-btn:hover {
+    background: rgba(33, 37, 41, 0.7);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.prev-btn { left: 12px; }
+.next-btn { right: 12px; }
+
+.carousel-indicators {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+}
+
+.indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.carousel-indicators .indicator.active {
+    background: #fff;
+    width: 20px;
+    border-radius: 4px;
+}
+
+/* Image Modal */
+.image-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    animation: fadeIn 0.2s;
+}
+
+.image-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-modal img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.image-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #fff;
+    font-size: 40px;
+    cursor: pointer;
+    z-index: 10000;
+}
+
+.image-modal-close:hover {
+    color: #bbb;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.post-flash {
+    animation: flash-bg 2s ease-out;
+}
+
+@keyframes flash-bg {
+    from { background-color: #dbeafe; }
+    to { background-color: transparent; }
+}
+
+.ri-loader-4-line {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* --- DARK MODE STYLES --- */
+/* !IMPORTANT: The dark mode class is 'dark', NOT 'dark-style'! */
+
+/* Main content area backgrounds - Using 'dark' class */
+html.dark .layout-content-navbar .layout-page,
+html.dark .layout-page,
+html.dark .content-wrapper,
+html.dark .container-fluid,
+html.dark .container-xxl,
+html.dark .container-xxl.flex-grow-1 {
+    background-color: #232333 !important;
+}
+
+/* Also support the old dark-style class just in case */
+html.dark-style .layout-content-navbar .layout-page,
+html.dark-style .layout-page,
+html.dark-style .content-wrapper,
+html.dark-style .container-fluid,
+html.dark-style .container-xxl,
+html.dark-style .container-xxl.flex-grow-1 {
+    background-color: #232333 !important;
+}
+
+/* Card backgrounds in dark mode */
+html.dark .card,
+html.dark .create-post-card,
+html.dark .post-card,
+html.dark .sidebar-widget,
+html.dark-style .card,
+html.dark-style .create-post-card,
+html.dark-style .post-card,
+html.dark-style .sidebar-widget {
+    background-color: #2b2c40;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Carousel in dark mode */
+html.dark .post-carousel,
+html.dark-style .post-carousel {
+    background-color: #2b2c40;
+}
+
+/* Sidebar widget styling */
+html.dark .sidebar-widget .list-group-item small,
+html.dark-style .sidebar-widget .list-group-item small {
+    color: #a3b0cc !important;
+}
+
+/* Post content text */
+html.dark .post-content,
+html.dark-style .post-content {
+    color: #c4cdd5;
+}
+
+/* Muted text in dark mode */
+html.dark .post-card .text-muted,
+html.dark .text-muted,
+html.dark-style .post-card .text-muted,
+html.dark-style .text-muted {
+    color: #8c8da7 !important;
+}
+
+/* Social action buttons in dark mode */
+html.dark .post-actions .btn,
+html.dark-style .post-actions .btn {
+    color: #a3b0cc;
+}
+
+html.dark .post-actions .btn:hover,
+html.dark-style .post-actions .btn:hover {
+    color: #fff;
+    background-color: #32334a;
+}
+
+html.dark .post-actions .btn.active,
+html.dark-style .post-actions .btn.active {
+    color: var(--bs-primary);
+}
+
+html.dark .post-actions .btn.liked,
+html.dark-style .post-actions .btn.liked {
+    color: #ff3e5e;
+}
+
+/* Dark mode hover effects */
+html.dark .post-card:hover,
+html.dark-style .post-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Text colors in dark mode */
+html.dark .text-body-secondary,
+html.dark-style .text-body-secondary {
+    color: #a3b0cc !important;
+}
+
+html.dark h4.text-body-secondary,
+html.dark-style h4.text-body-secondary {
+    color: #c4cdd5 !important;
+}
+
+/* --- END: Custom styles for CivicUtopia Dashboard --- */
