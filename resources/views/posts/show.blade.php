@@ -4,117 +4,69 @@ $pageConfigs = ['myLayout' => 'vertical'];
 
 @extends('layouts/layoutMaster')
 
-@section('title', 'View Post')
+@section('title', 'Post by ' . $post->user->name)
 
 @section('content')
 <div class="container-fluid">
-    <h4 class="py-3 mb-4">
-      <span class="text-muted fw-light"><a href="{{ route('dashboard') }}">Town Square</a> /</span> View Post
-    </h4>
-
-    {{-- The Main Post --}}
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <p class="fw-bold mb-0">{{ $post->user->name }}</p>
-                <small class="text-muted">{{ $post->created_at->diffForHumans() }}</small>
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            {{-- Back Button --}}
+            <div class="mb-3">
+                <a href="{{ url()->previous(route('dashboard')) }}" class="btn btn-light"><i class="ri-arrow-left-s-line me-1"></i> Back to Feed</a>
             </div>
-            <p class="mt-2 mb-0" style="white-space: pre-wrap;">{{ $post->content }}</p>
-        </div>
-    </div>
 
-    {{-- Comment Submission Form --}}
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title mb-4">Leave a Comment</h5>
-            <form action="{{ route('comments.store', $post) }}" method="POST">
-                @csrf
-                <textarea name="content" rows="3" class="form-control mb-3" placeholder="Share your thoughts..."></textarea>
-                @error('content')
-                    <p class="text-danger text-sm mt-1">{{ $message }}</p>
-                @enderror
-                <button type="submit" class="btn btn-primary">Post Comment</button>
-            </form>
-        </div>
-    </div>
+            {{-- Main Post Card --}}
+            @include('posts._post_card', ['post' => $post])
 
-    {{-- Comments Section --}}
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title mb-4">Comments ({{ $post->comments->count() }})</h5>
-            <div id="comment-feed-container">
-                @forelse ($post->comments as $comment)
-                    <div class="p-3 mb-3 border rounded" id="comment-{{ $comment->id }}">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <p class="fw-bold mb-0">{{ $comment->user->name }}</p>
-                            <small class="text-muted">{{ $comment->created_at->diffForHumans() }}</small>
+            {{-- Comment Form --}}
+            <div class="card mb-3">
+                <div class="card-body p-4">
+                    <h5 class="mb-3">Post a Comment</h5>
+                    <form action="{{ route('comments.store', $post) }}" method="POST">
+                        @csrf
+                        <div class="d-flex gap-3">
+                            <div class="avatar flex-shrink-0">
+                               <img src="{{ asset('assets/img/avatars/1.png') }}" alt="Avatar" class="rounded-circle">
+                            </div>
+                            <div class="flex-grow-1">
+                                <textarea name="content" class="form-control" rows="3" placeholder="Join the discussion... (try typing @Historian!)" required></textarea>
+                                <div class="d-flex justify-content-end mt-3">
+                                    <button type="submit" class="btn btn-primary">Post Comment</button>
+                                </div>
+                            </div>
                         </div>
-                        <p class="mt-1 mb-0" style="white-space: pre-wrap;">{{ $comment->content }}</p>
+                    </form>
+                </div>
+            </div>
+
+            {{-- Comments Feed --}}
+            <div id="comment-feed">
+                @forelse ($post->comments as $comment)
+                    <div class="card mb-3 post-card" id="comment-{{ $comment->id }}">
+                        <div class="card-body p-4">
+                            <div class="d-flex gap-3">
+                                <div class="avatar flex-shrink-0">
+                                     <img src="{{ asset('assets/img/avatars/1.png') }}" alt="Avatar" class="rounded-circle">
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <span class="fw-bold">{{ $comment->user->name }}</span>
+                                            <small class="text-muted ms-2">· {{ $comment->created_at->diffForHumans() }}</small>
+                                        </div>
+                                    </div>
+                                    <p class="post-content mb-0" style="white-space: pre-wrap;">{{ $comment->content }}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 @empty
-                    <div id="no-comments-message" class="text-center text-muted p-4">
-                        <p>No comments yet. Be the first to share your thoughts!</p>
+                    <div class="text-center text-muted p-4">
+                        <p>No comments yet. Be the first to reply!</p>
                     </div>
                 @endforelse
             </div>
         </div>
     </div>
-
 </div>
 @endsection
-
-@push('scripts')
-<style>
-    .comment-flash {
-        animation: flash-bg 2s ease-out;
-    }
-    @keyframes flash-bg {
-        from { background-color: #e0f2fe; }
-        to { background-color: transparent; }
-    }
-</style>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const commentFeedContainer = document.getElementById('comment-feed-container');
-        const noCommentsMessage = document.getElementById('no-comments-message');
-        const postId = {{ $post->id }};
-        const privateChannelName = `posts.${postId}`;
-
-        console.log(`[CivicUtopia] DOM loaded. Initializing Echo listener for private channel: ${privateChannelName}`);
-
-        window.Echo.private(privateChannelName)
-            .listen('CommentCreated', (event) => {
-                console.log('[CivicUtopia] Received Broadcast Event: CommentCreated', event);
-
-                if (noCommentsMessage) {
-                    noCommentsMessage.style.display = 'none';
-                }
-
-                const newCommentHtml = createCommentHtml(event.comment);
-                commentFeedContainer.insertAdjacentHTML('afterbegin', newCommentHtml);
-
-                const newCommentElement = document.getElementById(`comment-${event.comment.id}`);
-                if (newCommentElement) {
-                    newCommentElement.classList.add('comment-flash');
-                }
-            });
-
-        function createCommentHtml(comment) {
-            return `
-                <div class="p-3 mb-3 border rounded" id="comment-${comment.id}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <p class="fw-bold mb-0">${comment.user.name}</p>
-                        <small class="text-muted">just now</small>
-                    </div>
-                    <p class="mt-1 mb-0" style="white-space: pre-wrap;">${escapeHtml(comment.content)}</p>
-                </div>
-            `;
-        }
-        function escapeHtml(unsafe) {
-            return unsafe
-                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-    });
-</script>
-@endpush

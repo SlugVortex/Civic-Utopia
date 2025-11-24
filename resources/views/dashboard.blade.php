@@ -1,17 +1,74 @@
 @php
 $pageConfigs = ['myLayout' => 'vertical'];
+$activeTopic = $activeTopic ?? null; // Set default null if not passed
 @endphp
 
 @extends('layouts/layoutMaster')
 
-@section('title', 'Digital Town Square')
+@section('title', $activeTopic ? $activeTopic->name : 'Digital Town Square')
 
 @section('content')
 <div class="container-fluid">
     <div class="row">
+        {{-- Sidebar Column --}}
+        <div class="col-lg-3 col-md-5 order-0 order-md-0">
+            {{-- Added pt-lg-4 for top padding on large screens --}}
+            <div class="sticky-sidebar pt-lg-4">
+                {{-- Live Feeds Widget --}}
+                <div class="card mb-4 sidebar-widget">
+                    <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#liveFeeds">
+                        <h6 class="mb-0 card-title"><i class="ri-radio-line me-2"></i>Live Feeds</h6>
+                        <i class="ri-arrow-down-s-line"></i>
+                    </div>
+                    <div class="collapse show" id="liveFeeds">
+                        <div class="list-group list-group-flush">
+                            <a href="{{ route('dashboard') }}" class="list-group-item list-group-item-action {{ !$activeTopic ? 'active' : '' }}">
+                                <div class="d-flex align-items-center">
+                                    <i class="ri-radio-2-line text-danger me-3"></i>
+                                    <div>
+                                        <div class="fw-semibold">All Posts</div>
+                                        <small class="text-muted">Real-time updates</small>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Topics Widget --}}
+                <div class="card sidebar-widget">
+                    <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#topicsWidget">
+                        <h6 class="mb-0 card-title"><i class="ri-hashtag me-2"></i>Topics</h6>
+                        <i class="ri-arrow-down-s-line"></i>
+                    </div>
+                    <div class="collapse show" id="topicsWidget">
+                        <div class="list-group list-group-flush">
+                            @forelse ($topics as $topic)
+                                <a href="{{ route('topics.show', $topic->slug) }}" class="list-group-item list-group-item-action {{ $activeTopic && $activeTopic->id === $topic->id ? 'active' : '' }}">
+                                    <div class="d-flex align-items-center">
+                                        <i class="{{ $topic->icon }} {{ $topic->color }} me-3" style="font-size: 1.25rem;"></i>
+                                        <div>
+                                            <div class="fw-semibold">{{ $topic->name }}</div>
+                                            <small class="text-muted">{{ $topic->posts_count }} {{ Str::plural('post', $topic->posts_count) }}</small>
+                                        </div>
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="list-group-item">
+                                    <small class="text-muted">No topics created yet.</small>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
         {{-- Main Feed Column --}}
-        <div class="col-lg-8 col-md-7">
-            <h4 class="py-3 mb-4">Digital Town Square</h4>
+        <div class="col-lg-9 col-md-7 order-1 order-md-1">
+            {{-- Adjusted heading style for better alignment and appearance --}}
+            <h4 class="py-lg-4 py-3 mb-4 text-body-secondary">{{ $activeTopic ? 'Topic: ' . $activeTopic->name : 'Digital Town Square' }}</h4>
 
             {{-- Post Creation Form --}}
             <div class="card mb-4 create-post-card">
@@ -20,12 +77,24 @@ $pageConfigs = ['myLayout' => 'vertical'];
                         @csrf
                         <div class="d-flex gap-3">
                             <div class="avatar">
-                                <svg class="rounded-circle" width="48" height="48" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#7367f0">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88a9.947 9.947 0 0 1 12.28 0C16.43 19.18 14.03 20 12 20z"/>
-                                </svg>
+                                <img src="{{ asset('assets/img/avatars/1.png') }}" alt="Avatar" class="rounded-circle">
                             </div>
                             <div class="flex-grow-1">
-                                <textarea name="content" rows="3" class="form-control border-0 p-0" placeholder="What's happening?" required style="resize: none;"></textarea>
+                                <textarea name="content" rows="3" class="form-control border-0 p-0 shadow-none" placeholder="What's happening in your community?" required></textarea>
+
+                                {{-- TOPIC SELECTOR --}}
+                                <div class="mt-3">
+                                    <label for="topic_id" class="form-label">Select a Topic (Optional)</label>
+                                    <select class="form-select form-select-sm" name="topic_id" id="topic_id">
+                                        <option value="">General Discussion</option>
+                                        @foreach($topics as $topic)
+                                            <option value="{{ $topic->id }}" {{ $activeTopic && $activeTopic->id === $topic->id ? 'selected' : '' }}>
+                                                {{ $topic->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
                                 <div class="mt-3 d-flex justify-content-between align-items-center">
                                     <label for="media-upload" class="btn btn-sm btn-outline-primary mb-0">
                                         <i class="ri-image-line me-1"></i> Media
@@ -43,187 +112,12 @@ $pageConfigs = ['myLayout' => 'vertical'];
             {{-- Post Feed --}}
             <div id="post-feed-container">
                 @forelse ($posts as $post)
-                    <div class="card mb-3 post-card" id="post-{{ $post->id }}">
-                        <div class="card-body p-4">
-                            <div class="d-flex gap-3">
-                                <div class="avatar flex-shrink-0">
-                                    <svg class="rounded-circle" width="40" height="40" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#7367f0">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88a9.947 9.947 0 0 1 12.28 0C16.43 19.18 14.03 20 12 20z"/>
-                                    </svg>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <span class="fw-bold">{{ $post->user->name }}</span>
-                                            <small class="text-muted ms-2">@{{ Str::of($post->user->email)->before('@') }}</small>
-                                            <small class="text-muted ms-2">· {{ $post->created_at->diffForHumans() }}</small>
-                                        </div>
-                                        @if ($post->user_id === Auth::id())
-                                            <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Delete this post?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-link text-danger p-0">
-                                                    <i class="ri-delete-bin-line"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-
-                                    <p class="post-content mb-3" style="white-space: pre-wrap;">{{ $post->content }}</p>
-
-                                    {{-- Image Carousel --}}
-                                    @if($post->media && $post->media->isNotEmpty())
-                                        @php
-                                            $images = $post->media->where('file_type', 'image');
-                                            $videos = $post->media->where('file_type', 'video');
-                                        @endphp
-
-                                        @if($images->isNotEmpty())
-                                            <div class="post-carousel mb-3" data-post-id="{{ $post->id }}">
-                                                <div class="carousel-container">
-                                                    <div class="carousel-track">
-                                                        @foreach($images as $index => $media)
-                                                            <div class="carousel-slide {{ $index === 0 ? 'active' : '' }}">
-                                                                <img src="{{ asset('storage/' . $media->path) }}"
-                                                                     alt="Post media"
-                                                                     class="carousel-image"
-                                                                     data-full-image="{{ asset('storage/' . $media->path) }}">
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-
-                                                    @if($images->count() > 1)
-                                                        <button class="carousel-btn prev-btn">
-                                                            <i class="ri-arrow-left-s-line"></i>
-                                                        </button>
-                                                        <button class="carousel-btn next-btn">
-                                                            <i class="ri-arrow-right-s-line"></i>
-                                                        </button>
-                                                        <div class="carousel-indicators">
-                                                            @foreach($images as $index => $media)
-                                                                <span class="indicator {{ $index === 0 ? 'active' : '' }}"></span>
-                                                            @endforeach
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        @endif
-
-                                        @foreach($videos as $media)
-                                            <video controls class="w-100 rounded mb-3" style="max-height: 400px;">
-                                                <source src="{{ asset('storage/' . $media->path) }}" type="{{ $media->mime_type }}">
-                                            </video>
-                                        @endforeach
-                                    @endif
-
-                                    {{-- AI Summary --}}
-                                    <div class="summary-container alert alert-info" style="display: none;">
-                                        <strong class="d-block mb-1"><i class="ri-sparkling-2-line me-1"></i>AI Summary</strong>
-                                        <p class="mb-0 summary-content"></p>
-                                    </div>
-
-                                    {{-- Action Buttons --}}
-                                    <div class="d-flex gap-2 pt-2">
-                                        <a href="{{ route('posts.show', $post) }}" class="btn btn-sm btn-light">
-                                            <i class="ri-chat-3-line me-1"></i> Comment
-                                        </a>
-                                        <button class="btn btn-sm btn-light btn-summarize" data-post-id="{{ $post->id }}">
-                                            <i class="ri-sparkling-2-line me-1"></i>
-                                            <span class="button-text">Summarize</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @include('posts._post_card', ['post' => $post])
                 @empty
-                    <div id="no-posts-message" class="text-center text-muted p-5">
-                        <p>No posts yet. Be the first to share!</p>
+                    <div id="no-posts-message" class="card card-body text-center text-muted p-5">
+                        <p>No posts found in this topic. Be the first to share something!</p>
                     </div>
                 @endforelse
-            </div>
-        </div>
-
-        {{-- Sidebar --}}
-        <div class="col-lg-4 col-md-5">
-            <div class="sticky-sidebar">
-                {{-- Live Feeds Widget --}}
-                <div class="card mb-4 sidebar-widget">
-                    <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#liveFeeds">
-                        <h6 class="mb-0"><i class="ri-radio-line me-2"></i>Live Feeds</h6>
-                        <i class="ri-arrow-down-s-line"></i>
-                    </div>
-                    <div class="collapse show" id="liveFeeds">
-                        <div class="list-group list-group-flush">
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <div class="d-flex align-items-center">
-                                    <i class="ri-radio-2-line text-danger me-3"></i>
-                                    <div>
-                                        <div class="fw-semibold">Live Feed</div>
-                                        <small class="text-muted">Real-time updates</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <div class="d-flex align-items-center">
-                                    <i class="ri-history-line text-secondary me-3"></i>
-                                    <div>
-                                        <div class="fw-semibold">Archives</div>
-                                        <small class="text-muted">Past discussions</small>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Topics Widget --}}
-                <div class="card sidebar-widget">
-                    <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#topicsWidget">
-                        <h6 class="mb-0"><i class="ri-hashtag me-2"></i>Topics</h6>
-                        <i class="ri-arrow-down-s-line"></i>
-                    </div>
-                    <div class="collapse show" id="topicsWidget">
-                        <div class="list-group list-group-flush">
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <div class="d-flex align-items-center">
-                                    <i class="ri-government-line text-primary me-3"></i>
-                                    <div>
-                                        <div class="fw-semibold">Public Safety</div>
-                                        <small class="text-muted">124 posts</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <div class="d-flex align-items-center">
-                                    <i class="ri-building-line text-success me-3"></i>
-                                    <div>
-                                        <div class="fw-semibold">Infrastructure</div>
-                                        <small class="text-muted">89 posts</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <div class="d-flex align-items-center">
-                                    <i class="ri-book-line text-info me-3"></i>
-                                    <div>
-                                        <div class="fw-semibold">Education & Youth</div>
-                                        <small class="text-muted">67 posts</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <div class="d-flex align-items-center">
-                                    <i class="ri-chat-4-line text-warning me-3"></i>
-                                    <div>
-                                        <div class="fw-semibold">General Discussion</div>
-                                        <small class="text-muted">234 posts</small>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -233,172 +127,92 @@ $pageConfigs = ['myLayout' => 'vertical'];
 <div id="image-modal-container"></div>
 @endsection
 
+
 @push('scripts')
-<style>
-    /* Base Styles */
-    .create-post-card, .post-card, .sidebar-widget {
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        transition: box-shadow 0.2s;
-    }
-    .post-card:hover {
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .sticky-sidebar {
-        position: sticky;
-        top: 20px;
-    }
-
-    /* Carousel Styles */
-    .post-carousel {
-        position: relative;
-        width: 100%;
-        max-width: 600px;
-        border-radius: 16px;
-        overflow: hidden;
-        background: #f3f4f6;
-    }
-    .carousel-container {
-        position: relative;
-        width: 100%;
-    }
-    .carousel-track {
-        position: relative;
-        width: 100%;
-        height: 400px;
-    }
-    .carousel-slide {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        opacity: 0;
-        transition: opacity 0.3s ease-in-out;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .carousel-slide.active {
-        opacity: 1;
-    }
-    .carousel-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        cursor: pointer;
-        transition: transform 0.2s;
-    }
-    .carousel-image:hover {
-        transform: scale(1.02);
-    }
-    .carousel-btn {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(0, 0, 0, 0.6);
-        color: white;
-        border: none;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        cursor: pointer;
-        z-index: 10;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        transition: background 0.2s;
-    }
-    .carousel-btn:hover {
-        background: rgba(0, 0, 0, 0.8);
-    }
-    .prev-btn {
-        left: 10px;
-    }
-    .next-btn {
-        right: 10px;
-    }
-    .carousel-indicators {
-        position: absolute;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 6px;
-        z-index: 10;
-    }
-    .indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.5);
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    .indicator.active {
-        background: rgba(255, 255, 255, 1);
-        width: 24px;
-        border-radius: 4px;
-    }
-
-    /* Image Modal */
-    .image-modal {
-        display: none;
-        position: fixed;
-        z-index: 9999;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.95);
-        animation: fadeIn 0.2s;
-    }
-    .image-modal.active {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .image-modal img {
-        max-width: 90%;
-        max-height: 90%;
-        object-fit: contain;
-        border-radius: 8px;
-    }
-    .image-modal-close {
-        position: absolute;
-        top: 20px;
-        right: 35px;
-        color: #fff;
-        font-size: 40px;
-        cursor: pointer;
-        z-index: 10000;
-    }
-    .image-modal-close:hover {
-        color: #bbb;
-    }
-
-    /* Animations */
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    .post-flash {
-        animation: flash-bg 2s ease-out;
-    }
-    @keyframes flash-bg {
-        from { background-color: #dbeafe; }
-        to { background-color: transparent; }
-    }
-    .ri-loader-4-line {
-        animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-</style>
-
+{{-- The Javascript for social actions is now included here --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const postFeedContainer = document.getElementById('post-feed-container');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // === DELEGATED EVENT LISTENERS for social actions ===
+    postFeedContainer.addEventListener('click', function (event) {
+        const likeButton = event.target.closest('.btn-like');
+        const bookmarkButton = event.target.closest('.btn-bookmark');
+        const shareButton = event.target.closest('.btn-share');
+        const summarizeButton = event.target.closest('.btn-summarize');
+
+        if (likeButton) {
+            handleLikeClick(likeButton);
+        } else if (bookmarkButton) {
+            handleBookmarkClick(bookmarkButton);
+        } else if (shareButton) {
+            handleShareClick(shareButton);
+        } else if (summarizeButton) {
+            handleSummarizeClick(summarizeButton);
+        }
+    });
+
+    async function handleLikeClick(button) {
+        const postId = button.dataset.postId;
+        const countSpan = button.querySelector('.like-count');
+        const icon = button.querySelector('i');
+
+        try {
+            const response = await fetch(`/posts/${postId}/like`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            });
+
+            if (!response.ok) throw new Error('Like failed');
+            const data = await response.json();
+
+            countSpan.textContent = data.likes_count > 0 ? data.likes_count : '';
+            button.classList.toggle('liked', data.action === 'liked');
+            icon.className = data.action === 'liked' ? 'ri-heart-fill me-1' : 'ri-heart-line me-1';
+
+        } catch (error) {
+            console.error('Error liking post:', error);
+        }
+    }
+
+    async function handleBookmarkClick(button) {
+        const postId = button.dataset.postId;
+        const icon = button.querySelector('i');
+        button.disabled = true;
+
+        try {
+            const response = await fetch(`/posts/${postId}/bookmark`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            });
+            if (!response.ok) throw new Error('Bookmark failed');
+            const data = await response.json();
+
+            button.classList.toggle('active', data.action === 'bookmarked');
+            icon.className = data.action === 'bookmarked' ? 'ri-bookmark-fill me-1' : 'ri-bookmark-line me-1';
+        } catch (error) {
+            console.error('Error bookmarking post:', error);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    function handleShareClick(button) {
+        const url = button.dataset.url;
+        navigator.clipboard.writeText(url).then(() => {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="ri-check-line me-1"></i> Copied!';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+            alert('Failed to copy link.');
+        });
+    }
+
+
     // === CAROUSEL FUNCTIONALITY ===
     document.querySelectorAll('.post-carousel').forEach(carousel => {
         const slides = carousel.querySelectorAll('.carousel-slide');
@@ -408,48 +222,30 @@ document.addEventListener('DOMContentLoaded', function () {
         let currentSlide = 0;
 
         function showSlide(index) {
-            slides.forEach(slide => slide.classList.remove('active'));
-            indicators.forEach(ind => ind.classList.remove('active'));
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                if (indicators[i]) indicators[i].classList.remove('active');
+            });
 
+            currentSlide = index;
             if (index >= slides.length) currentSlide = 0;
             if (index < 0) currentSlide = slides.length - 1;
 
-            slides[currentSlide].classList.add('active');
+            if (slides[currentSlide]) {
+                slides[currentSlide].classList.add('active');
+            }
             if (indicators[currentSlide]) {
                 indicators[currentSlide].classList.add('active');
             }
         }
 
-        if (prevBtn) {
-            prevBtn.addEventListener('click', () => {
-                currentSlide--;
-                showSlide(currentSlide);
-            });
-        }
-
-        if (nextBtn) {
-            nextBtn.addEventListener('click', () => {
-                currentSlide++;
-                showSlide(currentSlide);
-            });
+        if (prevBtn && nextBtn) { // Only add listeners if buttons exist
+            prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
+            nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
         }
 
         indicators.forEach((indicator, index) => {
-            indicator.addEventListener('click', () => {
-                currentSlide = index;
-                showSlide(currentSlide);
-            });
-        });
-
-        // Keyboard navigation
-        carousel.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft') {
-                currentSlide--;
-                showSlide(currentSlide);
-            } else if (e.key === 'ArrowRight') {
-                currentSlide++;
-                showSlide(currentSlide);
-            }
+            indicator.addEventListener('click', () => showSlide(index));
         });
     });
 
@@ -494,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const response = await fetch('{{ route("posts.store") }}', {
                 method: 'POST',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
                 body: formData
             });
             if (!response.ok) {
@@ -502,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(errorData.message || 'Could not create post.');
             }
             createPostForm.reset();
-            location.reload(); // Reload to show new post
+            location.reload();
         } catch (error) {
             console.error('Error:', error);
             alert(error.message);
@@ -513,15 +309,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // === SUMMARIZE FUNCTIONALITY ===
-    const postFeedContainer = document.getElementById('post-feed-container');
-
-    postFeedContainer.addEventListener('click', function (event) {
-        const button = event.target.closest('.btn-summarize');
-        if (button) {
-            handleSummarizeClick(button);
-        }
-    });
-
     async function handleSummarizeClick(button) {
         const postId = button.dataset.postId;
         const postElement = document.getElementById(`post-${postId}`);

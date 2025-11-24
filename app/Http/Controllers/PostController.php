@@ -163,4 +163,49 @@ class PostController extends Controller
             return back()->with('error', 'There was an error deleting the post.');
         }
     }
+
+        /**
+     * Toggle the "like" status for a post.
+     */
+    public function toggleLike(Request $request, Post $post)
+    {
+        try {
+            $result = $request->user()->likes()->toggle($post->id);
+
+            $action = count($result['attached']) > 0 ? 'liked' : 'unliked';
+            $likesCount = $post->likers()->count();
+
+            Log::info("[PostController] User {$request->user()->id} {$action} Post {$post->id}. New count: {$likesCount}");
+
+            return response()->json([
+                'status' => 'success',
+                'action' => $action,
+                'likes_count' => $likesCount,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("[PostController] Failed to toggle like for Post {$post->id}", ['error' => $e->getMessage()]);
+            return response()->json(['status' => 'error', 'message' => 'Could not update like status.'], 500);
+        }
+    }
+
+    /**
+     * Toggle the "bookmark" status for a post.
+     */
+    public function toggleBookmark(Request $request, Post $post)
+    {
+        try {
+            $result = $request->user()->bookmarks()->toggle($post->id);
+            $action = count($result['attached']) > 0 ? 'bookmarked' : 'unbookmarked';
+
+            Log::info("[PostController] User {$request->user()->id} {$action} Post {$post->id}.");
+
+            return response()->json([
+                'status' => 'success',
+                'action' => $action,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("[PostController] Failed to toggle bookmark for Post {$post->id}", ['error' => $e->getMessage()]);
+            return response()->json(['status' => 'error', 'message' => 'Could not update bookmark status.'], 500);
+        }
+    }
 }

@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         // Call our new seeder
         $this->call([
             AiAgentUserSeeder::class,
+            TopicSeeder::class,
         ]);
     }
 }
