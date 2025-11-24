@@ -13,6 +13,8 @@ class BallotQuestion extends Model
         'title',
         'official_text',
         'election_date',
+        'country',       // <-- Added
+        'region',        // <-- Added
         'summary_plain',
         'summary_patois',
         'yes_vote_meaning',

@@ -13,22 +13,31 @@
         </a>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card bg-primary text-white">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <h3 class="text-white mb-2">🗳️ Ballot Decoder</h3>
-                            <p class="mb-0">
-                                Official ballot questions translated into plain English and Patois by AI.
-                                Understand before you vote.
-                            </p>
-                        </div>
-                        <i class="ti ti-files fs-1 text-white opacity-50"></i>
+    <!-- Search & Filter Bar -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('ballots.index') }}" class="row gx-3 gy-2 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group input-group-merge">
+                        <span class="input-group-text"><i class="ti ti-search"></i></span>
+                        <input type="text" class="form-control" name="search" placeholder="Search ballots..." value="{{ request('search') }}">
                     </div>
                 </div>
-            </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="country">
+                        <option value="">All Countries</option>
+                        @foreach($countries as $country)
+                            <option value="{{ $country }}" {{ request('country') == $country ? 'selected' : '' }}>{{ $country }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-label-primary w-100">Filter</button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('ballots.index') }}" class="btn btn-label-secondary w-100">Reset</a>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -37,18 +46,24 @@
         <div class="col-md-6 col-lg-4 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="badge bg-label-primary">{{ $ballot->election_date ? $ballot->election_date->format('M d, Y') : 'Upcoming' }}</span>
+                    <div>
+                        <span class="badge bg-label-primary">{{ $ballot->election_date ? $ballot->election_date->format('M d, Y') : 'Upcoming' }}</span>
+                        @if($ballot->country)
+                            <span class="badge bg-label-info ms-1">{{ $ballot->country }}</span>
+                        @endif
+                    </div>
                     @if($ballot->summary_patois)
-                        <span class="badge bg-success" title="AI Analysis Complete"><i class="ti ti-check"></i> Decoded</span>
-                    @else
-                        <span class="badge bg-secondary" title="Pending Analysis">Raw Text</span>
+                        <i class="ti ti-check text-success" title="Decoded"></i>
                     @endif
                 </div>
                 <div class="card-body">
                     <h5 class="card-title">{{ $ballot->title }}</h5>
                     <p class="card-text text-muted">
-                        {{ Str::limit($ballot->official_text, 120) }}
+                        {{ Str::limit($ballot->official_text, 100) }}
                     </p>
+                    @if($ballot->region)
+                        <small class="text-muted"><i class="ti ti-map-pin me-1"></i>{{ $ballot->region }}</small>
+                    @endif
                 </div>
                 <div class="card-footer border-top">
                     <a href="{{ route('ballots.show', $ballot->id) }}" class="btn btn-primary w-100">
@@ -63,8 +78,7 @@
                 <i class="ti ti-folder-off fs-1"></i>
             </div>
             <h5>No ballot questions found.</h5>
-            <p class="text-muted">There are no upcoming elections or referendums loaded in the system yet.</p>
-            <a href="{{ route('ballots.create') }}" class="btn btn-outline-primary mt-2">Add the first one</a>
+            <p class="text-muted">Try adjusting your search filters.</p>
         </div>
         @endforelse
     </div>

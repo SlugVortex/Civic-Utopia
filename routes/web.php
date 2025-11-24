@@ -74,9 +74,10 @@ Route::middleware('auth')->group(function () {
 
     // --- BALLOT ROUTES ---
     Route::get('/ballots', [BallotController::class, 'index'])->name('ballots.index');
-    Route::get('/ballots/create', [BallotController::class, 'create'])->name('ballots.create'); // <-- New Create Form
-    Route::post('/ballots', [BallotController::class, 'store'])->name('ballots.store');         // <-- Store new ballot
+    Route::get('/ballots/create', [BallotController::class, 'create'])->name('ballots.create');
+    Route::post('/ballots', [BallotController::class, 'store'])->name('ballots.store');
     Route::get('/ballots/{ballot}', [BallotController::class, 'show'])->name('ballots.show');
     Route::post('/ballots/{ballot}/analyze', [BallotController::class, 'analyze'])->name('ballots.analyze');
-    Route::post('/ballots/{ballot}/ask', [BallotController::class, 'askBot'])->name('ballots.ask'); // <-- New Chat Route
+    Route::post('/ballots/{ballot}/ask', [BallotController::class, 'askBot'])->name('ballots.ask');
+    Route::post('/ballots/{ballot}/translate', [BallotController::class, 'translate'])->name('ballots.translate'); // <-- NEW TRANSLATE ROUTE
 });

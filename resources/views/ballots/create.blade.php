@@ -22,6 +22,18 @@
                     <form action="{{ route('ballots.store') }}" method="POST">
                         @csrf
 
+                        <!-- Location Section -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="country">Country</label>
+                                <input type="text" class="form-control" id="country" name="country" placeholder="e.g. Jamaica" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="region">Region / Parish / State (Optional)</label>
+                                <input type="text" class="form-control" id="region" name="region" placeholder="e.g. Kingston" />
+                            </div>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label" for="title">Ballot Title / Question Name</label>
                             <input type="text" class="form-control" id="title" name="title" placeholder="e.g., Referendum on Constitutional Amendment 4" required />

@@ -10,12 +10,32 @@ use Illuminate\Support\Facades\Log;
 class BallotController extends Controller
 {
     /**
-     * Display a listing of ballot questions.
+     * Display a listing of ballot questions with Search & Filter.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $ballots = BallotQuestion::orderBy('election_date', 'asc')->get();
-        return view('ballots.index', compact('ballots'));
+        $query = BallotQuestion::query();
+
+        // 1. Filter by Country
+        if ($request->has('country') && $request->country != '') {
+            $query->where('country', $request->country);
+        }
+
+        // 2. Search by Title or Text
+        if ($request->has('search') && $request->search != '') {
+            $query->where(function($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhere('official_text', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        // 3. Sort by Date
+        $ballots = $query->orderBy('election_date', 'asc')->get();
+
+        // Get unique countries for the filter dropdown
+        $countries = BallotQuestion::select('country')->distinct()->pluck('country');
+
+        return view('ballots.index', compact('ballots', 'countries'));
     }
 
     /**
@@ -27,7 +47,7 @@ class BallotController extends Controller
     }
 
     /**
-     * Store a newly created ballot question in storage.
+     * Store a newly created ballot question.
      */
     public function store(Request $request)
     {
@@ -35,6 +55,8 @@ class BallotController extends Controller
             'title' => 'required|string|max:255',
             'official_text' => 'required|string',
             'election_date' => 'required|date',
+            'country' => 'required|string|max:100',
+            'region' => 'nullable|string|max:100',
         ]);
 
         $ballot = BallotQuestion::create($validated);
@@ -52,33 +74,27 @@ class BallotController extends Controller
     }
 
     /**
-     * Trigger Azure AI Analysis for a ballot (Summaries/Pros/Cons).
+     * Trigger Azure AI Analysis (Initial Setup).
      */
     public function analyze(BallotQuestion $ballot)
     {
         try {
-            Log::info("[BallotController] Starting Azure AI analysis for Ballot ID: {$ballot->id}");
-
             $endpoint = config('services.azure.openai.endpoint');
             $apiKey = config('services.azure.openai.api_key');
             $deployment = config('services.azure.openai.deployment');
             $apiVersion = config('services.azure.openai.api_version');
-
             $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
 
-            $systemMessage = "You are an expert civic engagement assistant for Jamaica. Your goal is to explain complex legal ballot questions to the average citizen.
-            You must output strict JSON.
-            Language style for 'summary_patois': Authentic Jamaican Patois, accessible and friendly.
-            Language style for 'summary_plain': Simple, clear English (Grade 5 level).";
+            $systemMessage = "You are an expert civic engagement assistant for " . $ballot->country . ". Your goal is to explain complex legal ballot questions. Output strict JSON.";
 
             $userMessage = "Analyze this ballot text:\n\n" . $ballot->official_text . "\n\n" .
-                "Provide a JSON response with the following keys:
+                "Provide a JSON response with:
                 - summary_plain (string)
-                - summary_patois (string)
-                - yes_vote_meaning (string: what happens if I vote yes?)
-                - no_vote_meaning (string: what happens if I vote no?)
-                - pros (array of strings: arguments for)
-                - cons (array of strings: arguments against)";
+                - summary_patois (string: Use local dialect if country is Jamaica, otherwise use friendly casual tone)
+                - yes_vote_meaning (string)
+                - no_vote_meaning (string)
+                - pros (array of strings)
+                - cons (array of strings)";
 
             $response = Http::withHeaders([
                 'api-key' => $apiKey,
@@ -94,20 +110,11 @@ class BallotController extends Controller
 
             if ($response->failed()) {
                 Log::error('[BallotController] Azure AI Request Failed', ['body' => $response->body()]);
-                return back()->with('error', 'Azure AI request failed. Check logs.');
+                return back()->with('error', 'Azure AI request failed.');
             }
 
             $data = $response->json();
-
-            if (!isset($data['choices'][0]['message']['content'])) {
-                return back()->with('error', 'AI returned unexpected format.');
-            }
-
             $contentJson = json_decode($data['choices'][0]['message']['content'], true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return back()->with('error', 'Failed to decode AI response.');
-            }
 
             $ballot->update([
                 'summary_plain' => $contentJson['summary_plain'] ?? null,
@@ -118,11 +125,109 @@ class BallotController extends Controller
                 'cons' => $contentJson['cons'] ?? [],
             ]);
 
-            return back()->with('success', 'AI Analysis complete! The ballot has been decoded.');
+            return back()->with('success', 'AI Analysis complete!');
 
         } catch (\Exception $e) {
-            Log::error('[BallotController] Exception during analysis', ['message' => $e->getMessage()]);
+            Log::error($e->getMessage());
             return back()->with('error', 'An error occurred during analysis.');
+        }
+    }
+
+    /**
+     * Translate the Ballot Analysis AND Official Text into ANY language.
+     */
+    public function translate(Request $request, BallotQuestion $ballot)
+    {
+        $validated = $request->validate([
+            'language' => 'required|string|max:50'
+        ]);
+
+        $targetLang = $validated['language'];
+
+        try {
+            // CASE 1: English (Revert to Original)
+            if (strtolower($targetLang) === 'english') {
+                return response()->json([
+                    'official_text' => $ballot->official_text,
+                    'breakdown_label' => 'Plain English Summary',
+                    'breakdown_text' => $ballot->summary_plain,
+                    'yes_vote_meaning' => $ballot->yes_vote_meaning,
+                    'no_vote_meaning' => $ballot->no_vote_meaning,
+                    'pros' => $ballot->pros,
+                    'cons' => $ballot->cons
+                ]);
+            }
+
+            // CASE 2: Jamaican Patois (Use stored Patois + Translate Official Text)
+            if (strtolower($targetLang) === 'jamaican patois') {
+                // We likely have the breakdown stored, but we might need to translate the official text if we want that fully translated too.
+                // To keep it simple and consistent, we'll ask AI to handle the official text translation.
+                // But we use the stored summary_patois for the breakdown to save tokens/ensure quality.
+            }
+
+            $endpoint = config('services.azure.openai.endpoint');
+            $apiKey = config('services.azure.openai.api_key');
+            $deployment = config('services.azure.openai.deployment');
+            $apiVersion = config('services.azure.openai.api_version');
+            $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
+
+            // Prepare Data for Translation
+            // We send the 'official_text' to be translated word-for-word.
+            // We send the 'summary_plain' to be converted into an ELI5 Breakdown in the target language.
+            $dataToContext = [
+                'official_text' => $ballot->official_text,
+                'analysis_summary' => $ballot->summary_plain,
+                'yes_vote' => $ballot->yes_vote_meaning,
+                'no_vote' => $ballot->no_vote_meaning,
+                'pros' => $ballot->pros,
+                'cons' => $ballot->cons
+            ];
+
+            $systemMessage = "You are a professional translator and civic educator.
+            Translate the provided ballot information into {$targetLang}.
+
+            Required Output JSON format:
+            {
+                'official_text': (Translate the official legal text word-for-word into {$targetLang}),
+                'breakdown_text': (Create an 'Explain Like I am 5' summary of the analysis in {$targetLang}),
+                'yes_vote_meaning': (Translate into {$targetLang}),
+                'no_vote_meaning': (Translate into {$targetLang}),
+                'pros': (Array of strings translated into {$targetLang}),
+                'cons': (Array of strings translated into {$targetLang})
+            }";
+
+            // If user selected Patois, we can hint to use the specific dialect style
+            if(strtolower($targetLang) === 'jamaican patois') {
+                $systemMessage .= " For 'breakdown_text', use authentic Jamaican Patois.";
+            }
+
+            $response = Http::withHeaders([
+                'api-key' => $apiKey,
+                'Content-Type' => 'application/json',
+            ])->post($url, [
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemMessage],
+                    ['role' => 'user', 'content' => json_encode($dataToContext)],
+                ],
+                'temperature' => 0.3,
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+            if ($response->failed()) {
+                return response()->json(['error' => 'Translation Service Unavailable'], 500);
+            }
+
+            $contentString = $response->json('choices.0.message.content');
+            $content = json_decode($contentString, true);
+
+            // Add the label for the frontend
+            $content['breakdown_label'] = "{$targetLang} Breakdown (ELI5)";
+
+            return response()->json($content);
+
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['error' => 'Translation failed'], 500);
         }
     }
 
@@ -140,15 +245,11 @@ class BallotController extends Controller
             $apiKey = config('services.azure.openai.api_key');
             $deployment = config('services.azure.openai.deployment');
             $apiVersion = config('services.azure.openai.api_version');
-
             $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
 
-            $systemMessage = "You are a helpful assistant explaining a specific ballot question to a voter.
-            Use the provided Legal Text to answer their questions.
-            Be neutral, factual, and concise (under 50 words).";
+            $systemMessage = "You are a helpful assistant explaining a specific ballot question to a voter in {$ballot->country}. Use the provided Legal Text to answer.";
 
-            $userMessage = "Legal Text: " . $ballot->official_text . "\n\n" .
-                           "User Question: " . $validated['question'];
+            $userMessage = "Legal Text: " . $ballot->official_text . "\n\nUser Question: " . $validated['question'];
 
             $response = Http::withHeaders([
                 'api-key' => $apiKey,
@@ -161,15 +262,9 @@ class BallotController extends Controller
                 'temperature' => 0.7,
             ]);
 
-            if ($response->failed()) {
-                return response()->json(['error' => 'AI Service Unavailable'], 500);
-            }
-
-            $answer = $response->json('choices.0.message.content');
-            return response()->json(['answer' => $answer]);
+            return response()->json(['answer' => $response->json('choices.0.message.content')]);
 
         } catch (\Exception $e) {
-            Log::error($e->getMessage());
             return response()->json(['error' => 'Error processing question'], 500);
         }
     }

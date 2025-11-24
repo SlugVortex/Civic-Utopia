@@ -5,24 +5,20 @@
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y position-relative">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0">
-            <span class="text-muted fw-light">Ballot /</span> Decoder
-        </h4>
+        <div>
+            <h4 class="fw-bold mb-0">
+                <span class="text-muted fw-light">Ballot /</span> {{ $ballot->country }}
+            </h4>
+            @if($ballot->region) <small class="text-muted">{{ $ballot->region }}</small> @endif
+        </div>
         <a href="{{ route('ballots.index') }}" class="btn btn-label-secondary">
-            <i class="ti ti-arrow-left me-1"></i> Back to List
+            <i class="ti ti-arrow-left me-1"></i> Back
         </a>
     </div>
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible" role="alert">
             {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible" role="alert">
-            {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
@@ -36,7 +32,7 @@
                 <div class="card mb-4 text-center p-5">
                     <i class="ti ti-robot fs-1 text-primary mb-3"></i>
                     <h3>AI Analysis Needed</h3>
-                    <p>This ballot has not been decoded yet. Click below to ask Azure AI to explain it.</p>
+                    <p>This ballot has not been decoded yet.</p>
                     <form action="{{ route('ballots.analyze', $ballot->id) }}" method="POST">
                         @csrf
                         <button type="submit" class="btn btn-primary">
@@ -45,30 +41,48 @@
                     </form>
                 </div>
             @else
-                <!-- State: Analyzed -->
+                <!-- TRANSLATION TOOLBAR -->
+                <div class="card mb-3 bg-label-secondary">
+                    <div class="card-body py-2 d-flex align-items-center justify-content-between">
+                        <span class="fw-bold"><i class="ti ti-world me-2"></i>Translate this page:</span>
+                        <select class="form-select w-px-200" id="languageSelector" onchange="translatePage(this.value)">
+                            <option value="English" selected>English (Original)</option>
+                            <option value="Jamaican Patois">Jamaican Patois</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="French">French</option>
+                            <option value="Chinese">Chinese (Simplified)</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Russian">Russian</option>
+                            <option value="Arabic">Arabic</option>
+                        </select>
+                    </div>
+                </div>
 
-                <!-- Patois Section -->
+                <!-- Dynamic Breakdown Section (ELI5) -->
                 <div class="card mb-4 border-primary shadow-sm">
                     <div class="card-header bg-label-primary d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 text-primary"><i class="ti ti-language me-2"></i> Jamaican Patois Breakdown</h5>
-                        <button class="btn btn-primary btn-sm rounded-pill" onclick="playAudio('{{ addslashes($ballot->summary_patois) }}', this)">
+                        <h5 class="mb-0 text-primary" id="lbl-breakdown">
+                            <i class="ti ti-language me-2"></i>
+                            {{ $ballot->country == 'Jamaica' ? 'Patois Breakdown' : 'Local Dialect Breakdown' }}
+                        </h5>
+                        <button class="btn btn-primary btn-sm rounded-pill" onclick="playAudio(document.getElementById('txt-breakdown').innerText, this)">
                             <i class="ti ti-volume me-1"></i> Listen
                         </button>
                     </div>
                     <div class="card-body pt-3">
-                        <p class="fs-5 fst-italic mb-0 text-dark">
+                        <p class="fs-5 fst-italic mb-0 text-dark" id="txt-breakdown">
                             "{{ $ballot->summary_patois }}"
                         </p>
                     </div>
                 </div>
 
-                <!-- Plain English Section -->
+                <!-- Standard Summary (Hidden if translated to avoid redundancy, or kept as reference) -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">Plain English Summary</h5>
+                        <h5 class="mb-0">Formal Summary</h5>
                     </div>
                     <div class="card-body">
-                        <p class="mb-0">{{ $ballot->summary_plain }}</p>
+                        <p class="mb-0" id="txt-summary">{{ $ballot->summary_plain }}</p>
                     </div>
                 </div>
 
@@ -80,7 +94,7 @@
                                 <h6 class="mb-0 text-white"><i class="ti ti-check me-2"></i> If you vote YES</h6>
                             </div>
                             <div class="card-body bg-label-success">
-                                <p class="mb-0 text-dark">{{ $ballot->yes_vote_meaning }}</p>
+                                <p class="mb-0 text-dark" id="txt-yes">{{ $ballot->yes_vote_meaning }}</p>
                             </div>
                         </div>
                     </div>
@@ -90,7 +104,7 @@
                                 <h6 class="mb-0 text-white"><i class="ti ti-x me-2"></i> If you vote NO</h6>
                             </div>
                             <div class="card-body bg-label-danger">
-                                <p class="mb-0 text-dark">{{ $ballot->no_vote_meaning }}</p>
+                                <p class="mb-0 text-dark" id="txt-no">{{ $ballot->no_vote_meaning }}</p>
                             </div>
                         </div>
                     </div>
@@ -104,7 +118,7 @@
                                 <h5 class="mb-0">Arguments For</h5>
                             </div>
                             <div class="card-body">
-                                <ul class="list-group list-group-flush">
+                                <ul class="list-group list-group-flush" id="list-pros">
                                     @foreach($ballot->pros ?? [] as $pro)
                                         <li class="list-group-item px-0"><i class="ti ti-arrow-right text-success me-2"></i> {{ $pro }}</li>
                                     @endforeach
@@ -118,7 +132,7 @@
                                 <h5 class="mb-0">Arguments Against</h5>
                             </div>
                             <div class="card-body">
-                                <ul class="list-group list-group-flush">
+                                <ul class="list-group list-group-flush" id="list-cons">
                                     @foreach($ballot->cons ?? [] as $con)
                                         <li class="list-group-item px-0"><i class="ti ti-arrow-right text-danger me-2"></i> {{ $con }}</li>
                                     @endforeach
@@ -131,7 +145,7 @@
 
         </div>
 
-        <!-- RIGHT COLUMN: Official Meta Data -->
+        <!-- RIGHT COLUMN: Meta Data -->
         <div class="col-lg-4">
             <div class="card mb-4">
                 <div class="card-body">
@@ -141,20 +155,10 @@
                     <h6 class="text-muted text-uppercase small fw-bold">Official Question Title</h6>
                     <p class="mb-4">{{ $ballot->title }}</p>
 
-                    <h6 class="text-muted text-uppercase small fw-bold">Original Legal Text</h6>
-                    <div class="alert alert-secondary p-3 mb-0 small" style="max-height: 300px; overflow-y: auto;">
+                    <h6 class="text-muted text-uppercase small fw-bold">Official Legal Text (Word-for-Word)</h6>
+                    <div class="alert alert-secondary p-3 mb-0 small" style="max-height: 300px; overflow-y: auto;" id="txt-official">
                         {{ $ballot->official_text }}
                     </div>
-                </div>
-            </div>
-
-            <!-- Context Tool -->
-            <div class="card bg-label-info border-info">
-                <div class="card-body">
-                    <h5 class="card-title text-info"><i class="ti ti-info-circle me-2"></i>Note</h5>
-                    <p class="card-text small mb-0">
-                        This information is generated by AI to help you understand the ballot. It is not an official government statement. Always read the full bill if you are unsure.
-                    </p>
                 </div>
             </div>
         </div>
@@ -194,14 +198,72 @@
 
 <!-- Scripts -->
 <script>
+// Translation Logic
+function translatePage(language) {
+    const selector = document.getElementById('languageSelector');
+    selector.disabled = true;
+    document.body.style.cursor = 'wait';
+
+    // Show loading state on main fields
+    document.getElementById('txt-official').style.opacity = '0.5';
+    document.getElementById('txt-breakdown').style.opacity = '0.5';
+
+    fetch('{{ route("ballots.translate", $ballot->id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ language: language })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.error) throw new Error(data.error);
+
+        // Update Official Text
+        document.getElementById('txt-official').innerText = data.official_text;
+
+        // Update Breakdown (ELI5)
+        document.getElementById('lbl-breakdown').innerHTML = `<i class="ti ti-language me-2"></i> ${data.breakdown_label}`;
+        document.getElementById('txt-breakdown').innerText = data.breakdown_text;
+
+        // Update Standard Fields
+        document.getElementById('txt-yes').innerText = data.yes_vote_meaning;
+        document.getElementById('txt-no').innerText = data.no_vote_meaning;
+
+        // Update Lists
+        const prosList = document.getElementById('list-pros');
+        prosList.innerHTML = '';
+        data.pros.forEach(item => {
+            prosList.innerHTML += `<li class="list-group-item px-0"><i class="ti ti-arrow-right text-success me-2"></i> ${item}</li>`;
+        });
+
+        const consList = document.getElementById('list-cons');
+        consList.innerHTML = '';
+        data.cons.forEach(item => {
+            consList.innerHTML += `<li class="list-group-item px-0"><i class="ti ti-arrow-right text-danger me-2"></i> ${item}</li>`;
+        });
+
+        // Restore UI
+        document.getElementById('txt-official').style.opacity = '1';
+        document.getElementById('txt-breakdown').style.opacity = '1';
+        selector.disabled = false;
+        document.body.style.cursor = 'default';
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Translation failed. Please try again.');
+        selector.disabled = false;
+        document.body.style.cursor = 'default';
+        document.getElementById('txt-official').style.opacity = '1';
+    });
+}
+
 // Audio Playback
 function playAudio(text, btnElement) {
-    if (!text) {
-        alert("No text available to read.");
-        return;
-    }
+    if (!text) return alert("No text available.");
     const originalContent = btnElement.innerHTML;
-    btnElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
+    btnElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
     btnElement.disabled = true;
 
     fetch('{{ route("speech.generate") }}', {
@@ -217,23 +279,19 @@ function playAudio(text, btnElement) {
     .then(data => {
         if (data.error) throw new Error(data.error);
         const audioSrc = "data:audio/mp3;base64," + data.audio;
-        const audio = new Audio(audioSrc);
-        audio.play();
+        new Audio(audioSrc).play();
         btnElement.innerHTML = originalContent;
         btnElement.disabled = false;
     })
     .catch(error => {
-        console.error('Error generating speech:', error);
-        alert('Could not generate audio. Check API keys.');
+        alert('Could not generate audio.');
         btnElement.innerHTML = originalContent;
         btnElement.disabled = false;
     });
 }
 
-// Chat Bot Logic
-function handleEnter(e) {
-    if (e.key === 'Enter') sendQuestion();
-}
+// Chat Bot
+function handleEnter(e) { if (e.key === 'Enter') sendQuestion(); }
 
 function sendQuestion() {
     const input = document.getElementById('chat-input');
@@ -241,28 +299,22 @@ function sendQuestion() {
     const question = input.value.trim();
     if(!question) return;
 
-    // Append User Message
     history.innerHTML += `<div class="d-flex justify-content-end mb-2"><div class="bg-primary text-white rounded p-2 small" style="max-width: 80%">${question}</div></div>`;
     input.value = '';
 
-    // Loading Indicator
     const loadingId = 'loading-' + Date.now();
     history.innerHTML += `<div id="${loadingId}" class="d-flex justify-content-start mb-2"><div class="bg-label-secondary rounded p-2 small text-muted">Thinking...</div></div>`;
     history.scrollTop = history.scrollHeight;
 
     fetch('{{ route("ballots.ask", $ballot->id) }}', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
         body: JSON.stringify({ question: question })
     })
     .then(res => res.json())
     .then(data => {
         document.getElementById(loadingId).remove();
-        const answer = data.answer || "I couldn't find an answer.";
-        history.innerHTML += `<div class="d-flex justify-content-start mb-2"><div class="bg-label-secondary rounded p-2 small" style="max-width: 80%">${answer}</div></div>`;
+        history.innerHTML += `<div class="d-flex justify-content-start mb-2"><div class="bg-label-secondary rounded p-2 small" style="max-width: 80%">${data.answer || "No answer found."}</div></div>`;
         history.scrollTop = history.scrollHeight;
     })
     .catch(err => {
