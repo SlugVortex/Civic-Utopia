@@ -14,7 +14,7 @@ $activeTopic = $activeTopic ?? null;
         <div class="col-lg-3 col-md-5 order-0 order-md-0">
             <div class="sticky-sidebar pt-lg-4">
 
-                {{-- AI News Agent Widget --}}
+                {{-- NEW: AI News Agent Widget --}}
                 <div class="card mb-4 sidebar-widget border-primary">
                     <div class="card-body">
                         <h6 class="card-title text-primary"><i class="ri-robot-2-line me-2"></i>Civic Pulse AI</h6>
@@ -149,23 +149,6 @@ $activeTopic = $activeTopic ?? null;
 </div>
 
 <div id="image-modal-container"></div>
-{{-- Explanation Modal --}}
-<div class="modal fade" id="explanation-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="ri-rocket-line me-2"></i>Explain Like I'm 5</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p id="explanation-content">Generating explanation...</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection
 
 @push('scripts')
@@ -241,6 +224,32 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+    // --- END Progress Bar Logic ---
+
+    // === EXISTING JS (Unchanged) ===
+    const postFeedContainer = document.getElementById('post-feed-container');
+    let currentAudio = null;
+    let lastPlayedButton = null;
+
+    document.body.addEventListener('click', function (event) {
+        const likeButton = event.target.closest('.btn-like');
+        const bookmarkButton = event.target.closest('.btn-bookmark');
+        const shareButton = event.target.closest('.btn-share');
+        const summarizeButton = event.target.closest('.btn-summarize');
+        const readAloudButton = event.target.closest('.btn-read-aloud');
+        const imageModalTrigger = event.target.closest('.carousel-image');
+        const modalClose = event.target.closest('.image-modal-close');
+        const modalBackdrop = event.target.closest('.image-modal');
+
+        if (likeButton) handleLikeClick(likeButton);
+        else if (bookmarkButton) handleBookmarkClick(bookmarkButton);
+        else if (shareButton) handleShareClick(shareButton);
+        else if (summarizeButton) handleSummarizeClick(summarizeButton);
+        else if (readAloudButton) handleReadAloudClick(readAloudButton);
+        else if (imageModalTrigger) openImageModal(imageModalTrigger);
+        else if (modalClose) closeModal();
+        else if (modalBackdrop && event.target === modalBackdrop) closeModal();
+    });
 
     // --- Main Dashboard Logic ---
     const postFeedContainer = document.getElementById('post-feed-container');

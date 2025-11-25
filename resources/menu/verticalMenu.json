@@ -22,6 +22,12 @@
       "slug": "candidates.index"
     },
     {
+      "url": "/interview",
+      "name": "Values Interview",
+      "icon": "menu-icon icon-base ri-chat-voice-line",
+      "slug": "interview.index"
+    },
+    {
       "url": "/issues",
       "name": "Civic Lens",
       "icon": "menu-icon icon-base ri-camera-lens-line",
