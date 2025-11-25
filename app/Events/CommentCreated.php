@@ -6,12 +6,12 @@ use App\Models\Comment;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel; // <-- Use PrivateChannel
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast; // <-- IMPORTANT
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
+// Must implement ShouldBroadcast for Pusher to work
 class CommentCreated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
@@ -24,21 +24,35 @@ class CommentCreated implements ShouldBroadcast
     public function __construct(Comment $comment)
     {
         $this->comment = $comment;
-        Log::info('[CivicUtopia] CommentCreated event constructed for Comment ID: ' . $comment->id);
     }
 
     /**
      * Get the channels the event should broadcast on.
-     *
-     * @return array<int, \Illuminate\Broadcasting\Channel>
+     * We broadcast on a public channel named 'comments' for simplicity.
      */
     public function broadcastOn(): array
     {
-        // Broadcast on a private channel for the specific post
-        $channelName = 'posts.' . $this->comment->post_id;
-        Log::info('[CivicUtopia] Broadcasting CommentCreated on private channel: ' . $channelName);
         return [
-            new PrivateChannel($channelName),
+            new Channel('comments'),
+        ];
+    }
+
+    /**
+     * Data to send to the client.
+     */
+    public function broadcastWith(): array
+    {
+        return [
+            'id' => $this->comment->id,
+            'post_id' => $this->comment->post_id,
+            'content' => $this->comment->content,
+            'created_at_human' => $this->comment->created_at->diffForHumans(),
+            'user' => [
+                'id' => $this->comment->user->id,
+                'name' => $this->comment->user->name,
+                // Use UI Avatars if no photo exists, or your DB column
+                'avatar_url' => $this->comment->user->profile_photo_path ?? 'https://ui-avatars.com/api/?name=' . urlencode($this->comment->user->name) . '&background=random',
+            ]
         ];
     }
 }

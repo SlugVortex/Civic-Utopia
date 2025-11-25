@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\Log;
 
 class CommentController extends Controller
 {
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request, Post $post)
     {
         $validated = $request->validate([
@@ -22,7 +19,7 @@ class CommentController extends Controller
         $content = $validated['content'];
         $user = $request->user();
 
-        // 1. Save the User's Comment Immediately
+        // 1. Save User Comment
         try {
             $comment = $post->comments()->create([
                 'user_id' => $user->id,
@@ -30,36 +27,42 @@ class CommentController extends Controller
             ]);
             $comment->load('user');
 
+            // Broadcast
             CommentCreated::dispatch($comment);
+
             Log::info('[CommentController] User comment posted.', ['id' => $comment->id]);
 
         } catch (\Exception $e) {
-            Log::error('[CommentController] Error saving comment: ' . $e->getMessage());
+            Log::error('[CommentController] Error: ' . $e->getMessage());
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Failed to post comment'], 500);
+            }
             return back()->with('error', 'Failed to post comment.');
         }
 
-        // 2. AI COUNCIL DETECTION LOGIC
-        // Regex matches: @FactChecker, @Historian, @DevilsAdvocate, @Analyst
+        // 2. AI Detection
         $pattern = '/@(FactChecker|Historian|DevilsAdvocate|Analyst)/i';
+        $botTriggered = false;
 
         if (preg_match($pattern, $content, $matches)) {
-            // Normalize name (e.g. "historian" -> "Historian")
             $detectedBot = $this->normalizeBotName($matches[1]);
-
             Log::info("[CommentController] Bot summoned: {$detectedBot}");
-
-            // Dispatch Job with Bing Search Capability
             AiAgentJob::dispatch($post, $content, $detectedBot);
+            $botTriggered = $detectedBot;
+        }
 
-            return back()->with('status', "Comment posted! @{$detectedBot} is investigating...");
+        // 3. Return JSON if AJAX (Prevents Page Refresh)
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'comment' => $comment,
+                'bot_triggered' => $botTriggered
+            ]);
         }
 
         return back()->with('status', 'Comment posted!');
     }
 
-    /**
-     * Helper to standardize bot names
-     */
     private function normalizeBotName($input)
     {
         $input = strtolower($input);

@@ -1,13 +1,12 @@
 <div class="card mb-3 post-card" id="post-{{ $post->id }}">
-    <div class="card-body p-4">
-        <div class="d-flex gap-3">
-            {{-- Avatar Logic: Strictly checks for Agent Email to force the GIF --}}
+    <div class="card-body p-4 d-flex flex-column h-100">
+
+        {{-- TOP HEADER: Avatar & Names --}}
+        <div class="d-flex gap-3 flex-shrink-0 post-header">
             <div class="avatar flex-shrink-0">
-                @if($post->user->email === 'agent@civicutopia.ai')
-                    {{-- Force Agent Avatar --}}
-                    <img src="{{ asset('assets/img/logo-sm.gif') }}" alt="Agent AI" class="rounded-circle">
+                @if(Str::startsWith($post->user->email, 'agent'))
+                    <img src="{{ $post->user->profile_photo_url ?? asset('assets/img/logo-sm.gif') }}" alt="Agent AI" class="rounded-circle">
                 @else
-                    {{-- Standard User Avatar --}}
                     <img src="{{ $post->user->profile_photo_url ?? asset('assets/img/avatars/1.png') }}" alt="User Avatar" class="rounded-circle">
                 @endif
             </div>
@@ -21,74 +20,64 @@
                         </small>
                         <small class="text-muted ms-2">· {{ $post->created_at->diffForHumans() }}</small>
                     </div>
-                    <div class="d-flex align-items-center">
-                        <button class="btn btn-sm btn-text-secondary btn-read-aloud p-0 me-2" data-post-id="{{ $post->id }}" title="Read post aloud">
+                    <div class="d-flex align-items-center gap-2">
+                        {{-- Full Screen Chat Button --}}
+                        <button class="btn btn-sm btn-icon btn-text-secondary btn-fullscreen" onclick="toggleChatFullscreen({{ $post->id }})" title="Full Screen Chat">
+                            <i class="ri-fullscreen-line"></i>
+                        </button>
+
+                        {{-- Read Aloud --}}
+                        <button class="btn btn-sm btn-text-secondary btn-read-aloud p-0" data-post-id="{{ $post->id }}" title="Read post aloud">
                             <i class="ri-volume-up-line"></i>
                         </button>
 
+                        {{-- Dropdown Menu --}}
                         @if (Auth::check() && $post->user_id === Auth::id())
                           <div class="dropdown">
-                            <button class="btn p-0" type="button" id="postAction-{{ $post->id }}" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                              <i class="ri-more-2-line"></i>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="postAction-{{ $post->id }}">
-                                {{-- NEW "Explain" Button --}}
-      <button class="dropdown-item btn-explain" data-post-id="{{ $post->id }}">
-          <i class="ri-rocket-line me-2"></i>Explain Like I'm 5
-      </button>
-
-      <div class="dropdown-divider"></div>
-
-      <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
-          @csrf
-          @method('DELETE')
-          <button type="submit" class="dropdown-item text-danger"><i class="ri-delete-bin-line me-2"></i>Delete Post</button>
-      </form>
+                            <button class="btn p-0" type="button" data-bs-toggle="dropdown"><i class="ri-more-2-line"></i></button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <button class="dropdown-item btn-explain" data-post-id="{{ $post->id }}"><i class="ri-rocket-line me-2"></i>Explain Like I'm 5</button>
+                                <div class="dropdown-divider"></div>
+                                <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Delete?');">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="dropdown-item text-danger"><i class="ri-delete-bin-line me-2"></i>Delete Post</button>
+                                </form>
                             </div>
                           </div>
                         @endif
                     </div>
                 </div>
 
+                {{-- Content (Collapsible in Fullscreen) --}}
                 <div class="post-content mb-3 text-break">
                     {!! Str::markdown($post->content) !!}
                 </div>
 
-                {{-- Image Carousel --}}
+                {{-- Carousel/Video (Collapsible in Fullscreen) --}}
                  @if($post->media && $post->media->isNotEmpty())
-                    @php
-                        $images = $post->media->where('file_type', 'image');
-                        $videos = $post->media->where('file_type', 'video');
-                    @endphp
-
+                    @php $images = $post->media->where('file_type', 'image'); $videos = $post->media->where('file_type', 'video'); @endphp
                     @if($images->isNotEmpty())
                         <div class="post-carousel mb-3" data-post-id="{{ $post->id }}">
                             <div class="carousel-container">
                                 <div class="carousel-track">
                                     @foreach($images as $index => $media)
                                         <div class="carousel-slide {{ $index === 0 ? 'active' : '' }}">
-                                            {{-- FIX: Reverted to 'path' to match your database column --}}
                                             <img src="{{ asset('storage/' . $media->path) }}" alt="Post media" class="carousel-image" data-full-image="{{ asset('storage/' . $media->path) }}">
                                         </div>
                                     @endforeach
                                 </div>
-
                                 @if($images->count() > 1)
                                     <button class="carousel-btn prev-btn"><i class="ri-arrow-left-s-line"></i></button>
                                     <button class="carousel-btn next-btn"><i class="ri-arrow-right-s-line"></i></button>
                                     <div class="carousel-indicators">
-                                        @foreach($images as $index => $media)
-                                            <span class="indicator {{ $index === 0 ? 'active' : '' }}"></span>
-                                        @endforeach
+                                        @foreach($images as $index => $media) <span class="indicator {{ $index === 0 ? 'active' : '' }}"></span> @endforeach
                                     </div>
                                 @endif
                             </div>
                         </div>
                     @endif
-
                     @foreach($videos as $media)
                         <video controls class="w-100 rounded mb-3" style="max-height: 400px;">
-                            {{-- FIX: Reverted to 'path' --}}
                             <source src="{{ asset('storage/' . $media->path) }}" type="{{ $media->mime_type }}">
                         </video>
                     @endforeach
@@ -99,9 +88,10 @@
                     <p class="mb-0 summary-content"></p>
                 </div>
 
+                {{-- Actions (Collapsible in Fullscreen) --}}
                 <div class="d-flex justify-content-between align-items-center pt-2 post-actions">
                     <div class="d-flex gap-2">
-                        <a href="{{ route('posts.show', $post) }}" class="btn btn-sm btn-text-secondary">
+                        <a href="{{ route('posts.show', $post) }}" class="btn btn-sm btn-text-secondary comment-count-btn">
                             <i class="ri-chat-3-line me-1"></i> {{ $post->comments->count() }}
                         </a>
                         <button class="btn btn-sm btn-text-secondary btn-like {{ $post->is_liked ? 'liked' : '' }}" data-post-id="{{ $post->id }}">
@@ -112,16 +102,80 @@
                             <i class="ri-share-forward-line me-1"></i> Share
                         </button>
                         <button class="btn btn-sm btn-text-secondary btn-summarize" data-post-id="{{ $post->id }}">
-                            <i class="ri-sparkling-2-line me-1"></i>
-                            <span class="button-text">Summarize</span>
-                        </button>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-text-secondary btn-bookmark {{ $post->is_bookmarked ? 'active' : '' }}" data-post-id="{{ $post->id }}">
-                            <i class="ri-bookmark-{{ $post->is_bookmarked ? 'fill' : 'line' }} me-1"></i>
+                            <i class="ri-sparkling-2-line me-1"></i> Summarize
                         </button>
                     </div>
                 </div>
+
+                {{-- Collapse/Expand Button (Visible Only in Fullscreen) --}}
+                <button class="btn btn-sm btn-text-secondary mt-2 toggle-post-details" style="display: none;" onclick="togglePostDetails({{ $post->id }})">
+                    <i class="ri-eye-line me-1"></i> <span>Show Original Post</span>
+                </button>
+
+                {{-- COMMENT SECTION (Grows in Fullscreen) --}}
+                <div class="border-top pt-3 mt-3 d-flex flex-column flex-grow-1 comments-section">
+
+                    {{-- Scrollable List --}}
+                    <div class="comments-list mb-3 custom-scrollbar">
+                        @foreach($post->comments as $comment)
+                            <div class="d-flex mb-3 comment-item animate__animated animate__fadeIn">
+                                <div class="flex-shrink-0">
+                                     <img src="{{ $comment->user->profile_photo_url ?? 'https://ui-avatars.com/api/?name='.urlencode($comment->user->name).'&background=random' }}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;">
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <div class="comment-bubble px-3 py-2 rounded-3 position-relative">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-semibold text-dark small mb-0">{{ $comment->user->name }}</span>
+                                            <small class="text-muted" style="font-size: 0.7rem">{{ $comment->created_at->diffForHumans() }}</small>
+                                        </div>
+                                        <div class="comment-text small mb-0 text-break" id="comment-text-{{ $comment->id }}">{!! Str::markdown($comment->content) !!}</div>
+
+                                        {{-- Hover Actions: Reply & Read --}}
+                                        <div class="comment-actions">
+                                            <button class="btn btn-xs btn-icon rounded-pill"
+                                                    onclick="initReply({{ $post->id }}, '{{ $comment->user->name }}', `{{ addslashes($comment->content) }}`)"
+                                                    title="Reply">
+                                                <i class="ri-reply-line"></i>
+                                            </button>
+                                            <button class="btn btn-xs btn-icon rounded-pill"
+                                                    onclick="toggleGlobalAudio('comment-text-{{ $comment->id }}', this)"
+                                                    title="Read aloud">
+                                                <i class="ri-volume-up-line"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Comment Form Wrapper --}}
+                    <div class="comment-form-wrapper mt-auto">
+                        {{-- Reply Preview Container --}}
+                        <div class="reply-preview-container mb-2" style="display:none;"></div>
+
+                        <form action="{{ route('comments.store', $post->id) }}" method="POST" class="comment-form">
+                            @csrf
+                            <input type="hidden" name="reply_to_context" value="">
+
+                            <div class="d-flex gap-2 align-items-end comment-input-group">
+                                <img src="{{ auth()->user()->profile_photo_url ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=random' }}" class="rounded-circle user-avatar-img" style="width: 36px; height: 36px; object-fit: cover;">
+
+                                <div class="flex-grow-1 position-relative">
+                                    <textarea name="content" class="form-control comment-textarea rounded-pill px-4 py-2"
+                                              rows="1" placeholder="Type @ to mention bots..." required
+                                              style="resize:none; overflow-y:hidden; min-height: 42px; max-height: 120px;"
+                                              oninput="autoGrowTextarea(this)"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary rounded-circle send-btn d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; flex-shrink: 0;">
+                                    <i class="ri-send-plane-fill"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
