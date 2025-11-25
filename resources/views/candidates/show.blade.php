@@ -11,6 +11,7 @@
             </h4>
             @if($candidate->region) <small class="text-muted">{{ $candidate->region }}</small> @endif
         </div>
+        <a href="{{ route('candidates.edit', $candidate->id) }}" class="btn btn-outline-secondary me-2"><i class="ti ti-pencil"></i> Edit</a>
         <a href="{{ route('candidates.index') }}" class="btn btn-label-secondary">Back</a>
     </div>
 

@@ -62,6 +62,12 @@ return [
         'host' => env('RAPIDAPI_HOST'),
     ],
 
+    // Added for Auto Researche Feature in Candidate Compass
+    'rapidapi_gary' => [
+        'key' => env('RAPIDAPI_KEY_GARY'),
+        'host' => env('RAPIDAPI_HOST_GARY'),
+    ],
+
     'azure_dalle' => [
         'endpoint' => env('AZURE_DALLE_ENDPOINT'),
         'key' => env('AZURE_DALLE_API_KEY'),

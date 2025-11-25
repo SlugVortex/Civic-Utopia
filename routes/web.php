@@ -96,6 +96,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/candidates/{candidate}', [App\Http\Controllers\CandidateController::class, 'show'])->name('candidates.show');
     Route::post('/candidates/{candidate}/analyze', [App\Http\Controllers\CandidateController::class, 'analyze'])->name('candidates.analyze');
     Route::post('/candidates/{candidate}/ask', [App\Http\Controllers\CandidateController::class, 'askBot'])->name('candidates.ask'); // <-- New Chat
+    Route::post('/candidates/research', [App\Http\Controllers\CandidateController::class, 'research'])->name('candidates.research');
+    Route::get('/candidates/{candidate}/edit', [App\Http\Controllers\CandidateController::class, 'edit'])->name('candidates.edit');
+    Route::put('/candidates/{candidate}', [App\Http\Controllers\CandidateController::class, 'update'])->name('candidates.update');
 
     // --- CIVIC LENS (ISSUES) ROUTES ---
     Route::get('/issues', [App\Http\Controllers\IssueController::class, 'index'])->name('issues.index');
@@ -111,10 +114,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/documents/{document}', [App\Http\Controllers\DocumentController::class, 'show'])->name('documents.show');
     Route::post('/documents/{document}/chat', [App\Http\Controllers\DocumentController::class, 'chat'])->name('documents.chat');
     Route::post('/documents/{document}/annotate', [App\Http\Controllers\DocumentController::class, 'annotate'])->name('documents.annotate');
-    // NEW ROUTE
-    Route::post('/documents/{document}/regenerate', [App\Http\Controllers\DocumentController::class, 'regenerate'])->name('documents.regenerate');});
+    Route::post('/documents/{document}/regenerate', [App\Http\Controllers\DocumentController::class, 'regenerate'])->name('documents.regenerate');
 
-    // NEW ROUTE
     Route::post('/documents/{document}/publish', [App\Http\Controllers\DocumentController::class, 'togglePublic'])->name('documents.publish');
 
     // --- CIVIC NEWS AGENT ---
@@ -124,4 +125,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/interview', [PoliticalInterviewController::class, 'index'])->name('interview.index');
     Route::post('/interview/chat', [PoliticalInterviewController::class, 'chat'])->name('interview.chat');
     Route::post('/interview/speech', [PoliticalInterviewController::class, 'speech'])->name('interview.speech');
+
 });
