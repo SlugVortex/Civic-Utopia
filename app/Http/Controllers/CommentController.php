@@ -7,23 +7,32 @@ use App\Jobs\AiAgentJob;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Services\ContentSafetyService;
 
 class CommentController extends Controller
 {
-    public function store(Request $request, Post $post)
+  // Update store method signature:
+    public function store(Request $request, Post $post, ContentSafetyService $safety)
     {
-        $validated = $request->validate([
-            'content' => ['required', 'string', 'max:2000'],
-        ]);
-
+        $validated = $request->validate(['content' => ['required', 'string', 'max:2000']]);
         $content = $validated['content'];
         $user = $request->user();
 
-        // 1. Save User Comment
+        // 1. SAFETY CHECK
+        $safetyCheck = $safety->analyze($content);
+        $isFlagged = !$safetyCheck['safe'];
+        $flagReason = $safetyCheck['reason'] ?? null;
+
+        // If highly toxic, maybe reject entirely?
+        // For now, we save but mark as flagged so we can hide it in UI.
+
+        // 2. Save
         try {
             $comment = $post->comments()->create([
                 'user_id' => $user->id,
-                'content' => $content,
+                'content' => $isFlagged ? "[Content Flagged by AI for $flagReason]" : $content, // Hide text if toxic
+                'is_flagged' => $isFlagged,
+                'flag_reason' => $flagReason
             ]);
             $comment->load('user');
 

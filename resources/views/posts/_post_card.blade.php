@@ -21,17 +21,12 @@
                         <small class="text-muted ms-2">· {{ $post->created_at->diffForHumans() }}</small>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        {{-- Only show Fullscreen button if we are in the detailed view --}}
-                        @if($showComments ?? false)
-                            <button class="btn btn-sm btn-icon btn-text-secondary btn-fullscreen" onclick="toggleChatFullscreen({{ $post->id }})" title="Full Screen Chat">
-                                <i class="ri-fullscreen-line"></i>
-                            </button>
-                        @endif
-
+                        <button class="btn btn-sm btn-icon btn-text-secondary btn-fullscreen" onclick="toggleChatFullscreen({{ $post->id }})" title="Full Screen Chat">
+                            <i class="ri-fullscreen-line"></i>
+                        </button>
                         <button class="btn btn-sm btn-text-secondary btn-read-aloud p-0" data-post-id="{{ $post->id }}" title="Read post aloud">
                             <i class="ri-volume-up-line"></i>
                         </button>
-
                         @if (Auth::check() && $post->user_id === Auth::id())
                           <div class="dropdown">
                             <button class="btn p-0" type="button" data-bs-toggle="dropdown"><i class="ri-more-2-line"></i></button>
@@ -89,9 +84,8 @@
                 </div>
 
                 {{-- ACTIONS --}}
-                <div class="d-flex justify-content-between align-items-center pt-2 post-actions {{ ($showComments ?? false) ? 'border-bottom pb-3' : '' }}">
+                <div class="d-flex justify-content-between align-items-center pt-2 post-actions border-bottom pb-3">
                     <div class="d-flex gap-2">
-                        {{-- Logic: If on dashboard, Link to Show page. If on Show page, just a static button/counter --}}
                         @if(!($showComments ?? false))
                             <a href="{{ route('posts.show', $post) }}" class="btn btn-sm btn-text-secondary comment-count-btn">
                                 <i class="ri-chat-3-line me-1"></i> {{ $post->comments->count() }}
@@ -101,7 +95,6 @@
                                 <i class="ri-chat-3-line me-1"></i> {{ $post->comments->count() }}
                             </button>
                         @endif
-
                         <button class="btn btn-sm btn-text-secondary btn-like {{ $post->is_liked ? 'liked' : '' }}" data-post-id="{{ $post->id }}">
                             <i class="ri-heart-{{ $post->is_liked ? 'fill' : 'line' }} me-1"></i>
                             <span class="like-count">{{ $post->likers->count() > 0 ? $post->likers->count() : '' }}</span>
@@ -156,7 +149,8 @@
                     </div>
 
                     {{-- Input Area --}}
-                    <div class="comment-form-wrapper mt-auto bg-white pt-2">
+                    {{-- REMOVED: bg-white class. ADDED: bg-transparent --}}
+                    <div class="comment-form-wrapper mt-auto bg-transparent pt-2">
                         <div class="reply-preview-container mb-2" style="display:none;"></div>
 
                         <form action="{{ route('comments.store', $post->id) }}" method="POST" class="comment-form">
