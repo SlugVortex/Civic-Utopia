@@ -93,4 +93,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/candidates/{candidate}/analyze', [App\Http\Controllers\CandidateController::class, 'analyze'])->name('candidates.analyze');
     Route::post('/candidates/{candidate}/ask', [App\Http\Controllers\CandidateController::class, 'askBot'])->name('candidates.ask'); // <-- New Chat
 
+    // --- CIVIC LENS (ISSUES) ROUTES ---
+    Route::get('/issues', [App\Http\Controllers\IssueController::class, 'index'])->name('issues.index');
+    Route::get('/issues/create', [App\Http\Controllers\IssueController::class, 'create'])->name('issues.create');
+    Route::post('/issues', [App\Http\Controllers\IssueController::class, 'store'])->name('issues.store');
+    Route::get('/issues/{issue}', [App\Http\Controllers\IssueController::class, 'show'])->name('issues.show');
+    Route::post('/issues/{issue}/analyze', [App\Http\Controllers\IssueController::class, 'analyze'])->name('issues.analyze');
 });

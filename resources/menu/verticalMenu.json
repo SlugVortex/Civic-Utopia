@@ -19,6 +19,12 @@
       "slug": "candidates.index"
     },
     {
+      "url": "/issues",
+      "name": "Civic Lens",
+      "icon": "menu-icon icon-base ri ri-camera-lens-line",
+      "slug": "issues.index"
+    },
+    {
       "url": "/page-2",
       "icon": "menu-icon icon-base ri ri-file-3-line",
       "name": "Page 2",
