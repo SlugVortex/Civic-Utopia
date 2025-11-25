@@ -109,3 +109,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/documents/{document}/annotate', [App\Http\Controllers\DocumentController::class, 'annotate'])->name('documents.annotate');
     // NEW ROUTE
     Route::post('/documents/{document}/regenerate', [App\Http\Controllers\DocumentController::class, 'regenerate'])->name('documents.regenerate');});
+
+    // NEW ROUTE
+    Route::post('/documents/{document}/publish', [App\Http\Controllers\DocumentController::class, 'togglePublic'])->name('documents.publish');

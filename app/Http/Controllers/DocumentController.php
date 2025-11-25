@@ -63,7 +63,7 @@ class DocumentController extends Controller
                 'file_path' => $path,
                 'country' => $request->country,
                 'type' => 'Processing...',
-                'is_public' => true,
+                'is_public' => false,
             ]);
 
             // 3. Azure Document Intelligence (Extract Text)
@@ -349,4 +349,18 @@ class DocumentController extends Controller
     // or keep the old one but map it correctly.
     // To keep it simple, you can Replace 'extractTextFromPdf' in your STORE method
     // with: $this->extractTextFromRawContent(file_get_contents($request->file('file')->getRealPath()));
+    //
+    //
+
+    // Add this new method to the class:
+    public function togglePublic(Document $document)
+    {
+        // Toggle the boolean
+        $document->is_public = !$document->is_public;
+        $document->save();
+
+        $status = $document->is_public ? 'Published! It is now visible in the Legal Library.' : 'Unpublished. It is now a private draft.';
+
+        return back()->with('success', $status);
+    }
 }

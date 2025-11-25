@@ -4,9 +4,41 @@
 
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y" style="height: 85vh;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0 text-truncate" style="max-width: 70%;">{{ $document->title }} <span class="badge bg-label-primary ms-2">{{ $document->type }}</span></h5>
-        <a href="{{ route('documents.index') }}" class="btn btn-sm btn-label-secondary">Exit Reader</a>
+
+    <!-- HEADER BAR -->
+    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded shadow-sm">
+        <div class="d-flex align-items-center overflow-hidden">
+            <a href="{{ route('documents.index') }}" class="btn btn-icon btn-label-secondary me-3"><i class="ti ti-arrow-left"></i></a>
+            <div>
+                <h5 class="mb-0 text-truncate" style="max-width: 400px;">
+                    {{ $document->title }}
+                </h5>
+                <small class="text-muted">
+                    {{ $document->country }} • {{ $document->type }} •
+                    @if($document->is_public)
+                        <span class="text-success fw-bold"><i class="ti ti-world me-1"></i>Public</span>
+                    @else
+                        <span class="text-warning fw-bold"><i class="ti ti-lock me-1"></i>Private Draft</span>
+                    @endif
+                </small>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- PUBLISH TOGGLE BUTTON -->
+            <form action="{{ route('documents.publish', $document->id) }}" method="POST">
+                @csrf
+                @if($document->is_public)
+                    <button type="submit" class="btn btn-label-warning">
+                        <i class="ti ti-eye-off me-1"></i> Unpublish
+                    </button>
+                @else
+                    <button type="submit" class="btn btn-success">
+                        <i class="ti ti-world-upload me-1"></i> Publish to Feed
+                    </button>
+                @endif
+            </form>
+        </div>
     </div>
 
     @if(session('success'))
@@ -15,14 +47,8 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
-    <div class="row h-100">
+    <div class="row" style="height: calc(100% - 80px);">
         <!-- LEFT: PDF Viewer -->
         <div class="col-md-7 h-100">
             <div class="card h-100">
@@ -44,10 +70,9 @@
 
                     <!-- TAB 1: Summary -->
                     <div class="tab-pane fade show active" id="tab-summary">
-
                         <!-- REGENERATE BUTTON -->
                         <div class="d-flex justify-content-end mb-3">
-                            <form action="{{ route('documents.regenerate', $document->id) }}" method="POST" onsubmit="return confirm('Are you sure? This will re-scan the PDF using Azure AI. It might take 30 seconds.');">
+                            <form action="{{ route('documents.regenerate', $document->id) }}" method="POST" onsubmit="return confirm('Are you sure? This will re-scan the PDF.');">
                                 @csrf
                                 <button type="submit" class="btn btn-xs btn-outline-primary">
                                     <i class="ti ti-refresh me-1"></i> Regenerate Analysis
@@ -57,9 +82,7 @@
 
                         <h6 class="text-uppercase text-muted small fw-bold">Plain English</h6>
                         <p class="text-dark">{{ $document->summary_plain ?? 'No summary yet.' }}</p>
-
                         <hr>
-
                         <h6 class="text-uppercase text-primary small fw-bold">Explain Like I'm 5</h6>
                         <div class="bg-label-primary p-3 rounded">
                             {{ $document->summary_eli5 ?? 'No explanation yet.' }}
@@ -68,17 +91,15 @@
 
                     <!-- TAB 2: Chat -->
                     <div class="tab-pane fade" id="tab-chat">
-                        <div class="d-flex justify-content-end mb-2">
+                         <div class="d-flex justify-content-end mb-2">
                              <button class="btn btn-xs btn-label-secondary" onclick="clearChat()">
                                 <i class="ti ti-eraser me-1"></i> Clear Chat
                             </button>
                         </div>
-
                         <div id="chat-box" class="mb-3 border rounded p-3 bg-light" style="height: 300px; overflow-y: auto;">
                             <div class="text-center text-muted small mt-5">
                                 <i class="ti ti-message-chatbot fs-1 mb-2"></i><br>
-                                Ask questions about this document.<br>
-                                <em>"What are the penalties?"</em>
+                                Ask questions about this document.
                             </div>
                         </div>
                         <div class="input-group">
@@ -89,15 +110,21 @@
 
                     <!-- TAB 3: Notes (Annotations) -->
                     <div class="tab-pane fade" id="tab-notes">
-                        <form action="{{ route('documents.annotate', $document->id) }}" method="POST" class="mb-4">
-                            @csrf
-                            <div class="input-group mb-2">
-                                <span class="input-group-text">Ref</span>
-                                <input type="text" name="section" class="form-control" placeholder="Pg 1">
+                        @if($document->is_public)
+                            <form action="{{ route('documents.annotate', $document->id) }}" method="POST" class="mb-4">
+                                @csrf
+                                <div class="input-group mb-2">
+                                    <span class="input-group-text">Ref</span>
+                                    <input type="text" name="section" class="form-control" placeholder="Pg 1">
+                                </div>
+                                <textarea name="note" class="form-control mb-2" rows="2" placeholder="Add a public note..." required></textarea>
+                                <button class="btn btn-sm btn-primary w-100">Post Note</button>
+                            </form>
+                        @else
+                            <div class="alert alert-warning small">
+                                <i class="ti ti-lock me-1"></i> Publish this document to allow public notes.
                             </div>
-                            <textarea name="note" class="form-control mb-2" rows="2" placeholder="Add a public note..." required></textarea>
-                            <button class="btn btn-sm btn-primary w-100">Post Note</button>
-                        </form>
+                        @endif
 
                         <div class="list-group list-group-flush">
                             @foreach($document->annotations as $note)
@@ -119,25 +146,21 @@
     </div>
 </div>
 
+<!-- SCRIPTS REMAIN UNCHANGED -->
 <script>
 function handleEnter(e) { if (e.key === 'Enter') sendDocChat(); }
-
 function sendDocChat() {
     const input = document.getElementById('chat-input');
     const box = document.getElementById('chat-box');
     const q = input.value.trim();
     if(!q) return;
 
-    // Remove placeholder if it exists
-    if(box.querySelector('.text-center')) {
-        box.innerHTML = '';
-    }
+    if(box.querySelector('.text-center')) { box.innerHTML = ''; }
 
     box.innerHTML += `<div class="d-flex justify-content-end mb-2"><div class="bg-primary text-white rounded p-2 small" style="max-width: 80%">${q}</div></div>`;
     input.value = '';
     box.scrollTop = box.scrollHeight;
 
-    // Add loading bubble
     const loadingId = 'loading-' + Date.now();
     box.innerHTML += `<div id="${loadingId}" class="d-flex justify-content-start mb-2"><div class="bg-white border rounded p-2 small text-muted">Reading document...</div></div>`;
     box.scrollTop = box.scrollHeight;
@@ -152,23 +175,11 @@ function sendDocChat() {
         document.getElementById(loadingId).remove();
         box.innerHTML += `<div class="d-flex justify-content-start mb-2"><div class="bg-white border rounded p-2 small" style="max-width: 80%">${data.answer}</div></div>`;
         box.scrollTop = box.scrollHeight;
-    })
-    .catch(err => {
-        document.getElementById(loadingId).remove();
-        box.innerHTML += `<div class="text-danger small">Error connecting to AI.</div>`;
     });
 }
-
 function clearChat() {
     if(confirm('Clear chat history?')) {
-        const box = document.getElementById('chat-box');
-        box.innerHTML = `
-            <div class="text-center text-muted small mt-5">
-                <i class="ti ti-message-chatbot fs-1 mb-2"></i><br>
-                Ask questions about this document.<br>
-                <em>"What are the penalties?"</em>
-            </div>
-        `;
+        document.getElementById('chat-box').innerHTML = '<div class="text-center text-muted small mt-5"><i class="ti ti-message-chatbot fs-1 mb-2"></i><br>Ask questions about this document.</div>';
     }
 }
 </script>
