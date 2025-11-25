@@ -6,6 +6,7 @@ use App\Events\PostCreated;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -14,8 +15,6 @@ use Illuminate\Support\Facades\URL;
 
 class PostController extends Controller
 {
-    // ... store(), destroy(), toggleLike(), toggleBookmark() methods remain unchanged ...
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -51,9 +50,6 @@ class PostController extends Controller
             $post->load('user', 'media', 'topics');
             Log::info('[CivicUtopia] New post created successfully.', ['post_id' => $post->id]);
 
-            Log::warning('[CivicUtopia] Broadcasting is temporarily disabled.');
-
-
             if ($request->wantsJson()) {
                 return response()->json($post, 201);
             }
@@ -72,10 +68,6 @@ class PostController extends Controller
         }
     }
 
-
-    /**
-     * Get or generate the AI summary for a post.
-     */
     public function summarize(Request $request, Post $post)
     {
         if ($post->summary) {
@@ -110,7 +102,6 @@ class PostController extends Controller
             }
 
             $summary = trim($response->json('choices.0.message.content'));
-
             $post->update(['summary' => $summary]);
             Log::info('[CivicUtopia] AI summary generated and SAVED for Post ID: ' . $post->id);
 
@@ -125,15 +116,11 @@ class PostController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Post $post)
     {
         if (request()->user()->id !== $post->user_id) {
             abort(403, 'Unauthorized action.');
         }
-
         try {
             $postId = $post->id;
             foreach ($post->media as $media) {
@@ -151,43 +138,72 @@ class PostController extends Controller
         }
     }
 
-
-    /**
-     * Toggle the "like" status for a post.
-     */
     public function toggleLike(Request $request, Post $post)
     {
         try {
             $result = $request->user()->likes()->toggle($post->id);
             $action = count($result['attached']) > 0 ? 'liked' : 'unliked';
             $likesCount = $post->likers()->count();
-            Log::info("[PostController] User {$request->user()->id} {$action} Post {$post->id}. New count: {$likesCount}");
             return response()->json(['status' => 'success', 'action' => $action, 'likes_count' => $likesCount]);
         } catch (\Exception $e) {
-            Log::error("[PostController] Failed to toggle like for Post {$post->id}", ['error' => $e->getMessage()]);
             return response()->json(['status' => 'error', 'message' => 'Could not update like status.'], 500);
         }
     }
 
-    /**
-     * Toggle the "bookmark" status for a post.
-     */
     public function toggleBookmark(Request $request, Post $post)
     {
         try {
             $result = $request->user()->bookmarks()->toggle($post->id);
             $action = count($result['attached']) > 0 ? 'bookmarked' : 'unbookmarked';
-            Log::info("[PostController] User {$request->user()->id} {$action} Post {$post->id}.");
             return response()->json(['status' => 'success', 'action' => $action]);
         } catch (\Exception $e) {
-            Log::error("[PostController] Failed to toggle bookmark for Post {$post->id}", ['error' => $e->getMessage()]);
             return response()->json(['status' => 'error', 'message' => 'Could not update bookmark status.'], 500);
         }
     }
 
-    /**
-     * Get image descriptions from Azure AI Vision.
-     */
+    public function explain(Request $request, Post $post)
+    {
+        Log::info('[PostController] Generating ELI5 explanation for Post ID: ' . $post->id);
+
+        $imageDescriptions = $this->getImageDescriptions($post);
+        $imageContext = '';
+        if (!empty($imageDescriptions)) {
+            $imageContext = "\n\nThe post includes images. Here are detailed descriptions of what is in them:\n- " . implode("\n- ", $imageDescriptions);
+        }
+
+        $requestUrl = config('services.azure.openai.endpoint') . 'openai/deployments/' . config('services.azure.openai.deployment') . '/chat/completions?api-version=' . config('services.azure.openai.api_version');
+
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'api-key' => config('services.azure.openai.api_key'),
+            ])->post($requestUrl, [
+                'messages' => [
+                    ['role' => 'system', 'content' => "You are a friendly and simple assistant. Your task is to explain a user's post in a very simple way, as if you were talking to a 5-year-old. Use short sentences, simple words, and analogies if helpful. If there are images, describe them simply as part of your explanation."],
+                    ['role' => 'user', 'content' => "Explain this like I'm 5:\n\n" . $post->content . $imageContext],
+                ],
+                'max_tokens' => 250,
+                'temperature' => 0.4,
+            ]);
+
+            if ($response->failed()) {
+                $response->throw();
+            }
+
+            $explanation = trim($response->json('choices.0.message.content'));
+            Log::info('[PostController] ELI5 explanation generated successfully for Post ID: ' . $post->id);
+
+            return response()->json(['explanation' => $explanation]);
+
+        } catch (\Exception $e) {
+            Log::error('[PostController] ELI5 explanation generation failed.', [
+                'post_id' => $post->id,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['explanation' => 'Sorry, I had trouble explaining that right now.'], 500);
+        }
+    }
+
     private function getImageDescriptions(Post $post): array
     {
         $visionEndpoint = config('services.azure.vision.endpoint');
@@ -205,39 +221,50 @@ class PostController extends Controller
 
         Log::info('[PostController] Analyzing ' . $images->count() . ' images for Post ID: ' . $post->id);
 
-        // !FIX: Use the correct API endpoint and parameters from your working curl command
-        $requestUrl = rtrim($visionEndpoint, '/') . '/computervision/imageanalysis:analyze?api-version=2023-10-01&features=caption';
-
-        $responses = Http::pool(function (Pool $pool) use ($images, $requestUrl, $visionApiKey) {
-            foreach ($images as $image) {
-                $baseUrl = rtrim(config('app.url'), '/');
-                $imageUrl = $baseUrl . Storage::url($image->path);
-
-                Log::info('[PostController] Sending image URL to Azure Vision: ' . $imageUrl);
-
-                $pool->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Ocp-Apim-Subscription-Key' => $visionApiKey,
-                ])->post($requestUrl, [
-                    'url' => $imageUrl
-                ]);
-            }
-        });
-
+        $requestUrl = rtrim($visionEndpoint, '/') . '/computervision/imageanalysis:analyze?api-version=2023-10-01&features=denseCaptions';
         $descriptions = [];
-        foreach ($responses as $response) {
-            if ($response->successful()) {
-                // !FIX: Parse the new JSON structure
-                $descriptions[] = $response->json('captionResult.text');
-            } else {
-                Log::error('[PostController] Azure Vision API call failed.', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
+
+        foreach ($images as $image) {
+            try {
+                $fileContents = Storage::disk('public')->get($image->path);
+                $mimeType = Storage::disk('public')->mimeType($image->path);
+
+                if (!$fileContents) {
+                    Log::error('[PostController] Could not read file from storage.', ['path' => $image->path]);
+                    continue;
+                }
+
+                Log::info('[PostController] Sending raw image data to Azure Vision for DENSE analysis.');
+
+                $response = Http::withHeaders([
+                    'Ocp-Apim-Subscription-Key' => $visionApiKey,
+                    'Content-Type' => 'application/octet-stream',
+                ])
+                ->withBody($fileContents, $mimeType)
+                ->post($requestUrl);
+
+                if ($response->successful()) {
+                    $denseCaptions = $response->json('denseCaptionsResult.values');
+                    if (is_array($denseCaptions)) {
+                        foreach ($denseCaptions as $caption) {
+                            $descriptions[] = $caption['text'];
+                        }
+                    }
+                } else {
+                    Log::error('[PostController] Azure Vision API call failed for one image.', [
+                        'status' => $response->status(),
+                        'body' => $response->body(),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('[PostController] Exception during Azure Vision API call.', [
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
 
-        Log::info('[PostController] Image analysis complete.', ['descriptions' => $descriptions]);
-        return array_filter($descriptions);
+        $uniqueDescriptions = array_unique($descriptions);
+        Log::info('[PostController] Image analysis complete.', ['descriptions' => $uniqueDescriptions]);
+        return array_slice($uniqueDescriptions, 0, 5);
     }
 }

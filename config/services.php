@@ -50,12 +50,22 @@ return [
             'key' => env('AZURE_AI_SPEECH_KEY'),
             'region' => env('AZURE_AI_SPEECH_REGION'),
         ],
+        'document' => [
+            'endpoint' => env('AZURE_AI_DOCUMENT_INTELLIGENCE_ENDPOINT'),
+            'key' => env('AZURE_AI_DOCUMENT_INTELLIGENCE_API_KEY'),
+        ],
     ],
 
      // --- ADDED FOR CIVIC UTOPIA ---
     'rapidapi' => [
         'key' => env('RAPIDAPI_KEY'),
         'host' => env('RAPIDAPI_HOST'),
+    ],
+
+    // Added for Auto Researche Feature in Candidate Compass
+    'rapidapi_gary' => [
+        'key' => env('RAPIDAPI_KEY_GARY'),
+        'host' => env('RAPIDAPI_HOST_GARY'),
     ],
 
     'azure_dalle' => [

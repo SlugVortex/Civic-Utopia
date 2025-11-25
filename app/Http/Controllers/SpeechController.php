@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -14,9 +15,15 @@ class SpeechController extends Controller
 {
     public function generate(Request $request)
     {
+        // Allow either post_id (for posts) or text (for ballots)
         $validated = $request->validate([
-            'post_id' => 'required|exists:posts,id',
+            'post_id' => 'nullable|exists:posts,id',
+            'text'    => 'nullable|string|max:5000',
         ]);
+
+        if (empty($validated['post_id']) && empty($validated['text'])) {
+            return response()->json(['error' => 'Either post_id or text is required.'], 422);
+        }
 
         $speechKey = config('services.azure.speech.key');
         $speechRegion = config('services.azure.speech.region');
@@ -26,22 +33,32 @@ class SpeechController extends Controller
             return response()->json(['error' => 'Speech service not configured.'], 500);
         }
 
-        $post = Post::with('media')->findOrFail($validated['post_id']);
-        $postContent = $post->content;
+        // Determine the text to speak
+        $textToSpeak = '';
 
-        $imageDescriptions = $this->getImageDescriptions($post);
-        $imageNarrative = '';
-        if (!empty($imageDescriptions)) {
-            $imageNarrative = " The post includes " . count($imageDescriptions) . " image" . (count($imageDescriptions) > 1 ? 's' : '') . ". ";
-            $narratives = array_map(fn($desc, $i) => "Image " . ($i + 1) . " is described as: " . $desc, $imageDescriptions, array_keys($imageDescriptions));
-            $imageNarrative .= implode(". ", $narratives);
+        if (!empty($validated['post_id'])) {
+            // Logic for Posts (Existing Feature)
+            $post = Post::with('media')->findOrFail($validated['post_id']);
+            $postContent = $post->content;
+
+            $imageDescriptions = $this->getImageDescriptions($post);
+            $imageNarrative = '';
+            if (!empty($imageDescriptions)) {
+                $imageNarrative = " The post also has an image. Here is a detailed description of it: ";
+                $imageNarrative .= implode('. ', $imageDescriptions);
+            }
+            $textToSpeak = $postContent . $imageNarrative;
+        } else {
+            // Logic for Ballots (New Feature)
+            $textToSpeak = $validated['text'];
         }
 
-        $fullTextToSpeak = $postContent . $imageNarrative;
+        // Construct SSML for Azure
         $endpoint = "https://{$speechRegion}.tts.speech.microsoft.com/cognitiveservices/v1";
         $ssml = '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">';
+        // Using JennyNeural for clarity, or you can try en-GB-RyanNeural for a different accent if preferred
         $ssml .= '<voice name="en-US-JennyNeural">';
-        $ssml .= htmlspecialchars($fullTextToSpeak);
+        $ssml .= htmlspecialchars($textToSpeak);
         $ssml .= '</voice></speak>';
 
         try {
@@ -57,7 +74,9 @@ class SpeechController extends Controller
                 $response->throw();
             }
 
-            Log::info('[SpeechController] Successfully generated speech audio for Post ID: ' . $post->id);
+            Log::info('[SpeechController] Successfully generated speech audio.');
+
+            // Return base64 encoded audio
             return response()->json(['audio' => base64_encode($response->body())]);
 
         } catch (\Exception $e) {
@@ -66,9 +85,6 @@ class SpeechController extends Controller
         }
     }
 
-    /**
-     * Get image descriptions from Azure AI Vision.
-     */
     private function getImageDescriptions(Post $post): array
     {
         $visionEndpoint = config('services.azure.vision.endpoint');
@@ -84,34 +100,43 @@ class SpeechController extends Controller
 
         Log::info('[SpeechController] Analyzing ' . $images->count() . ' images for Post ID: ' . $post->id);
 
-        // !FIX: Use the correct API endpoint and parameters
-        $requestUrl = rtrim($visionEndpoint, '/') . '/computervision/imageanalysis:analyze?api-version=2023-10-01&features=caption';
-
-        $responses = Http::pool(function (Pool $pool) use ($images, $requestUrl, $visionApiKey) {
-            foreach ($images as $image) {
-                $baseUrl = rtrim(config('app.url'), '/');
-                $imageUrl = $baseUrl . Storage::url($image->path);
-
-                Log::info('[SpeechController] Sending image URL to Azure Vision: ' . $imageUrl);
-
-                $pool->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Ocp-Apim-Subscription-Key' => $visionApiKey,
-                ])->post($requestUrl, ['url' => $imageUrl]);
-            }
-        });
-
+        $requestUrl = rtrim($visionEndpoint, '/') . '/computervision/imageanalysis:analyze?api-version=2023-10-01&features=denseCaptions';
         $descriptions = [];
-        foreach ($responses as $response) {
-            if ($response->successful()) {
-                // !FIX: Parse the new JSON structure
-                $descriptions[] = $response->json('captionResult.text');
-            } else {
-                Log::error('[SpeechController] Azure Vision API call failed.', ['status' => $response->status(), 'body' => $response->body()]);
+
+        foreach ($images as $image) {
+            try {
+                if(!Storage::disk('public')->exists($image->path)) {
+                    continue;
+                }
+
+                $fileContents = Storage::disk('public')->get($image->path);
+                $mimeType = Storage::disk('public')->mimeType($image->path);
+
+                if (!$fileContents) {
+                    continue;
+                }
+
+                $response = Http::withHeaders([
+                    'Ocp-Apim-Subscription-Key' => $visionApiKey,
+                    'Content-Type' => 'application/octet-stream',
+                ])->withBody($fileContents, $mimeType)->post($requestUrl);
+
+                if ($response->successful()) {
+                    $denseCaptions = $response->json('denseCaptionsResult.values');
+                    if (is_array($denseCaptions)) {
+                        foreach ($denseCaptions as $caption) {
+                            $descriptions[] = $caption['text'];
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                 Log::error('[SpeechController] Exception during Azure Vision API call.', [
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
-        return array_filter($descriptions);
+        $uniqueDescriptions = array_unique($descriptions);
+        return array_slice($uniqueDescriptions, 0, 5);
     }
 }
-

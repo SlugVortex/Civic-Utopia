@@ -26,6 +26,11 @@ $configData = Helper::appClasses();
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
   {{--! END: ADDED FOR ICONS --}}
 
+  {{--! START: ADDED FOR ICONS --}}
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  {{--! END: ADDED FOR ICONS --}}
+
   {{-- Include Scripts for head --}}
   @include('layouts/sections/scriptsIncludes')
 </head>

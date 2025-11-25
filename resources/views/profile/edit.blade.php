@@ -46,7 +46,6 @@
                                 </header>
 
                                 <div class="mt-6 space-y-6" id="appearance-settings-container">
-                                    {{-- Theme (Light/Dark) --}}
                                     <div>
                                         <x-input-label value="{{ __('Theme') }}" />
                                         <div class="mt-2 space-y-2">
@@ -65,11 +64,10 @@
                                         </div>
                                     </div>
 
-                                    {{-- Layout (Vertical/Horizontal) --}}
-                                    <div>
+                                     <div>
                                         <x-input-label value="{{ __('Layout') }}" />
                                         <div class="mt-2 space-y-2">
-                                            <div class="form-check form-check-inline">
+                                             <div class="form-check form-check-inline">
                                                 <input class="form-check-input" type="radio" name="layout-radio" id="layout-vertical" value="vertical">
                                                 <label class="form-check-label" for="layout-vertical">{{ __('Vertical') }}</label>
                                             </div>
@@ -103,51 +101,54 @@
     </div>
 
     @push('scripts')
-    {{-- This script hooks into the template's existing customizer logic --}}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Need to ensure the customizer script is loaded and ready
-            setTimeout(() => {
-                if (typeof templateCustomizer !== 'undefined') {
-                    const settingsContainer = document.getElementById('appearance-settings-container');
-                    if (!settingsContainer) return;
+        {{-- !FIX: Load customizer scripts ONLY on this page --}}
+        @vite([
+            'resources/assets/vendor/js/template-customizer.js',
+            'resources/assets/vendor/libs/pickr/pickr.js'
+        ])
 
-                    // --- Theme Handling ---
-                    const currentTheme = templateCustomizer.settings.theme;
-                    const themeRadio = settingsContainer.querySelector(`input[name="theme-radio"][value="${currentTheme}"]`);
-                    if(themeRadio) themeRadio.checked = true;
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(() => {
+                    if (typeof templateCustomizer !== 'undefined') {
+                        const settingsContainer = document.getElementById('appearance-settings-container');
+                        if (!settingsContainer) return;
 
-                    settingsContainer.querySelectorAll('input[name="theme-radio"]').forEach(radio => {
-                        radio.addEventListener('change', function() {
-                            templateCustomizer.setStyle(this.value);
+                        // --- Theme Handling ---
+                        const currentTheme = templateCustomizer.settings.theme;
+                        const themeRadio = settingsContainer.querySelector(`input[name="theme-radio"][value="${currentTheme}"]`);
+                        if(themeRadio) themeRadio.checked = true;
+
+                        settingsContainer.querySelectorAll('input[name="theme-radio"]').forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                templateCustomizer.setStyle(this.value);
+                            });
                         });
-                    });
 
-                    // --- Layout Handling ---
-                    const currentLayout = templateCustomizer.settings.myLayout;
-                    const layoutRadio = settingsContainer.querySelector(`input[name="layout-radio"][value="${currentLayout}"]`);
-                    if (layoutRadio) {
-                        layoutRadio.checked = true;
+                        // --- Layout Handling ---
+                        const currentLayout = templateCustomizer.settings.myLayout;
+                        const layoutRadio = settingsContainer.querySelector(`input[name="layout-radio"][value="${currentLayout}"]`);
+                        if (layoutRadio) {
+                            layoutRadio.checked = true;
+                        } else {
+                            const verticalRadio = settingsContainer.querySelector(`input[name="layout-radio"][value="vertical"]`);
+                            if(verticalRadio) verticalRadio.checked = true;
+                        }
+
+
+                        settingsContainer.querySelectorAll('input[name="layout-radio"]').forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                if (window.Helpers) {
+                                    window.Helpers.setlayout(this.value);
+                                }
+                            });
+                        });
+
                     } else {
-                        // Default to vertical if not set
-                        const verticalRadio = settingsContainer.querySelector(`input[name="layout-radio"][value="vertical"]`);
-                        if(verticalRadio) verticalRadio.checked = true;
+                        console.error('templateCustomizer not found. Theme settings on profile page will not work.');
                     }
-
-
-                    settingsContainer.querySelectorAll('input[name="layout-radio"]').forEach(radio => {
-                        radio.addEventListener('change', function() {
-                            if (window.Helpers) {
-                                window.Helpers.setlayout(this.value);
-                            }
-                        });
-                    });
-
-                } else {
-                    console.error('templateCustomizer not found. Theme settings on profile page will not work.');
-                }
-            }, 500); // Delay to ensure template scripts are fully initialized
-        });
-    </script>
+                }, 500);
+            });
+        </script>
     @endpush
 </x-app-layout>
