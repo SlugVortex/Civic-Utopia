@@ -7,7 +7,7 @@ $configData = Helper::appClasses();
     <i class="ri-close-line ri-22px"></i>
   </a>
   <div class="customizer-header px-4 pt-4">
-    <h5 class="m-0">Theme Customizer</h5>
+    <h5 class="m-0">Change your theme</h5>
     <small class="text-muted">Customize & Preview in Real Time</small>
   </div>
   <div class="customizer-inner">

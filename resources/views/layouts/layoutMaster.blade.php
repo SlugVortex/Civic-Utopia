@@ -42,12 +42,10 @@ $configData = Helper::appClasses();
 
       <!-- Menu -->
       <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
-        <div class="app-brand demo">
-          <a href="{{url('/')}}" class="app-brand-link">
-            <span class="app-brand-logo demo">
-              @include('_partials.macros',["height"=>20])
-            </span>
-            <span class="app-brand-text demo menu-text fw-semibold ms-2">{{config('variables.templateName')}}</span>
+        <div class="app-brand demo" style="padding: 1.5rem 1.5rem;">
+          <a href="{{url('/')}}" class="app-brand-link d-flex align-items-center">
+            <img src="{{ asset('assets/img/favicon/logo.png') }}" alt="Logo" style="max-height: 45px; width: auto;">
+            <span class="app-brand-text demo menu-text fw-semibold ms-3">Civic Utopia</span>
           </a>
           <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
             <i class="ri-close-fill align-middle ri-20px"></i>
