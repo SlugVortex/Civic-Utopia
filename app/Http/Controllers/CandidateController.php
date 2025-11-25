@@ -346,4 +346,117 @@ class CandidateController extends Controller
             return response()->json(['error' => 'Research failed.'], 500);
         }
     }
+
+    /**
+     * Research a specific stance (Deep Dive)
+     */
+    public function researchStance(Request $request, Candidate $candidate, BingSearchService $bing)
+    {
+        $request->validate(['topic' => 'required|string']);
+        $topic = $request->topic;
+
+        Log::info("Deep diving into {$candidate->name}'s stance on {$topic}");
+
+        try {
+            // 1. Targeted Bing Search
+            $query = "{$candidate->name} {$candidate->country} stance on {$topic} quotes policies";
+            $results = $bing->searchWeb($query, 5);
+
+            $context = "";
+            foreach ($results as $item) {
+                $context .= "Snippet: " . ($item['description'] ?? '') . "\n";
+            }
+
+            // 2. Azure OpenAI Synthesis
+            $endpoint = config('services.azure.openai.endpoint');
+            $apiKey = config('services.azure.openai.api_key');
+            $deployment = config('services.azure.openai.deployment');
+            $apiVersion = config('services.azure.openai.api_version');
+            $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
+
+            $systemMessage = "You are a political researcher. Summarize the candidate's specific stance on '{$topic}' based on the search results.
+            Keep it under 3 sentences. If no info is found, state 'No public record found regarding {$topic}.'";
+
+            $response = Http::withHeaders([
+                'api-key' => $apiKey, 'Content-Type' => 'application/json'
+            ])->post($url, [
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemMessage],
+                    ['role' => 'user', 'content' => $context],
+                ],
+            ]);
+
+            $newStanceText = $response->json('choices.0.message.content');
+
+            // 3. Update Database
+
+            // A. Update the Stances Array
+            $stances = $candidate->stances ?? [];
+            $stances[$topic] = $newStanceText;
+
+            // B. Append to Manifesto (So the Chat Bot gets smarter!)
+            // We check if it's already there to avoid duplicates roughly
+            $updateNote = "\n\n[AI Research on {$topic}]: {$newStanceText}";
+            $newManifesto = $candidate->manifesto_text . $updateNote;
+
+            $candidate->update([
+                'stances' => $stances,
+                'manifesto_text' => $newManifesto
+            ]);
+
+            return response()->json(['success' => true, 'stance' => $newStanceText]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Research failed.'], 500);
+        }
+    }
+
+    /**
+     * Translate Candidate Profile
+     */
+    public function translate(Request $request, Candidate $candidate)
+    {
+        $request->validate(['language' => 'required|string']);
+        $lang = $request->language;
+
+        // If English, return original database values
+        if ($lang === 'English') {
+            return response()->json([
+                'ai_summary' => $candidate->ai_summary,
+                'stances' => $candidate->stances
+            ]);
+        }
+
+        try {
+            $endpoint = config('services.azure.openai.endpoint');
+            $apiKey = config('services.azure.openai.api_key');
+            $deployment = config('services.azure.openai.deployment');
+            $apiVersion = config('services.azure.openai.api_version');
+            $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
+
+            // STRICT PROMPT: Do not translate keys
+            $systemMessage = "You are a professional translator. Translate the values of the JSON object into {$lang}.
+            CRITICAL RULE: Do NOT translate the keys (e.g., 'Economy', 'Crime'). Keep keys exactly as provided in English.";
+
+            $payload = [
+                'ai_summary' => $candidate->ai_summary,
+                'stances' => $candidate->stances
+            ];
+
+            $response = Http::withHeaders([
+                'api-key' => $apiKey, 'Content-Type' => 'application/json'
+            ])->post($url, [
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemMessage],
+                    ['role' => 'user', 'content' => json_encode($payload)],
+                ],
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+            return response()->json(json_decode($response->json('choices.0.message.content')));
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Translation failed'], 500);
+        }
+    }
 }

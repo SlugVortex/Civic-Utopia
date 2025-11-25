@@ -99,6 +99,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/candidates/research', [App\Http\Controllers\CandidateController::class, 'research'])->name('candidates.research');
     Route::get('/candidates/{candidate}/edit', [App\Http\Controllers\CandidateController::class, 'edit'])->name('candidates.edit');
     Route::put('/candidates/{candidate}', [App\Http\Controllers\CandidateController::class, 'update'])->name('candidates.update');
+    Route::post('/candidates/{candidate}/research-stance', [App\Http\Controllers\CandidateController::class, 'researchStance'])->name('candidates.researchStance');
+    Route::post('/candidates/{candidate}/translate', [App\Http\Controllers\CandidateController::class, 'translate'])->name('candidates.translate');
 
     // --- CIVIC LENS (ISSUES) ROUTES ---
     Route::get('/issues', [App\Http\Controllers\IssueController::class, 'index'])->name('issues.index');
