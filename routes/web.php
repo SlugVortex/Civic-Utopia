@@ -99,4 +99,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/issues', [App\Http\Controllers\IssueController::class, 'store'])->name('issues.store');
     Route::get('/issues/{issue}', [App\Http\Controllers\IssueController::class, 'show'])->name('issues.show');
     Route::post('/issues/{issue}/analyze', [App\Http\Controllers\IssueController::class, 'analyze'])->name('issues.analyze');
-});
+
+// --- SMART DOCUMENT ROUTES ---
+    Route::get('/documents', [App\Http\Controllers\DocumentController::class, 'index'])->name('documents.index');
+    Route::get('/documents/create', [App\Http\Controllers\DocumentController::class, 'create'])->name('documents.create');
+    Route::post('/documents', [App\Http\Controllers\DocumentController::class, 'store'])->name('documents.store');
+    Route::get('/documents/{document}', [App\Http\Controllers\DocumentController::class, 'show'])->name('documents.show');
+    Route::post('/documents/{document}/chat', [App\Http\Controllers\DocumentController::class, 'chat'])->name('documents.chat');
+    Route::post('/documents/{document}/annotate', [App\Http\Controllers\DocumentController::class, 'annotate'])->name('documents.annotate');
+    // NEW ROUTE
+    Route::post('/documents/{document}/regenerate', [App\Http\Controllers\DocumentController::class, 'regenerate'])->name('documents.regenerate');});

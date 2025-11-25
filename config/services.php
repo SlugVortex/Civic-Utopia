@@ -50,6 +50,10 @@ return [
             'key' => env('AZURE_AI_SPEECH_KEY'),
             'region' => env('AZURE_AI_SPEECH_REGION'),
         ],
+        'document' => [
+            'endpoint' => env('AZURE_AI_DOCUMENT_INTELLIGENCE_ENDPOINT'),
+            'key' => env('AZURE_AI_DOCUMENT_INTELLIGENCE_API_KEY'),
+        ],
     ],
 
 ];

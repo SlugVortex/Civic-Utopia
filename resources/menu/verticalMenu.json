@@ -19,6 +19,12 @@
       "slug": "candidates.index"
     },
     {
+      "url": "/documents",
+      "name": "Legal Library",
+      "icon": "menu-icon icon-base ri ri-book-read-line",
+      "slug": "documents.index"
+    },
+    {
       "url": "/issues",
       "name": "Civic Lens",
       "icon": "menu-icon icon-base ri ri-camera-lens-line",
