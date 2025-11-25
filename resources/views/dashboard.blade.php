@@ -137,7 +137,7 @@ $activeTopic = $activeTopic ?? null;
 
             <div id="post-feed-container">
                 @forelse ($posts as $post)
-                    @include('posts._post_card', ['post' => $post])
+                    @include('posts._post_card', ['post' => $post, 'showComments' => false])
                 @empty
                     <div id="no-posts-message" class="card card-body text-center text-muted p-5">
                         <p>No posts found in this topic. Be the first to share something!</p>
@@ -170,380 +170,182 @@ $activeTopic = $activeTopic ?? null;
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    // ==========================================
+    // 1. REAL-TIME COMMENT LISTENER (PUSHER)
+    // ==========================================
+    // Ensure Echo is initialized (Laravel default bootstrap.js usually does this)
+    // If not, you might need: window.Echo = new Echo({...});
 
-    // --- Progress Bar Logic ---
-    const localizeBtn = document.getElementById('btn-localize-news');
-    const progressContainer = document.getElementById('ai-progress-container');
-    const progressBar = document.getElementById('ai-progress-bar');
-    const progressText = document.getElementById('ai-progress-text');
-    const progressPercent = document.getElementById('ai-progress-percent');
+    if (window.Echo) {
+        window.Echo.channel('comments')
+            .listen('CommentCreated', (e) => {
+                console.log('New comment received:', e);
 
-    function updateProgress(width, text) {
-        progressBar.style.width = width + '%';
-        progressPercent.textContent = width + '%';
-        progressText.innerHTML = text;
+                // 1. Find the post container
+                const postCard = document.getElementById(`post-${e.post_id}`);
+                if (!postCard) return; // Comment is for a post not currently on screen
+
+                // 2. Find the comments list
+                const commentsList = postCard.querySelector('.comments-list'); // Ensure your _post_card.blade.php has this class on the container
+
+                // 3. Remove "Typing" indicator if this is the bot reply
+                const loadingId = `typing-${e.post_id}`;
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                // 4. Build the HTML (Matches your design)
+                const newCommentHtml = `
+                    <div class="d-flex mb-3 animate__animated animate__fadeIn">
+                        <div class="flex-shrink-0">
+                            <img src="${e.user.avatar_url}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="bg-light p-3 rounded">
+                                <div class="fw-bold text-dark mb-1">${e.user.name}</div>
+                                <div class="text-muted small">${e.content}</div>
+                            </div>
+                            <small class="text-muted ms-1">Just now</small>
+                        </div>
+                    </div>
+                `;
+
+                // 5. Append
+                if (commentsList) {
+                    commentsList.insertAdjacentHTML('beforeend', newCommentHtml);
+                }
+            });
     }
 
-    if(localizeBtn) {
-        localizeBtn.addEventListener('click', function() {
-            if (!navigator.geolocation) {
-                alert("Geolocation is not supported by your browser");
+    // ==========================================
+    // 2. BOT AUTOCOMPLETE & LOADING UI
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // The Bots Config
+        const bots = [
+            { id: 'FactChecker', name: 'FactChecker', desc: 'Verifies claims', icon: 'ri-checkbox-circle-line text-success' },
+            { id: 'Historian', name: 'Historian', desc: 'Provides context', icon: 'ri-book-open-line text-warning' },
+            { id: 'DevilsAdvocate', name: 'DevilsAdvocate', desc: 'Argues logic', icon: 'ri-fire-line text-danger' },
+            { id: 'Analyst', name: 'Analyst', desc: 'Data & Stats', icon: 'ri-bar-chart-line text-info' }
+        ];
+
+        // Create the dropdown element (Hidden initially)
+        const dropdown = document.createElement('div');
+        dropdown.id = 'bot-autocomplete-dropdown';
+        dropdown.className = 'list-group position-absolute shadow-lg';
+        dropdown.style.display = 'none';
+        dropdown.style.zIndex = '1000';
+        dropdown.style.width = '250px';
+        document.body.appendChild(dropdown);
+
+        let activeInput = null;
+
+        // Listen for typing in ANY comment box
+        document.body.addEventListener('keyup', function(e) {
+            if (e.target.matches('textarea[name="content"]')) {
+                activeInput = e.target;
+                const val = activeInput.value;
+                const cursorPos = activeInput.selectionStart;
+
+                // Check if the last character typed or word being typed starts with @
+                const lastAt = val.lastIndexOf('@', cursorPos - 1);
+
+                if (lastAt !== -1) {
+                    const query = val.substring(lastAt + 1, cursorPos);
+                    // If query contains space, close menu (assuming they finished the name or are typing a sentence)
+                    if (query.includes(' ')) {
+                        dropdown.style.display = 'none';
+                        return;
+                    }
+                    showSuggestions(query, activeInput, lastAt);
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+
+        function showSuggestions(query, input, atIndex) {
+            const rect = input.getBoundingClientRect();
+            dropdown.style.top = (window.scrollY + rect.bottom) + 'px';
+            dropdown.style.left = (window.scrollX + rect.left) + 'px';
+            dropdown.innerHTML = '';
+
+            const matches = bots.filter(b => b.name.toLowerCase().startsWith(query.toLowerCase()));
+
+            if (matches.length === 0) {
+                dropdown.style.display = 'none';
                 return;
             }
 
-            localizeBtn.disabled = true;
-            const originalBtnText = localizeBtn.innerHTML;
-            localizeBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Working...';
+            matches.forEach(bot => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'list-group-item list-group-item-action d-flex align-items-center';
+                item.innerHTML = `
+                    <i class="${bot.icon} fs-4 me-2"></i>
+                    <div>
+                        <div class="fw-bold">@${bot.name}</div>
+                        <small class="text-muted">${bot.desc}</small>
+                    </div>
+                `;
+                item.onclick = function() {
+                    const before = input.value.substring(0, atIndex);
+                    const after = input.value.substring(input.selectionStart);
+                    input.value = before + '@' + bot.name + ' ' + after;
+                    dropdown.style.display = 'none';
+                    input.focus();
+                };
+                dropdown.appendChild(item);
+            });
 
-            progressContainer.style.display = 'block';
-            updateProgress(15, '<i class="ri-map-pin-user-line"></i> Acquiring GPS location...');
+            dropdown.style.display = 'block';
+        }
 
-            navigator.geolocation.getCurrentPosition(success, error);
-
-            function success(position) {
-                updateProgress(50, '<i class="ri-broadcast-line"></i> Contacting News Agents...');
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-
-                fetch('{{ route("news.fetch") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                    body: JSON.stringify({ lat: lat, lon: lon })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    updateProgress(90, '<i class="ri-quill-pen-line"></i> Generating summaries & images... (~45s)');
-                    progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
-
-                    setTimeout(() => {
-                        updateProgress(100, '<i class="ri-check-double-line"></i> Done! Reloading...');
-                        setTimeout(() => window.location.reload(), 1000);
-                    }, 15000);
-                })
-                .catch(err => {
-                    console.error(err);
-                    progressBar.classList.remove('bg-primary');
-                    progressBar.classList.add('bg-danger');
-                    updateProgress(100, 'Connection failed.');
-                    localizeBtn.disabled = false;
-                    localizeBtn.innerHTML = originalBtnText;
-                });
-            }
-
-            function error() {
-                progressBar.classList.remove('bg-primary');
-                progressBar.classList.add('bg-danger');
-                updateProgress(100, 'GPS Error. Allow location access.');
-                localizeBtn.disabled = false;
-                localizeBtn.innerHTML = originalBtnText;
+        // Hide dropdown on click elsewhere
+        document.addEventListener('click', (e) => {
+            if (e.target !== dropdown && e.target !== activeInput) {
+                dropdown.style.display = 'none';
             }
         });
-    }
 
-    // --- Main Dashboard Logic ---
-    const postFeedContainer = document.getElementById('post-feed-container');
-    let currentAudio = null;
-    let lastPlayedButton = null;
+        // Detect Submit to show "Loading..." state
+        document.body.addEventListener('submit', function(e) {
+            if (e.target.matches('.comment-form')) { // Ensure your form has class 'comment-form'
+                const input = e.target.querySelector('textarea');
+                const val = input.value;
 
-    const explainModalEl = document.getElementById('explanation-modal');
-    const explainModal = new bootstrap.Modal(explainModalEl);
-    const explanationContent = document.getElementById('explanation-content');
+                // Check if a bot was summoned
+                const summonedBot = bots.find(b => val.includes('@' + b.name));
 
-    document.body.addEventListener('click', function (event) {
-        const likeButton = event.target.closest('.btn-like');
-        const bookmarkButton = event.target.closest('.btn-bookmark');
-        const shareButton = event.target.closest('.btn-share');
-        const summarizeButton = event.target.closest('.btn-summarize');
-        const readAloudButton = event.target.closest('.btn-read-aloud');
-        const explainButton = event.target.closest('.btn-explain');
-        const imageModalTrigger = event.target.closest('.carousel-image');
-        const modalClose = event.target.closest('.image-modal-close');
-        const modalBackdrop = event.target.closest('.image-modal');
+                if (summonedBot) {
+                    // Find the container to append the "Ghost" comment
+                    const postCard = e.target.closest('.card'); // Assuming post is in a card
+                    const commentsList = postCard.querySelector('.comments-list');
+                    const postId = postCard.id.replace('post-', '');
 
-        if (likeButton) handleLikeClick(likeButton);
-        else if (bookmarkButton) handleBookmarkClick(bookmarkButton);
-        else if (shareButton) handleShareClick(shareButton);
-        else if (summarizeButton) handleSummarizeClick(summarizeButton);
-        else if (readAloudButton) handleReadAloudClick(readAloudButton);
-        else if (explainButton) handleExplainClick(explainButton);
-        else if (imageModalTrigger) openImageModal(imageModalTrigger);
-        else if (modalClose) closeModal();
-        else if (modalBackdrop && event.target === modalBackdrop) closeModal();
-    });
-
-    const mediaUploadInput = document.getElementById('media-upload');
-    const mediaPreviewContainer = document.getElementById('media-preview');
-
-    if (mediaUploadInput) {
-        mediaUploadInput.addEventListener('change', function() {
-            mediaPreviewContainer.innerHTML = '';
-            if (this.files.length > 0) {
-                const fileList = document.createElement('ul');
-                fileList.className = 'list-unstyled mb-0 small text-muted';
-                Array.from(this.files).forEach(file => {
-                    const listItem = document.createElement('li');
-                    listItem.textContent = `📎 ${file.name}`;
-                    fileList.appendChild(listItem);
-                });
-                mediaPreviewContainer.appendChild(fileList);
-            }
-        });
-    }
-
-    // Explained Logic (Restored from your branch)
-    async function handleExplainClick(button) {
-        const postId = button.dataset.postId;
-        explanationContent.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-        explainModal.show();
-        try {
-            const response = await fetch(`/posts/${postId}/explain`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-            });
-            if (!response.ok) throw new Error('Explanation failed');
-            const data = await response.json();
-            explanationContent.textContent = data.explanation;
-        } catch (error) {
-            console.error('Error explaining post:', error);
-            explanationContent.textContent = 'Sorry, something went wrong while trying to explain this.';
-        }
-    }
-
-    async function handleReadAloudClick(button) {
-        const postId = button.dataset.postId;
-        const icon = button.querySelector('i');
-
-        if (currentAudio && !currentAudio.paused && lastPlayedButton === button) {
-            currentAudio.pause();
-            currentAudio.currentTime = 0;
-            icon.className = 'ri-volume-up-line';
-            currentAudio = null;
-            lastPlayedButton = null;
-            return;
-        }
-
-        if (currentAudio && !currentAudio.paused) {
-            currentAudio.pause();
-            currentAudio.currentTime = 0;
-            if (lastPlayedButton) {
-                lastPlayedButton.querySelector('i').className = 'ri-volume-up-line';
-            }
-        }
-
-        icon.className = 'ri-loader-4-line';
-        lastPlayedButton = button;
-
-        try {
-            const response = await fetch('{{ route("speech.generate") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                body: JSON.stringify({ post_id: postId })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Speech generation failed.');
-            }
-            const data = await response.json();
-            if (!data.audio) throw new Error('No audio data received.');
-
-            const audioSrc = `data:audio/mp3;base64,${data.audio}`;
-            currentAudio = new Audio(audioSrc);
-            icon.className = 'ri-stop-circle-line';
-
-            currentAudio.play().catch(e => {
-                console.error("Audio playback failed:", e);
-                alert("Audio playback was blocked by the browser. Please interact with the page first.");
-                icon.className = 'ri-volume-up-line';
-            });
-
-            currentAudio.onended = () => {
-                icon.className = 'ri-volume-up-line';
-                currentAudio = null;
-                lastPlayedButton = null;
-            };
-        } catch (error) {
-            console.error('[Speech] Error:', error);
-            icon.className = 'ri-volume-up-line';
-            alert('Could not generate audio for this post.');
-            currentAudio = null;
-            lastPlayedButton = null;
-        }
-    }
-
-    async function handleLikeClick(button) {
-        const postId = button.dataset.postId;
-        const countSpan = button.querySelector('.like-count');
-        const icon = button.querySelector('i');
-
-        try {
-            const response = await fetch(`/posts/${postId}/like`, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-            });
-            if (!response.ok) throw new Error('Like failed');
-            const data = await response.json();
-
-            countSpan.textContent = data.likes_count > 0 ? data.likes_count : '';
-            button.classList.toggle('liked', data.action === 'liked');
-            icon.className = data.action === 'liked' ? 'ri-heart-fill me-1' : 'ri-heart-line me-1';
-        } catch (error) {
-            console.error('Error liking post:', error);
-        }
-    }
-
-    async function handleBookmarkClick(button) {
-        const postId = button.dataset.postId;
-        const icon = button.querySelector('i');
-        button.disabled = true;
-
-        try {
-            const response = await fetch(`/posts/${postId}/bookmark`, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-            });
-            if (!response.ok) throw new Error('Bookmark failed');
-            const data = await response.json();
-            button.classList.toggle('active', data.action === 'bookmarked');
-            icon.className = data.action === 'bookmarked' ? 'ri-bookmark-fill me-1' : 'ri-bookmark-line me-1';
-        } catch (error) {
-            console.error('Error bookmarking post:', error);
-        } finally {
-            button.disabled = false;
-        }
-    }
-
-    function handleShareClick(button) {
-        const url = button.dataset.url;
-        navigator.clipboard.writeText(url).then(() => {
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="ri-check-line me-1"></i> Copied!';
-            setTimeout(() => {
-                button.innerHTML = originalText;
-            }, 2000);
-        }).catch(err => {
-            alert('Failed to copy link.');
-        });
-    }
-
-    async function handleSummarizeClick(button) {
-        const postId = button.dataset.postId;
-        const postElement = document.getElementById(`post-${postId}`);
-        const summaryContainer = postElement.querySelector('.summary-container');
-        const summaryContent = summaryContainer.querySelector('.summary-content');
-        const buttonText = button.querySelector('.button-text');
-        const buttonIcon = button.querySelector('i');
-
-        if (summaryContainer.style.display === 'block') {
-            summaryContainer.style.display = 'none';
-            buttonText.textContent = 'Summarize';
-            return;
-        }
-
-        button.disabled = true;
-        buttonText.textContent = 'Generating...';
-        buttonIcon.className = 'ri-loader-4-line me-1';
-
-        try {
-            const response = await fetch(`/posts/${postId}/summarize`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-            });
-            if (!response.ok) throw new Error('Network error.');
-            const data = await response.json();
-
-            summaryContent.textContent = data.summary;
-            summaryContainer.style.display = 'block';
-            buttonText.textContent = 'Hide Summary';
-        } catch (error) {
-            summaryContent.textContent = 'Could not generate a summary.';
-            summaryContainer.style.display = 'block';
-            buttonText.textContent = 'Summarize';
-        } finally {
-            button.disabled = false;
-            buttonIcon.className = 'ri-sparkling-2-line me-1';
-        }
-    }
-
-    // CAROUSEL LOGIC (Retained from Main branch)
-    document.querySelectorAll('.post-carousel').forEach(carousel => {
-        const slides = carousel.querySelectorAll('.carousel-slide');
-        const indicators = carousel.querySelectorAll('.indicator');
-        const prevBtn = carousel.querySelector('.prev-btn');
-        const nextBtn = carousel.querySelector('.next-btn');
-        let currentSlide = 0;
-        function showSlide(index) {
-            slides.forEach((slide, i) => {
-                slide.classList.remove('active');
-                if (indicators[i]) indicators[i].classList.remove('active');
-            });
-            currentSlide = index;
-            if (index >= slides.length) currentSlide = 0;
-            if (index < 0) currentSlide = slides.length - 1;
-            if (slides[currentSlide]) slides[currentSlide].classList.add('active');
-            if (indicators[currentSlide]) indicators[currentSlide].classList.add('active');
-        }
-        if (prevBtn && nextBtn) {
-            prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
-            nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
-        }
-        indicators.forEach((indicator, index) => {
-            indicator.addEventListener('click', () => showSlide(index));
-        });
-    });
-
-    // IMAGE MODAL LOGIC (Merged)
-    const modalContainer = document.getElementById('image-modal-container');
-    if(modalContainer) {
-        modalContainer.innerHTML = `<div class="image-modal"><span class="image-modal-close">&times;</span><img src="" alt="Expanded image"></div>`;
-        const modal = modalContainer.querySelector('.image-modal');
-        const modalImg = modal.querySelector('img');
-
-        function closeModal() {
-            modal.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        function openImageModal(trigger) {
-            modalImg.src = trigger.dataset.fullImage;
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(); });
-    }
-
-    // Post Creation Form
-    const createPostForm = document.querySelector('#post-creation-form');
-    if (createPostForm) {
-        const postSubmitButton = createPostForm.querySelector('button[type="submit"]');
-        createPostForm.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            postSubmitButton.disabled = true;
-            postSubmitButton.textContent = 'Posting...';
-            const formData = new FormData(createPostForm);
-            try {
-                const response = await fetch('{{ route("posts.store") }}', {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                    body: formData
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Could not create post.');
+                    if (commentsList) {
+                        const loadingHtml = `
+                            <div id="typing-${postId}" class="d-flex mb-3 animate__animated animate__pulse animate__infinite">
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px;">
+                                        <i class="ri-robot-line"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="bg-light p-3 rounded">
+                                        <span class="text-muted small fst-italic">
+                                            <i class="ri-loader-4-line ri-spin me-1"></i>
+                                            ${summonedBot.name} is investigating...
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        commentsList.insertAdjacentHTML('beforeend', loadingHtml);
+                    }
                 }
-                createPostForm.reset();
-                if (mediaPreviewContainer) mediaPreviewContainer.innerHTML = '';
-                location.reload();
-            } catch (error) {
-                console.error('Error:', error);
-                alert(error.message);
-            } finally {
-                postSubmitButton.disabled = false;
-                postSubmitButton.textContent = 'Post';
             }
         });
-    }
-});
+    });
 </script>
 @endpush

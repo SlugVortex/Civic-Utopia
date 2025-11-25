@@ -3,16 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Events\CommentCreated;
-use App\Jobs\AiAgentJob; // <-- Import our new job
+use App\Jobs\AiAgentJob;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class CommentController extends Controller
 {
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request, Post $post)
     {
         $validated = $request->validate([
@@ -22,44 +19,67 @@ class CommentController extends Controller
         $content = $validated['content'];
         $user = $request->user();
 
-        // --- UPGRADE: DETECT @Historian MENTION ---
-        if (preg_match('/@Historian/i', $content)) {
-            Log::info("[CommentController] @Historian mention detected. Dispatching AiAgentJob.", [
-                'post_id' => $post->id,
-                'user_id' => $user->id,
-            ]);
-
-            // First, save the user's comment so it appears instantly
-            $comment = $post->comments()->create([
-                'user_id' => $user->id,
-                'content' => $content,
-            ]);
-            $comment->load('user');
-            CommentCreated::dispatch($comment);
-
-            // Now, dispatch the AI job to generate a response in the background
-            AiAgentJob::dispatch($post, $content);
-
-            // Return a response so the user's UI updates
-            return redirect()->back()->with('status', 'Your question has been sent to The Historian. An answer will appear shortly.');
-        }
-
-        // --- Regular Comment Logic (if no mention) ---
+        // 1. Save User Comment
         try {
             $comment = $post->comments()->create([
                 'user_id' => $user->id,
                 'content' => $content,
             ]);
             $comment->load('user');
-            Log::info('[CommentController] New comment created for Post ID: ' . $post->id);
 
+            // Broadcast
             CommentCreated::dispatch($comment);
 
-            return redirect()->back()->with('status', 'Comment posted!');
+            Log::info('[CommentController] User comment posted.', ['id' => $comment->id]);
 
         } catch (\Exception $e) {
-            Log::error('[CommentController] Failed to create comment.', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'There was an error posting your comment.');
+            Log::error('[CommentController] Error: ' . $e->getMessage());
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Failed to post comment'], 500);
+            }
+            return back()->with('error', 'Failed to post comment.');
+        }
+
+        // 2. AI DETECTION LOGIC (Improved)
+
+        // Strip out quotes (lines starting with >) to prevent triggering on replies
+        // This regex replaces lines starting with > with empty string
+        $contentForDetection = preg_replace('/^>.*$/m', '', $content);
+
+        $pattern = '/@(FactChecker|Historian|DevilsAdvocate|Analyst)/i';
+        $botTriggered = false;
+
+        if (preg_match($pattern, $contentForDetection, $matches)) {
+            $detectedBot = $this->normalizeBotName($matches[1]);
+            Log::info("[CommentController] Bot summoned: {$detectedBot}");
+
+            // Pass the actual Comment object so the bot can reply specifically to it
+            AiAgentJob::dispatch($post, $comment, $detectedBot);
+
+            $botTriggered = $detectedBot;
+        }
+
+        // 3. Return JSON
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'comment' => $comment,
+                'bot_triggered' => $botTriggered
+            ]);
+        }
+
+        return back()->with('status', 'Comment posted!');
+    }
+
+    private function normalizeBotName($input)
+    {
+        $input = strtolower($input);
+        switch ($input) {
+            case 'factchecker': return 'FactChecker';
+            case 'historian': return 'Historian';
+            case 'devilsadvocate': return 'DevilsAdvocate';
+            case 'analyst': return 'Analyst';
+            default: return 'FactChecker';
         }
     }
 }

@@ -1,61 +1,52 @@
 {
   "menu": [
     {
-      "url": "/",
-      "name": "Home",
-      "icon": "menu-icon icon-base ri ri-home-smile-line",
+      "menuHeader": "Community Hub"
+    },
+    {
+      "url": "/dashboard",
+      "name": "Town Square",
+      "icon": "menu-icon icon-base ri-discuss-line",
       "slug": "dashboard"
     },
     {
       "url": "/ballots",
       "name": "Ballot Box",
-      "icon": "menu-icon icon-base ri ri-government-line",
+      "icon": "menu-icon icon-base ri-government-line",
       "slug": "ballots.index"
     },
     {
       "url": "/candidates",
       "name": "Candidate Compass",
-      "icon": "menu-icon icon-base ri ri-user-star-line",
+      "icon": "menu-icon icon-base ri-user-star-line",
       "slug": "candidates.index"
-    },
-    {
-      "url": "/documents",
-      "name": "Legal Library",
-      "icon": "menu-icon icon-base ri ri-book-read-line",
-      "slug": "documents.index"
     },
     {
       "url": "/issues",
       "name": "Civic Lens",
-      "icon": "menu-icon icon-base ri ri-camera-lens-line",
+      "icon": "menu-icon icon-base ri-camera-lens-line",
       "slug": "issues.index"
     },
     {
-      "url": "/page-2",
-      "icon": "menu-icon icon-base ri ri-file-3-line",
-      "name": "Page 2",
-      "slug": "pages-page-2"
+      "url": "/documents",
+      "name": "Legal Library",
+      "icon": "menu-icon icon-base ri-book-read-line",
+      "slug": "documents.index"
     },
     {
-      "url": "/pages/misc-error",
-      "name": "Error",
-      "icon": "menu-icon icon-base ri ri-alert-line",
-      "slug": "pages-misc-error",
-      "target": "_blank"
+      "menuHeader": "Administration"
     },
     {
-      "url": "/auth/login-basic",
-      "name": "Login",
-      "icon": "menu-icon icon-base ri ri-logout-box-r-line",
-      "slug": "auth-login-basic",
-      "target": "_blank"
+      "url": "/admin/topics",
+      "name": "Manage Topics",
+      "icon": "menu-icon icon-base ri-hashtag",
+      "slug": "admin.topics.index"
     },
     {
-      "url": "/auth/register-basic",
-      "name": "Register",
-      "icon": "menu-icon icon-base ri ri-account-circle-line",
-      "slug": "auth-register-basic",
-      "target": "_blank"
+      "url": "/admin/documents",
+      "name": "Admin Docs",
+      "icon": "menu-icon icon-base ri-file-settings-line",
+      "slug": "admin.documents.index"
     }
   ]
 }
