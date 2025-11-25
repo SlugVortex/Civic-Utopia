@@ -3,8 +3,9 @@
 @section('title', 'Civic Values Interview')
 
 @section('content')
-<div class="container-xxl flex-grow-1 container-p-y">
-    <h4 class="fw-bold py-3 mb-4"><span class="text-muted fw-light">Civic /</span> Values Interview</h4>
+<div class="container-xxl flex-grow-1" style="padding-top:-180px;">
+      <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Civic /</span> Values Interview</h4>
 
     <div class="row">
         <!-- Settings Column -->
@@ -26,7 +27,7 @@
 
                     <div class="mb-3">
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="locationSwitch">
+                         <input class="form-check-input" type="checkbox" id="locationSwitch" checked>
                             <label class="form-check-label" for="locationSwitch">Enable Location Context</label>
                         </div>
                         <small class="text-muted" id="locationStatus">Location off</small>
@@ -39,11 +40,13 @@
                         </div>
                     </div>
 
-                    <hr>
-                    <div class="alert alert-info d-flex align-items-center" role="alert">
-                        <i class="ri-mic-line me-2"></i>
+                  <hr>
+                    <div class="alert alert-warning d-flex align-items-start" role="alert">
+                        <i class="ri-error-warning-line me-2" style="font-size: 1.3rem;"></i>
                         <div>
-                            Click the microphone to speak. The AI will listen and respond automatically.
+                            <strong>Disclaimer:</strong> This AI agent is designed to help you explore political values neutrally.
+                            Responses are monitored by a scrutinizer system to ensure balanced, non-partisan education.
+                            No voting recommendations are provided.
                         </div>
                     </div>
                 </div>
@@ -62,7 +65,7 @@
                     <div id="audioVisualizer" style="display:none; height: 20px; width: 100px; background: url('{{ asset('assets/img/illustrations/misc-bg-light.png') }}'); opacity: 0.5;"></div>
                 </div>
 
-                <div class="card-body overflow-auto" id="chatHistory" style="height: 500px; background-color: #f8f9fa;">
+                 <div class="card-body overflow-auto" id="chatHistory" style="height: 350px; background-color: #f8f9fa;">
                     {{-- Initial Greeting --}}
                     <div class="d-flex justify-content-start mb-3">
                         <div class="avatar avatar-sm me-2">
@@ -77,7 +80,7 @@
                 <div class="card-footer border-top">
                     <form id="chatForm" class="d-flex gap-2 align-items-center">
                         {{-- Microphone Button --}}
-                        <button type="button" id="micBtn" class="btn btn-outline-secondary rounded-circle" style="width: 45px; height: 45px; padding: 0;">
+                        <button type="button" id="micBtn" class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
                             <i class="ri-mic-line" style="font-size: 1.2rem;"></i>
                         </button>
 
@@ -115,6 +118,25 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentLat = null;
     let currentLon = null;
 
+
+        // AUTO-REQUEST LOCATION IF ENABLED
+    if (locationSwitch.checked) {
+        locationStatus.textContent = "Acquiring...";
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    currentLat = pos.coords.latitude;
+                    currentLon = pos.coords.longitude;
+                    locationStatus.textContent = `Lat: ${currentLat.toFixed(2)}, Lon: ${currentLon.toFixed(2)}`;
+                    locationStatus.classList.add('text-success');
+                },
+                (err) => {
+                    locationStatus.textContent = "Permission denied.";
+                    locationSwitch.checked = false;
+                }
+            );
+        }
+    }
     // --- SPEECH RECOGNITION SETUP ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;

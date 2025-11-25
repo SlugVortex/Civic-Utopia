@@ -14,19 +14,13 @@
         <script>
           document.write(new Date().getFullYear());
         </script>
-        , made with ❤️ by <a href="{{ !empty(config('variables.creatorUrl')) ? config('variables.creatorUrl') : '' }}"
+         Developed by the Utopians<a href="{{ !empty(config('variables.creatorUrl')) ? config('variables.creatorUrl') : '' }}"
           target="_blank"
           class="footer-link fw-medium">{{ !empty(config('variables.creatorName')) ? config('variables.creatorName') : '' }}</a>
       </div>
       <div class="d-none d-lg-inline-block">
-        <a href="{{ config('variables.licenseUrl') ? config('variables.licenseUrl') : '#' }}" class="footer-link me-4"
-          target="_blank">License</a>
-        <a href="{{ config('variables.moreThemes') ? config('variables.moreThemes') : '#' }}" target="_blank"
-          class="footer-link me-4">More Themes</a>
-        <a href="{{ config('variables.documentation') ? config('variables.documentation') . '/laravel-introduction.html' : '#' }}"
-          target="_blank" class="footer-link me-4">Documentation</a>
         <a href="{{ config('variables.support') ? config('variables.support') : '#' }}" target="_blank"
-          class="footer-link d-none d-sm-inline-block">Support</a>
+          class="footer-link d-none d-sm-inline-block">Privacy and Terms of Service</a>
       </div>
     </div>
   </div>

@@ -81,4 +81,42 @@ Route::post('/news/fetch-local', [NewsController::class, 'fetchLocal'])->name('n
     Route::get('/interview', [PoliticalInterviewController::class, 'index'])->name('interview.index');
     Route::post('/interview/chat', [PoliticalInterviewController::class, 'chat'])->name('interview.chat');
     Route::post('/interview/speech', [PoliticalInterviewController::class, 'speech'])->name('interview.speech');
+
+
+
+
+
+    // Add to routes/web.php temporarily
+Route::get('/test-bing', function() {
+    $bingKey = config('services.rapidapi.key');
+    $bingHost = config('services.rapidapi.host');
+
+    Log::info("Testing Bing API with key: " . substr($bingKey, 0, 8) . "...");
+
+    try {
+        $response = Http::timeout(15)
+            ->withHeaders([
+                'x-rapidapi-key' => $bingKey,
+                'x-rapidapi-host' => $bingHost,
+            ])
+            ->get('https://bing-search-apis.p.rapidapi.com/api/rapid/web_search', [
+                'q' => 'Jamaica political parties',
+                'keyword' => 'Jamaica political parties',
+                'count' => 5,
+                'mkt' => 'en-US'
+            ]);
+
+        return response()->json([
+            'status' => $response->status(),
+            'headers' => $response->headers(),
+            'body' => $response->json()
+        ], 200, [], JSON_PRETTY_PRINT);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ]);
+    }
+});
+
 });
