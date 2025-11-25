@@ -12,6 +12,7 @@ use App\Http\Controllers\TopicController; // Frontend Topic Controller
 use App\Http\Controllers\SpeechController;
 use App\Models\Post;
 use App\Models\Topic;
+use App\Http\Controllers\pages\PoliticalInterviewController;
 
 use App\Http\Controllers\NewsController;
 // Redirect homepage to dashboard
@@ -75,4 +76,9 @@ Route::middleware('auth')->group(function () {
 
     // --- CIVIC NEWS AGENT ---
 Route::post('/news/fetch-local', [NewsController::class, 'fetchLocal'])->name('news.fetch');
+
+ // Political Interview Agent
+    Route::get('/interview', [PoliticalInterviewController::class, 'index'])->name('interview.index');
+    Route::post('/interview/chat', [PoliticalInterviewController::class, 'chat'])->name('interview.chat');
+    Route::post('/interview/speech', [PoliticalInterviewController::class, 'speech'])->name('interview.speech');
 });
