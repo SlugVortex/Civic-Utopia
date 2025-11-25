@@ -30,6 +30,9 @@ Route::post('register', [AuthenticationsController::class, 'storeRegistration'])
 
 // --- Main Application Routes ---
 Route::middleware('auth')->group(function () {
+
+  // --- AI NAVIGATOR ---
+    Route::post('/ai/navigate', [App\Http\Controllers\AiNavigatorController::class, 'navigate'])->name('ai.navigate');
     // --- SEARCH ROUTES ---
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::post('/search', [SearchController::class, 'search'])->name('search.perform');
