@@ -4,7 +4,31 @@
       "url": "/",
       "name": "Home",
       "icon": "menu-icon icon-base ri ri-home-smile-line",
-      "slug": "pages-home"
+      "slug": "dashboard"
+    },
+    {
+      "url": "/ballots",
+      "name": "Ballot Box",
+      "icon": "menu-icon icon-base ri ri-government-line",
+      "slug": "ballots.index"
+    },
+    {
+      "url": "/candidates",
+      "name": "Candidate Compass",
+      "icon": "menu-icon icon-base ri ri-user-star-line",
+      "slug": "candidates.index"
+    },
+    {
+      "url": "/documents",
+      "name": "Legal Library",
+      "icon": "menu-icon icon-base ri ri-book-read-line",
+      "slug": "documents.index"
+    },
+    {
+      "url": "/issues",
+      "name": "Civic Lens",
+      "icon": "menu-icon icon-base ri ri-camera-lens-line",
+      "slug": "issues.index"
     },
     {
       "url": "/page-2",

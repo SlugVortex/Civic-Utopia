@@ -4,9 +4,9 @@
   'resources/assets/vendor/js/helpers.js'
 ])
 
-{{-- Customizer scripts have been removed from this file. --}}
+{{-- !FIX: This script is required for the theme switcher to work, so we keep it --}}
 @vite([
-    'resources/assets/js/config.js'
+  'resources/assets/js/config.js'
 ])
 
 <!-- END: Core JS-->
@@ -19,10 +19,10 @@
   'resources/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js',
   'resources/assets/vendor/libs/hammer/hammer.js',
   'resources/assets/vendor/libs/typeahead-js/typeahead.js',
-  'resources/assets/vendor/js/menu.js',
-  'resources/assets/vendor/libs/pickr/pickr.js' {{-- We keep pickr for the profile page --}}
+  'resources/assets/vendor/js/menu.js'
 ])
 
+{{-- Customizer-specific scripts will now be loaded only on the profile page --}}
 <!-- END: Page Vendor JS-->
 
 <!-- BEGIN: Theme JS-->
