@@ -2,9 +2,10 @@
 
 namespace App\Jobs;
 
-use App\Events\CommentCreated;
 use App\Models\Post;
 use App\Models\User;
+use App\Services\BingSearchService;
+use App\Events\CommentCreated;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -17,154 +18,122 @@ class AiAgentJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected Post $post;
-    protected string $userQuestion;
-    protected User $historianUser;
+    protected $post;
+    protected $userComment;
+    protected $botName;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Post $post, string $userQuestion)
+    public function __construct(Post $post, string $userComment, string $botName)
     {
         $this->post = $post;
-        // Clean up the mention from the question
-        $this->userQuestion = trim(str_ireplace('@Historian', '', $userQuestion));
+        $this->userComment = $userComment;
+        $this->botName = $botName; // e.g., "FactChecker"
     }
 
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(BingSearchService $bing)
     {
-        Log::info("[AiAgentJob] Starting for Post ID: {$this->post->id}. Question: '{$this->userQuestion}'");
+        Log::info("[AiAgentJob] Waking up {$this->botName} for Post ID: {$this->post->id}");
 
-        try {
-            // Find our bot user, or fail gracefully
-            $this->historianUser = User::where('email', 'historian@civicutopia.bot')->firstOrFail();
+        // 1. Find the Bot User (Mapping names to emails from Seeder)
+        $emailMap = [
+            'FactChecker' => 'agent_factchecker@civicutopia.ai',
+            'Historian' => 'agent_historian@civicutopia.ai',
+            'DevilsAdvocate' => 'agent_advocate@civicutopia.ai',
+            'Analyst' => 'agent_analyst@civicutopia.ai',
+        ];
 
-            // === 1. RETRIEVE: Query Azure AI Search ===
-            $contextSnippets = $this->retrieveContextFromSearch();
-            if (empty($contextSnippets)) {
-                $this->postBotComment("I couldn't find any relevant information in our documents to answer that question.");
-                return;
+        $email = $emailMap[$this->botName] ?? 'agent_factchecker@civicutopia.ai';
+        $botUser = User::where('email', $email)->first();
+
+        if (!$botUser) {
+            Log::error("[AiAgentJob] Bot user not found for: {$this->botName}. Run the AiAgentUserSeeder!");
+            return;
+        }
+
+        // 2. Gather Context
+        $context = "Original Post: \"{$this->post->content}\"\n\nUser Question/Comment: \"{$this->userComment}\"";
+
+        // 3. Research Phase (Bing Search)
+        // FactChecker, Analyst, and Historian benefit from external data.
+        $searchResults = "";
+        if (in_array($this->botName, ['FactChecker', 'Analyst', 'Historian'])) {
+            $query = $this->generateSearchQuery();
+            Log::info("[AiAgentJob] Searching Bing for: $query");
+
+            $results = $bing->searchWeb($query, 5);
+            foreach ($results as $item) {
+                $searchResults .= "- " . ($item['description'] ?? '') . "\n";
             }
+        }
 
-            // === 2. AUGMENT: Build the Prompt ===
-            $prompt = $this->buildAugmentedPrompt($contextSnippets);
+        // 4. Generate Response (Azure OpenAI)
+        $replyText = $this->generateAiResponse($context, $searchResults);
 
-            // === 3. GENERATE: Query Azure OpenAI ===
-            $aiAnswer = $this->generateAnswerWithAI($prompt);
-
-            // === 4. RESPOND: Post the Answer as a Comment ===
-            $this->postBotComment($aiAnswer);
-
-        } catch (\Exception $e) {
-            Log::error("[AiAgentJob] FAILED for Post ID: {$this->post->id}", [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+        // 5. Post Comment
+        if ($replyText) {
+            $comment = $this->post->comments()->create([
+                'user_id' => $botUser->id,
+                'content' => $replyText,
             ]);
-            // Optionally, post an error message to the user
-            if (isset($this->historianUser)) {
-                $this->postBotComment("Sorry, I encountered an error while trying to find an answer. Please try again later.");
-            }
+
+            $comment->load('user');
+            CommentCreated::dispatch($comment);
+
+            Log::info("[AiAgentJob] {$this->botName} successfully replied.");
         }
     }
 
-    /**
-     * Searches the Azure AI index for relevant context.
-     * @return array
-     */
-    private function retrieveContextFromSearch(): array
+    private function generateSearchQuery()
     {
-        $searchEndpoint = env('AZURE_AI_SEARCH_ENDPOINT');
-        $searchApiKey = env('AZURE_AI_SEARCH_API_KEY');
-        $searchIndexName = env('AZURE_AI_SEARCH_INDEX_NAME');
-
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'api-key' => $searchApiKey,
-        ])->post("{$searchEndpoint}/indexes/{$searchIndexName}/docs/search?api-version=2021-04-30-Preview", [
-            'search' => $this->userQuestion,
-            'select' => 'content',
-            'top' => 3, // Get the top 3 most relevant snippets
-        ]);
-
-        $response->throw(); // Throw an exception if the request fails
-
-        $results = $response->json('value');
-        Log::info("[AiAgentJob] Retrieved " . count($results) . " context snippets from AI Search.");
-
-        return array_column($results, 'content');
+        // Simple keyword extraction
+        $cleanContent = substr(preg_replace('/[^a-zA-Z0-9 ]/', '', $this->post->content), 0, 100);
+        return "Jamaica " . $cleanContent . " facts statistics history news";
     }
 
-    /**
-     * Builds the final prompt for the language model.
-     * @param array $contextSnippets
-     * @return string
-     */
-    private function buildAugmentedPrompt(array $contextSnippets): string
+    private function generateAiResponse($context, $searchResults)
     {
-        $contextString = implode("\n\n---\n\n", $contextSnippets);
+        try {
+            $endpoint = config('services.azure.openai.endpoint');
+            $apiKey = config('services.azure.openai.api_key');
+            $deployment = config('services.azure.openai.deployment');
+            $apiVersion = config('services.azure.openai.api_version');
+            $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
 
-        return <<<PROMPT
-You are 'The Historian', an AI assistant on the CivicUtopia platform. Your purpose is to answer user questions based *only* on the provided context from official documents. Do not use any outside knowledge. If the context does not contain the answer, say that you couldn't find the information in the available documents.
+            // Personas
+            $personas = [
+                'FactChecker' => "You are a strict Fact Checker. Verify the post using the search results. Be polite but firm. Cite sources.",
+                'Historian' => "You are a Jamaican Historian. Connect the topic to Jamaica's history (1960s-2020s).",
+                'DevilsAdvocate' => "You are a Devil's Advocate. Offer a counter-argument or alternative perspective to foster debate. Be respectful.",
+                'Analyst' => "You are a Data Analyst. Use the search results to provide numbers, percentages, or economic data.",
+            ];
 
-**Context from Documents:**
-{$contextString}
+            $systemPrompt = $personas[$this->botName] ?? "You are a helpful AI assistant.";
 
-**User's Question:**
-{$this->userQuestion}
+            if ($searchResults) {
+                $systemPrompt .= "\n\nUSE THESE REAL-TIME SEARCH RESULTS:\n" . $searchResults;
+            }
 
-**Answer:**
-PROMPT;
-    }
+            $response = Http::withHeaders([
+                'api-key' => $apiKey, 'Content-Type' => 'application/json'
+            ])->post($url, [
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $context],
+                ],
+                'temperature' => 0.7,
+                'max_tokens' => 300,
+            ]);
 
-    /**
-     * Sends the prompt to Azure OpenAI and gets a generated answer.
-     * @param string $prompt
-     * @return string
-     */
-    private function generateAnswerWithAI(string $prompt): string
-    {
-        $apiKey = env('AZURE_AI_API_KEY');
-        $apiEndpoint = env('AZURE_AI_PROJECT_ENDPOINT');
-        $deploymentName = env('AZURE_AI_MODEL_DEPLOYMENT_NAME');
-        $apiVersion = env('AZURE_API_VERSION');
-        $requestUrl = "{$apiEndpoint}openai/deployments/{$deploymentName}/chat/completions?api-version={$apiVersion}";
+            return $response->json('choices.0.message.content');
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'api-key' => $apiKey,
-        ])->post($requestUrl, [
-            'messages' => [
-                ['role' => 'user', 'content' => $prompt],
-            ],
-            'max_tokens' => 300, // Limit the response length
-            'temperature' => 0.2, // Make the response more deterministic and factual
-        ]);
-
-        $response->throw();
-
-        $answer = $response->json('choices.0.message.content');
-        Log::info("[AiAgentJob] Generated AI answer successfully.");
-
-        return trim($answer);
-    }
-
-    /**
-     * Creates and broadcasts the bot's comment.
-     * @param string $content
-     */
-    private function postBotComment(string $content): void
-    {
-        $comment = $this->post->comments()->create([
-            'user_id' => $this->historianUser->id,
-            'content' => $content,
-        ]);
-        $comment->load('user'); // Eager load the user for the broadcast payload
-
-        // Broadcast the AI's comment so it appears in real-time
-        CommentCreated::dispatch($comment);
-        Log::info("[AiAgentJob] Dispatched CommentCreated event for the bot's response.");
+        } catch (\Exception $e) {
+            Log::error("[AiAgentJob] OpenAI Error: " . $e->getMessage());
+            return null;
+        }
     }
 }

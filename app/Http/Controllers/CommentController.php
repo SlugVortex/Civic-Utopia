@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\CommentCreated;
-use App\Jobs\AiAgentJob; // <-- Import our new job
+use App\Jobs\AiAgentJob;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -22,44 +22,53 @@ class CommentController extends Controller
         $content = $validated['content'];
         $user = $request->user();
 
-        // --- UPGRADE: DETECT @Historian MENTION ---
-        if (preg_match('/@Historian/i', $content)) {
-            Log::info("[CommentController] @Historian mention detected. Dispatching AiAgentJob.", [
-                'post_id' => $post->id,
-                'user_id' => $user->id,
-            ]);
-
-            // First, save the user's comment so it appears instantly
-            $comment = $post->comments()->create([
-                'user_id' => $user->id,
-                'content' => $content,
-            ]);
-            $comment->load('user');
-            CommentCreated::dispatch($comment);
-
-            // Now, dispatch the AI job to generate a response in the background
-            AiAgentJob::dispatch($post, $content);
-
-            // Return a response so the user's UI updates
-            return redirect()->back()->with('status', 'Your question has been sent to The Historian. An answer will appear shortly.');
-        }
-
-        // --- Regular Comment Logic (if no mention) ---
+        // 1. Save the User's Comment Immediately
         try {
             $comment = $post->comments()->create([
                 'user_id' => $user->id,
                 'content' => $content,
             ]);
             $comment->load('user');
-            Log::info('[CommentController] New comment created for Post ID: ' . $post->id);
 
             CommentCreated::dispatch($comment);
-
-            return redirect()->back()->with('status', 'Comment posted!');
+            Log::info('[CommentController] User comment posted.', ['id' => $comment->id]);
 
         } catch (\Exception $e) {
-            Log::error('[CommentController] Failed to create comment.', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('error', 'There was an error posting your comment.');
+            Log::error('[CommentController] Error saving comment: ' . $e->getMessage());
+            return back()->with('error', 'Failed to post comment.');
+        }
+
+        // 2. AI COUNCIL DETECTION LOGIC
+        // Regex matches: @FactChecker, @Historian, @DevilsAdvocate, @Analyst
+        $pattern = '/@(FactChecker|Historian|DevilsAdvocate|Analyst)/i';
+
+        if (preg_match($pattern, $content, $matches)) {
+            // Normalize name (e.g. "historian" -> "Historian")
+            $detectedBot = $this->normalizeBotName($matches[1]);
+
+            Log::info("[CommentController] Bot summoned: {$detectedBot}");
+
+            // Dispatch Job with Bing Search Capability
+            AiAgentJob::dispatch($post, $content, $detectedBot);
+
+            return back()->with('status', "Comment posted! @{$detectedBot} is investigating...");
+        }
+
+        return back()->with('status', 'Comment posted!');
+    }
+
+    /**
+     * Helper to standardize bot names
+     */
+    private function normalizeBotName($input)
+    {
+        $input = strtolower($input);
+        switch ($input) {
+            case 'factchecker': return 'FactChecker';
+            case 'historian': return 'Historian';
+            case 'devilsadvocate': return 'DevilsAdvocate';
+            case 'analyst': return 'Analyst';
+            default: return 'FactChecker';
         }
     }
 }
