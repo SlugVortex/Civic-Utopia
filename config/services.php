@@ -58,8 +58,8 @@ return [
 
      // --- ADDED FOR CIVIC UTOPIA ---
     'rapidapi' => [
-        'key' => env('RAPIDAPI_KEY_GARY'),
-        'host' => env('RAPIDAPI_HOST_GARY'),
+        'key' => env('RAPIDAPI_KEY'),
+        'host' => env('RAPIDAPI_HOST'),
     ],
 
     // Added for Auto Researche Feature in Candidate Compass
