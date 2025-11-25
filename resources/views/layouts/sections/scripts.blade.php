@@ -1,17 +1,7 @@
 <!-- BEGIN: Core JS-->
-<!-- Core JS -->
 @vite([
-  'resources/assets/vendor/js/helpers.js'
-])
-
-{{-- Required for theme config --}}
-@vite([
-  'resources/assets/js/config.js'
-])
-
-<!-- END: Core JS-->
-<!-- BEGIN: Vendor JS-->
-@vite([
+  'resources/assets/vendor/js/helpers.js',
+  'resources/assets/js/config.js',
   'resources/assets/vendor/libs/jquery/jquery.js',
   'resources/assets/vendor/libs/popper/popper.js',
   'resources/assets/vendor/js/bootstrap.js',
@@ -19,117 +9,98 @@
   'resources/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js',
   'resources/assets/vendor/libs/hammer/hammer.js',
   'resources/assets/vendor/libs/typeahead-js/typeahead.js',
-  'resources/assets/vendor/js/menu.js'
+  'resources/assets/vendor/js/menu.js',
+  'resources/assets/js/main.js',
+  'resources/js/app.js'
 ])
 
-<!-- END: Page Vendor JS-->
-
-<!-- BEGIN: Theme JS-->
-@vite(['resources/assets/js/main.js'])
-<!-- END: Theme JS-->
-
-<!-- Pricing Modal JS-->
 @stack('pricing-script')
-<!-- END: Pricing Modal JS-->
-
-<!-- BEGIN: Page JS-->
 @yield('page-script')
-<!-- END: Page JS-->
-
-<!-- app JS -->
-@vite(['resources/js/app.js'])
-<!-- END: app JS-->
 
 <!-- ========================================== -->
-<!-- GLOBAL AI COUNCIL & CHAT LOGIC -->
+<!-- GLOBAL LOGIC: CHAT, AI, BUTTONS, SAFETY -->
 <!-- ========================================== -->
 <style>
-    /* ============================================ */
-    /* FULLSCREEN CHAT STYLES */
-    /* ============================================ */
+    /* --- FIXED FULLSCREEN CHAT --- */
     .chat-fullscreen {
         position: fixed !important;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 9999;
-        border-radius: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 200000 !important;
         margin: 0 !important;
+        border-radius: 0 !important;
         display: flex;
         flex-direction: column;
         background-color: var(--bs-body-bg);
     }
 
     .chat-fullscreen .card-body {
-        height: 100vh;
-        overflow: hidden; /* Prevent body scrolling */
-        padding: 1rem !important;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 0 !important;
+        overflow: hidden;
     }
 
-    /* In fullscreen, make comment list huge */
-    .chat-fullscreen .comments-list {
-        max-height: none !important;
-        flex-grow: 1;
-        overflow-y: auto;
-        background: var(--bs-body-bg);
-    }
-
-  /* FIX: Remove white background from wrapper */
-    .comment-form-wrapper {
-        margin-top: auto;
-        flex-shrink: 0;
-        background: transparent; /* Changed from bg-white */
-        padding-top: 0.5rem;
-    }
-
-    /* Ensure form stays at bottom */
-    .chat-fullscreen .comment-form-wrapper {
-        position: sticky;
-        bottom: 0;
-        z-index: 10;
-        padding: 10px 0;
-    }
-
-    /* Adjust header in fullscreen */
     .chat-fullscreen .post-header {
+        padding: 1rem;
         border-bottom: 1px solid var(--bs-border-color);
-        padding-bottom: 10px;
-        margin-bottom: 10px;
+        background: var(--bs-body-bg);
+        flex-shrink: 0;
     }
 
-    * COMMENT INPUT STYLE FIX */
-    .comment-textarea {
-        border: 1px solid var(--bs-border-color);
-        background-color: var(--bs-card-bg); /* Matches card/theme */
-        color: var(--bs-body-color);
-        transition: all 0.2s ease;
-        font-size: 0.95rem;
-    }
-
-    /* Collapse original post content in fullscreen by default */
+    /* Hide irrelevant parts in fullscreen */
     .chat-fullscreen .post-content,
     .chat-fullscreen .post-carousel,
     .chat-fullscreen .post-actions,
     .chat-fullscreen .summary-container {
-        display: none;
+        display: none !important;
     }
 
-    /* Show toggle button only in fullscreen */
+    /* Force Show toggle button */
     .chat-fullscreen .toggle-post-details {
         display: inline-flex !important;
+        margin: 0 1rem;
     }
 
-    /* When post details are shown */
-    .chat-fullscreen.show-post-details .post-content,
-    .chat-fullscreen.show-post-details .post-carousel,
-    .chat-fullscreen.show-post-details .post-actions {
-        display: block;
+    /* The Chat Area */
+    .chat-fullscreen .chat-section {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0;
     }
 
-    /* ============================================ */
-    /* WHATSAPP-STYLE REPLIES & QUOTES */
-    /* ============================================ */
+    .chat-fullscreen .comments-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        max-height: none !important;
+    }
+
+    /* The Input Area (Sticky Bottom) */
+    .chat-fullscreen .comment-form-wrapper {
+        flex-shrink: 0;
+        padding: 1rem;
+        background: var(--bs-body-bg);
+        border-top: 1px solid var(--bs-border-color);
+        position: relative;
+        z-index: 200001;
+    }
+
+    /* --- TOAST NOTIFICATIONS --- */
+    #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 200002;
+    }
+
+    /* --- MARKDOWN QUOTES --- */
     .comment-text blockquote {
         border-left: 4px solid var(--bs-primary);
         background-color: rgba(105, 108, 255, 0.1);
@@ -137,394 +108,318 @@
         padding: 8px 12px;
         border-radius: 0 8px 8px 0;
         font-size: 0.85em;
-        color: var(--bs-secondary-color);
+        color: var(--bs-body-color);
         cursor: pointer;
-        transition: background-color 0.2s;
     }
 
-    .comment-text blockquote:hover {
-        background-color: rgba(105, 108, 255, 0.2);
-    }
-
-    .comment-text blockquote p {
-        margin: 0;
-    }
-
-    /* Highlight animation for jump-to */
-    @keyframes highlightFade {
-        0% { background-color: rgba(255, 255, 0, 0.3); }
-        100% { background-color: transparent; }
-    }
-    .highlight-message {
-        animation: highlightFade 2s ease-out;
-    }
-
-    /* ============================================ */
-    /* SCROLLBAR & BUBBLES */
-    /* ============================================ */
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-
-    .comment-bubble {
-        background-color: var(--bs-gray-100);
-        border: 1px solid transparent;
-    }
-    [data-bs-theme="dark"] .comment-bubble { background-color: #3a3b55; }
-
-    /* Actions visibility */
-    .comment-actions { opacity: 0; transition: opacity 0.2s; }
-    .comment-bubble:hover .comment-actions { opacity: 1; }
-
-    /* ============================================ */
-    /* REPLY PREVIEW BOX */
-    /* ============================================ */
-    .reply-context {
-        border-left: 3px solid var(--bs-primary);
-        background-color: var(--bs-gray-100);
-        padding: 8px 12px;
-        border-radius: 4px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.85rem;
-        margin-bottom: 5px;
-    }
-    [data-bs-theme="dark"] .reply-context { background-color: #2b2c40; }
-
-    /* ============================================ */
-    /* AUTOCOMPLETE DROPDOWN */
-    /* ============================================ */
+    /* --- AUTOCOMPLETE --- */
     #bot-autocomplete-dropdown {
         border-radius: 8px;
         border: 1px solid var(--bs-border-color);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        background-color: var(--bs-paper-bg, #fff);
+        color: var(--bs-body-color);
     }
-    #bot-autocomplete-dropdown .list-group-item {
-        border: none;
-        border-bottom: 1px solid var(--bs-border-color);
-        cursor: pointer;
+    [data-bs-theme="dark"] #bot-autocomplete-dropdown {
+        background-color: #2b2c40;
+        border-color: #444564;
     }
-    #bot-autocomplete-dropdown .list-group-item:hover {
-        background-color: var(--bs-primary) !important;
-        color: white !important;
-    }
-    #bot-autocomplete-dropdown .list-group-item:hover small {
-        color: rgba(255,255,255,0.8) !important;
-    }
-    #bot-autocomplete-dropdown .list-group-item:hover i {
-        color: white !important;
-    }
+
+    /* --- LOADING PULSE --- */
+    .animate__pulse { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 </style>
 
+<div id="toast-container"></div>
+
 <script>
-// --- GLOBAL STATE ---
+// --- GLOBAL HELPERS ---
 let globalAudio = null;
 let globalAudioBtn = null;
 let currentUserName = "{{ auth()->check() ? auth()->user()->name : 'Guest' }}";
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
+// --- 1. BUTTON HANDLERS (Delegated Event Listener) ---
+// This ensures buttons inside dynamic content (like loaded posts) still work
+document.addEventListener('click', async function(e) {
+
+    // LIKE BUTTON
+    const likeBtn = e.target.closest('.btn-like');
+    if (likeBtn) {
+        const postId = likeBtn.dataset.postId;
+        const countSpan = likeBtn.querySelector('.like-count');
+        const icon = likeBtn.querySelector('i');
+
+        try {
+            const res = await fetch(`/posts/${postId}/like`, {
+                method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            likeBtn.classList.toggle('liked', data.action === 'liked');
+            icon.className = data.action === 'liked' ? 'ri-heart-fill me-1 text-danger' : 'ri-heart-line me-1';
+            countSpan.innerText = data.likes_count > 0 ? data.likes_count : '';
+        } catch(err) { console.error(err); }
+        return;
+    }
+
+    // SHARE BUTTON
+    const shareBtn = e.target.closest('.btn-share');
+    if(shareBtn) {
+        const url = shareBtn.dataset.url;
+        navigator.clipboard.writeText(url);
+        const orig = shareBtn.innerHTML;
+        shareBtn.innerHTML = '<i class="ri-check-line me-1"></i> Copied';
+        setTimeout(() => shareBtn.innerHTML = orig, 2000);
+        return;
+    }
+
+    // SUMMARIZE BUTTON
+    const sumBtn = e.target.closest('.btn-summarize');
+    if(sumBtn) {
+        const postId = sumBtn.dataset.postId;
+        const card = document.getElementById(`post-${postId}`);
+        const container = card.querySelector('.summary-container');
+        const contentP = container.querySelector('.summary-content');
+
+        if(container.style.display === 'block') {
+            container.style.display = 'none';
+            return;
+        }
+
+        sumBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Generating...';
+        sumBtn.disabled = true;
+
+        try {
+            const res = await fetch(`/posts/${postId}/summarize`, {
+                method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            contentP.innerText = data.summary;
+            container.style.display = 'block';
+        } catch(err) {
+            alert('Summary failed.');
+        } finally {
+            sumBtn.innerHTML = '<i class="ri-sparkling-2-line me-1"></i> Summarize';
+            sumBtn.disabled = false;
+        }
+        return;
+    }
+
+    // EXPLAIN BUTTON (Explain Like I'm 5)
+    const explainBtn = e.target.closest('.btn-explain');
+    if(explainBtn) {
+        const postId = explainBtn.dataset.postId;
+        // Assuming you have a modal with id 'explanation-modal' in dashboard layout
+        const modalEl = document.getElementById('explanation-modal');
+        if(!modalEl) return; // Safety check
+
+        const modal = new bootstrap.Modal(modalEl);
+        const content = document.getElementById('explanation-content');
+
+        content.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>';
+        modal.show();
+
+        try {
+            const res = await fetch(`/posts/${postId}/explain`, {
+                method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            content.innerText = data.explanation;
+        } catch(err) {
+            content.innerText = 'Sorry, could not explain this post.';
+        }
+    }
+
+    // LOCAL FEED BUTTON
+    const locBtn = e.target.closest('#btn-localize-news');
+    if(locBtn) {
+        if(!navigator.geolocation) return alert('No GPS support.');
+
+        locBtn.disabled = true;
+        locBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Locating...';
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            try {
+                const res = await fetch('{{ route("news.fetch") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({ lat: pos.coords.latitude, lon: pos.coords.longitude })
+                });
+                const data = await res.json();
+
+                if(data.status === 'success') {
+                    alert(data.message);
+                    setTimeout(() => window.location.reload(), 5000);
+                }
+            } catch(e) {
+                console.error('News Error:', e);
+                alert('Failed to fetch local news.');
+                locBtn.disabled = false;
+                locBtn.innerHTML = 'Generate Local Feed';
+            }
+        }, () => {
+            alert('GPS Permission Denied');
+            locBtn.disabled = false;
+            locBtn.innerHTML = 'Generate Local Feed';
+        });
+    }
+});
+
+// --- 2. CHAT LOGIC (Realtime + Safety) ---
 document.addEventListener('DOMContentLoaded', function() {
 
-    // --- 1. INITIAL SETUP ---
-    // Scroll all comment lists to bottom on load
-    document.querySelectorAll('.comments-list').forEach(list => {
-        list.scrollTop = list.scrollHeight;
-    });
-
-    // --- 2. REAL-TIME LISTENER (Pusher) ---
+    // Real-time Pusher
     if (window.Echo) {
-        window.Echo.channel('comments')
-            .listen('CommentCreated', (e) => {
-                const postCard = document.getElementById(`post-${e.post_id}`);
-                if (!postCard) return;
+        window.Echo.channel('comments').listen('CommentCreated', (e) => {
+            const postCard = document.getElementById(`post-${e.post_id}`);
+            if (!postCard) return;
 
-                const list = postCard.querySelector('.comments-list');
-                const countBtn = postCard.querySelector('.comment-count-btn');
+            const list = postCard.querySelector('.comments-list');
 
-                // Remove Ghost Loader
-                const loader = document.getElementById(`typing-${e.post_id}`);
-                if (loader) loader.remove();
+            // Remove Ghost
+            const loader = document.getElementById(`typing-${e.post_id}`);
+            if (loader) loader.remove();
 
-                // Prevent duplicate if user just posted it
-                const lastComment = list.lastElementChild;
-                if(lastComment && lastComment.innerText.includes(e.content) && lastComment.innerText.includes(e.user.name)) {
-                    return;
-                }
+            // Check duplicate
+            if(list.lastElementChild?.innerText.includes(e.content)) return;
 
-                // Build HTML
-                const html = `
-                    <div class="d-flex mb-3 comment-item animate__animated animate__fadeIn" id="comment-new-${e.id}">
-                        <div class="flex-shrink-0">
-                             <img src="${e.user.avatar_url}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;">
-                        </div>
-                        <div class="flex-grow-1 ms-2">
-                            <div class="comment-bubble px-3 py-2 rounded-3 position-relative">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="fw-semibold text-dark small mb-0">${e.user.name}</span>
-                                    <small class="text-muted" style="font-size: 0.7rem">Just now</small>
-                                </div>
-                                <div class="comment-text small mb-0 text-break" id="comment-text-${e.id}">${e.content}</div>
+            // Safety Check Visuals
+            let contentHtml = e.content;
+            if(e.content.includes('[Content Flagged')) {
+                contentHtml = `<span class="text-danger fst-italic"><i class="ri-alert-line"></i> ${e.content}</span>`;
+            }
 
-                                <div class="comment-actions">
-                                    <button class="btn btn-xs btn-icon rounded-pill"
-                                            onclick="initReply(${e.post_id}, '${e.user.name}', \`${e.content.replace(/`/g, '\\`')}\`)" title="Reply">
-                                        <i class="ri-reply-line"></i>
-                                    </button>
-                                    <button class="btn btn-xs btn-icon rounded-pill"
-                                            onclick="toggleGlobalAudio('comment-text-${e.id}', this)" title="Read aloud">
-                                        <i class="ri-volume-up-line"></i>
-                                    </button>
-                                </div>
+            const html = `
+                <div class="d-flex mb-3 comment-item animate__animated animate__fadeIn">
+                    <div class="flex-shrink-0"><img src="${e.user.avatar_url}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;"></div>
+                    <div class="flex-grow-1 ms-2">
+                        <div class="comment-bubble px-3 py-2 rounded-3 position-relative">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold small mb-0">${e.user.name}</span>
+                                <small class="text-muted" style="font-size: 0.7rem">Just now</small>
+                            </div>
+                            <div class="comment-text small mb-0 text-break" id="comment-${e.id}">${contentHtml}</div>
+                            <div class="comment-actions">
+                                <button class="btn btn-xs btn-icon rounded-pill" onclick="initReply(${e.post_id}, '${e.user.name}', \`${e.content.replace(/`/g, '\\`')}\`)"><i class="ri-reply-line"></i></button>
+                                <button class="btn btn-xs btn-icon rounded-pill" onclick="toggleGlobalAudio('comment-${e.id}', this)"><i class="ri-volume-up-line"></i></button>
                             </div>
                         </div>
                     </div>
-                `;
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', html);
+            list.scrollTop = list.scrollHeight;
 
-                if (list) {
-                    list.insertAdjacentHTML('beforeend', html);
-                    list.scrollTop = list.scrollHeight;
-                }
-
-                // Update Count
-                if(countBtn) {
-                    let num = parseInt(countBtn.innerText.replace(/\D/g,'')) || 0;
-                    countBtn.innerHTML = `<i class="ri-chat-3-line me-1"></i> ${num + 1}`;
-                }
-
-                if (e.content.includes(`@${currentUserName}`)) {
-                    showToast(`New mention from ${e.user.name}`, e.content);
-                }
-            });
+            // Notification
+            if (e.content.includes(`@${currentUserName}`)) showToast('Mention', `<strong>${e.user.name}</strong> mentioned you.`);
+        });
     }
 
-    // --- 3. CLICK EVENT DELEGATION (For Quote Clicking) ---
-    document.body.addEventListener('click', function(e) {
-        const blockquote = e.target.closest('.comment-text blockquote');
-        if (blockquote) {
-            const text = blockquote.innerText;
-            // Extract username and content from quote format: "User: Content..."
-            const parts = text.split(':');
-            if(parts.length > 1) {
-                const searchStr = parts[1].trim().substring(0, 15); // Search for first 15 chars
-
-                const postCard = blockquote.closest('.post-card');
-                const comments = postCard.querySelectorAll('.comment-text');
-
-                for (let comment of comments) {
-                    if (comment === blockquote.parentElement) continue;
-
-                    if (comment.innerText.includes(searchStr)) {
-                        comment.closest('.comment-item').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        const bubble = comment.closest('.comment-bubble');
-                        bubble.classList.add('highlight-message');
-                        setTimeout(() => bubble.classList.remove('highlight-message'), 2000);
-                        break;
-                    }
-                }
-            }
-        }
-    });
-
-    // --- 4. COMMENT SUBMISSION ---
+    // Comment Submission
     document.body.addEventListener('submit', async function(e) {
         if (e.target.matches('.comment-form')) {
             e.preventDefault();
             const form = e.target;
             const btn = form.querySelector('button[type="submit"]');
             const textarea = form.querySelector('textarea');
-            const postCard = form.closest('.card');
-            const list = postCard.querySelector('.comments-list');
-            const postId = postCard.id.replace('post-', '');
-            const replyContext = form.querySelector('input[name="reply_to_context"]');
-            let content = textarea.value;
-
-            // Append quote if replying
-            if (replyContext && replyContext.value) {
-                content = `${replyContext.value}\n\n${content}`;
-            }
+            const list = form.closest('.card').querySelector('.comments-list');
+            const content = textarea.value;
+            const replyContext = form.querySelector('input[name="reply_to_context"]').value;
 
             if(!content.trim()) return;
 
-            // Optimistic Append
-            const userAvatar = form.querySelector('.user-avatar-img').src;
+            const fullContent = replyContext ? `${replyContext}\n\n${content}` : content;
+            const postId = form.action.split('/').slice(-1)[0];
+
+            // Optimistic UI
             const tempId = Date.now();
+            const userAvatar = form.querySelector('.user-avatar-img').src;
 
-            // Simple Markdown Parse for preview
-            let previewContent = content
-                .replace(/> (.*?)(\n|$)/g, '<blockquote>$1</blockquote>')
-                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-                .replace(/\n/g, '<br>');
+            // Parse quote for preview
+            const displayContent = fullContent.replace(/> (.*?)(\n|$)/g, '<blockquote>$1</blockquote>').replace(/\n/g, '<br>');
 
-            const userHtml = `
-                <div class="d-flex mb-3 comment-item" id="temp-${tempId}" style="opacity: 0.6;">
-                    <div class="flex-shrink-0"><img src="${userAvatar}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;"></div>
+            const tempHtml = `
+                <div class="d-flex mb-3 comment-item" id="temp-${tempId}" style="opacity: 0.5;">
+                    <div class="flex-shrink-0"><img src="${userAvatar}" class="rounded-circle" style="width: 36px; height: 36px;"></div>
                     <div class="flex-grow-1 ms-2">
                         <div class="comment-bubble px-3 py-2 rounded-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-semibold text-dark small mb-0">You</span>
-                                <small class="text-muted" style="font-size: 0.7rem">Sending...</small>
-                            </div>
-                            <div class="comment-text small mb-0 text-break">${previewContent}</div>
+                            <div class="fw-semibold small">You <small class="text-muted">Sending...</small></div>
+                            <div class="comment-text small">${displayContent}</div>
                         </div>
                     </div>
                 </div>
             `;
-            list.insertAdjacentHTML('beforeend', userHtml);
+            list.insertAdjacentHTML('beforeend', tempHtml);
             list.scrollTop = list.scrollHeight;
 
-            // Check for Bot
+            // Check Bot
             const bots = ['FactChecker', 'Historian', 'DevilsAdvocate', 'Analyst'];
-            let botName = null;
-            bots.forEach(b => { if(content.toLowerCase().includes('@'+b.toLowerCase())) botName = b; });
-
+            let botName = bots.find(b => content.includes('@'+b));
             if(botName) {
-                const loadingHtml = `
-                    <div id="typing-${postId}" class="d-flex mb-3 comment-item animate__animated animate__pulse animate__infinite">
-                        <div class="flex-shrink-0">
-                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;"><i class="ri-robot-line"></i></div>
-                        </div>
-                        <div class="flex-grow-1 ms-2">
-                            <div class="comment-bubble px-3 py-2 rounded-3">
-                                <span class="text-muted small fst-italic"><i class="ri-loader-4-line ri-spin me-1"></i> ${botName} is investigating...</span>
-                            </div>
-                        </div>
+                list.insertAdjacentHTML('beforeend', `
+                    <div id="typing-${postId}" class="d-flex mb-3 comment-item animate__pulse">
+                        <div class="flex-shrink-0"><div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;"><i class="ri-robot-line"></i></div></div>
+                        <div class="flex-grow-1 ms-2"><div class="comment-bubble px-3 py-2 rounded-3"><small class="fst-italic"><i class="ri-loader-4-line ri-spin"></i> ${botName} is investigating...</small></div></div>
                     </div>
-                `;
-                list.insertAdjacentHTML('beforeend', loadingHtml);
-                list.scrollTop = list.scrollHeight;
+                `);
             }
 
-            // Cleanup form
+            // Reset Form
             textarea.value = '';
+            form.querySelector('input[name="reply_to_context"]').value = '';
+            form.parentElement.querySelector('.reply-preview-container').style.display = 'none';
             textarea.style.height = 'auto';
-            cancelReply(postId);
             btn.disabled = true;
 
+            // AJAX Send
             try {
-                const formData = new FormData();
-                formData.append('content', content);
-                const response = await fetch(form.action, {
+                const fd = new FormData();
+                fd.append('content', fullContent);
+                const res = await fetch(form.action, {
                     method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
-                    body: formData
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                    body: fd
                 });
-                if(!response.ok) throw new Error('Failed');
 
-                const tempEl = document.getElementById(`temp-${tempId}`);
-                if(tempEl) { tempEl.style.opacity = 1; tempEl.querySelector('small').innerText = "Just now"; }
-            } catch (err) {
-                console.error(err);
-                showToast('Error', 'Failed to send comment');
-                const tempEl = document.getElementById(`temp-${tempId}`);
-                if(tempEl) tempEl.remove();
+                const data = await res.json();
+                if(!res.ok) throw new Error('Failed');
+
+                // Safety Check Result
+                if(data.comment.is_flagged) {
+                    document.getElementById(`temp-${tempId}`).querySelector('.comment-text').innerHTML = `<span class="text-danger"><i class="ri-alarm-warning-line"></i> ${data.comment.content}</span>`;
+                    showToast('Safety Alert', 'Your comment was flagged by AI.');
+                } else {
+                    document.getElementById(`temp-${tempId}`).style.opacity = 1;
+                    document.getElementById(`temp-${tempId}`).querySelector('small').innerText = 'Just now';
+                }
+
+            } catch(err) {
+                document.getElementById(`temp-${tempId}`).remove();
+                alert('Failed to post.');
             } finally {
                 btn.disabled = false;
             }
         }
     });
 
-    // --- 5. AUTOCOMPLETE LOGIC ---
-    const bots = [
-        { id: 'FactChecker', name: 'FactChecker', desc: 'Verifies claims & sources', icon: 'ri-checkbox-circle-line text-success' },
-        { id: 'Historian', name: 'Historian', desc: 'Provides historical context', icon: 'ri-book-open-line text-warning' },
-        { id: 'DevilsAdvocate', name: 'DevilsAdvocate', desc: 'Challenges assumptions', icon: 'ri-fire-line text-danger' },
-        { id: 'Analyst', name: 'Analyst', desc: 'Data & statistical analysis', icon: 'ri-bar-chart-line text-info' }
-    ];
-
-    let dropdown = document.getElementById('bot-autocomplete-dropdown');
-    if (!dropdown) {
-        dropdown = document.createElement('div');
-        dropdown.id = 'bot-autocomplete-dropdown';
-        dropdown.className = 'list-group position-absolute shadow-lg';
-        dropdown.style.display = 'none';
-        dropdown.style.zIndex = '10000';
-        dropdown.style.width = '280px';
-        dropdown.style.backgroundColor = '#ffffff';
-        dropdown.style.color = '#000000';
-        document.body.appendChild(dropdown);
-    }
-
-    let activeInput = null;
-
-    document.body.addEventListener('keyup', function(e) {
-        if (e.target.matches('textarea[name="content"]')) {
-            activeInput = e.target;
-            const val = activeInput.value;
-            const cursorPos = activeInput.selectionStart;
-            const lastAt = val.lastIndexOf('@', cursorPos - 1);
-
-            if (lastAt !== -1) {
-                const query = val.substring(lastAt + 1, cursorPos);
-                if (query.includes(' ')) {
-                    dropdown.style.display = 'none';
-                    return;
-                }
-                showSuggestions(query, activeInput, lastAt);
-            } else {
-                dropdown.style.display = 'none';
-            }
+    // Enter Key to Submit
+    document.body.addEventListener('keydown', (e) => {
+        if(e.target.matches('textarea[name="content"]') && e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            e.target.closest('form').querySelector('button[type="submit"]').click();
         }
     });
 
-    function showSuggestions(query, input, atIndex) {
-        const rect = input.getBoundingClientRect();
-        dropdown.style.top = (window.scrollY + rect.top - 10) + 'px';
-        dropdown.style.left = (window.scrollX + rect.left) + 'px';
-        dropdown.innerHTML = '';
-
-        const matches = bots.filter(b => b.name.toLowerCase().startsWith(query.toLowerCase()));
-
-        if (matches.length === 0) {
-            dropdown.style.display = 'none';
-            return;
-        }
-
-        matches.forEach(bot => {
-            const item = document.createElement('button');
-            item.className = 'list-group-item list-group-item-action d-flex align-items-center';
-            item.style.backgroundColor = '#fff';
-            item.style.color = '#333';
-            item.innerHTML = `
-                <i class="${bot.icon} fs-4 me-3"></i>
-                <div>
-                    <div class="fw-bold">@${bot.name}</div>
-                    <small class="text-muted">${bot.desc}</small>
-                </div>
-            `;
-            item.onclick = function(e) {
-                e.preventDefault();
-                const before = input.value.substring(0, atIndex);
-                const after = input.value.substring(input.selectionStart);
-                input.value = before + '@' + bot.name + ' ' + after;
-                dropdown.style.display = 'none';
-                input.focus();
-                autoGrowTextarea(input);
-            };
-            dropdown.appendChild(item);
-        });
-
-        dropdown.style.display = 'block';
-    }
-
-    document.addEventListener('click', (e) => {
-        if (e.target !== dropdown && e.target !== activeInput) {
-            dropdown.style.display = 'none';
-        }
-    });
+    setupAutocomplete();
 });
 
-// --- HELPER FUNCTIONS (Global Scope) ---
-
-function autoGrowTextarea(element) {
-    element.style.height = 'auto';
-    element.style.height = Math.min(element.scrollHeight, 120) + 'px';
-}
+// --- HELPER FUNCTIONS ---
 
 function toggleChatFullscreen(postId) {
     const card = document.getElementById(`post-${postId}`);
     const icon = card.querySelector('.btn-fullscreen i');
 
-    if (card.classList.contains('chat-fullscreen')) {
+    if(card.classList.contains('chat-fullscreen')) {
         card.classList.remove('chat-fullscreen');
         card.classList.remove('show-post-details');
         document.body.style.overflow = '';
@@ -536,118 +431,126 @@ function toggleChatFullscreen(postId) {
 
         setTimeout(() => {
             const list = card.querySelector('.comments-list');
-            if(list) list.scrollTop = list.scrollHeight;
+            list.scrollTop = list.scrollHeight;
         }, 100);
     }
 }
 
 function togglePostDetails(postId) {
     const card = document.getElementById(`post-${postId}`);
-    const btn = card.querySelector('.toggle-post-details');
-    const btnText = btn.querySelector('span');
-    const btnIcon = btn.querySelector('i');
-
-    if (card.classList.contains('show-post-details')) {
-        card.classList.remove('show-post-details');
-        btnText.textContent = 'Show Original Post';
-        btnIcon.className = 'ri-eye-line me-1';
-    } else {
-        card.classList.add('show-post-details');
-        btnText.textContent = 'Hide Original Post';
-        btnIcon.className = 'ri-eye-off-line me-1';
-    }
+    card.classList.toggle('show-post-details');
+    const btn = card.querySelector('.toggle-post-details span');
+    btn.innerText = card.classList.contains('show-post-details') ? 'Hide Original Post' : 'Show Original Post';
 }
 
-function initReply(postId, userName, content) {
+function initReply(postId, user, content) {
     const card = document.getElementById(`post-${postId}`);
     const form = card.querySelector('.comment-form');
-    const replyContainer = form.parentElement.querySelector('.reply-preview-container');
-    const replyInput = form.querySelector('input[name="reply_to_context"]');
-    const textarea = form.querySelector('textarea');
+    const container = form.parentElement.querySelector('.reply-preview-container');
+    const input = form.querySelector('input[name="reply_to_context"]');
 
-    const snippet = content.length > 80 ? content.substring(0, 80) + '...' : content;
-    replyInput.value = `> **${userName}**: ${snippet}`;
+    const cleanContent = content.replace(/[*_>]/g, '').substring(0, 60) + '...';
 
-    replyContainer.innerHTML = `
+    input.value = `> **${user}**: ${content}`;
+    container.style.display = 'block';
+    container.innerHTML = `
         <div class="reply-context">
-            <div><i class="ri-reply-fill me-2"></i><span>Replying to <strong>${userName}</strong></span></div>
-            <button type="button" class="btn-close" onclick="cancelReply(${postId})"></button>
+            <span><i class="ri-reply-fill"></i> Replying to <strong>${user}</strong>: ${cleanContent}</span>
+            <button type="button" class="btn-close" onclick="this.parentElement.parentElement.style.display='none'; this.closest('form').querySelector('input[name=reply_to_context]').value='';"></button>
         </div>
     `;
-    replyContainer.style.display = 'block';
-    textarea.focus();
+    form.querySelector('textarea').focus();
 }
 
-function cancelReply(postId) {
-    const card = document.getElementById(`post-${postId}`);
-    const form = card.querySelector('.comment-form');
-    const replyContainer = form.parentElement.querySelector('.reply-preview-container');
-    const replyInput = form.querySelector('input[name="reply_to_context"]');
-    replyInput.value = '';
-    replyContainer.innerHTML = '';
-    replyContainer.style.display = 'none';
-}
-
-function toggleGlobalAudio(elementId, btn) {
-    const el = document.getElementById(elementId);
+function toggleGlobalAudio(id, btn) {
+    const el = document.getElementById(id);
     if(!el) return;
     const text = el.innerText;
 
-    if (globalAudio && !globalAudio.paused && globalAudioBtn === btn) {
-        globalAudio.pause();
-        globalAudioBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
-        globalAudio = null;
-        globalAudioBtn = null;
-        return;
-    }
-
-    if(globalAudio) {
+    if(globalAudio && !globalAudio.paused) {
         globalAudio.pause();
         if(globalAudioBtn) globalAudioBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
+        if(globalAudioBtn === btn) return;
     }
 
     globalAudioBtn = btn;
     btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i>';
 
     fetch('{{ route("speech.generate") }}', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
         body: JSON.stringify({ text: text })
     })
-    .then(res => res.json())
-    .then(data => {
-        const src = "data:audio/mp3;base64," + data.audio;
-        globalAudio = new Audio(src);
+    .then(r => r.json())
+    .then(d => {
+        globalAudio = new Audio("data:audio/mp3;base64," + d.audio);
         globalAudio.play();
         btn.innerHTML = '<i class="ri-stop-circle-line text-danger"></i>';
-        globalAudio.onended = () => {
-            btn.innerHTML = '<i class="ri-volume-up-line"></i>';
-            globalAudio = null;
-            globalAudioBtn = null;
-        };
+        globalAudio.onended = () => btn.innerHTML = '<i class="ri-volume-up-line"></i>';
     })
-    .catch(() => {
-        btn.innerHTML = '<i class="ri-volume-up-line"></i>';
-        showToast('Error', 'Audio playback failed');
-        globalAudio = null;
-        globalAudioBtn = null;
-    });
+    .catch(() => { btn.innerHTML = '<i class="ri-volume-up-line"></i>'; alert('Audio failed'); });
 }
 
-function showToast(title, message) {
-    const div = document.createElement('div');
-    div.className = 'toast show position-fixed top-0 end-0 m-3';
-    div.style.zIndex = '10001';
-    div.style.minWidth = '300px';
-    div.innerHTML = `
-        <div class="toast-header bg-primary text-white">
-            <i class="ri-notification-3-line me-2"></i>
-            <strong class="me-auto">${title}</strong>
-            <button type="button" class="btn-close btn-close-white" onclick="this.parentElement.parentElement.remove()"></button>
-        </div>
-        <div class="toast-body bg-white text-dark">${message}</div>
-    `;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 5000);
+function showToast(title, msg) {
+    const t = document.getElementById('toast-container');
+    const d = document.createElement('div');
+    d.className = 'toast show align-items-center text-white bg-primary border-0 mb-2';
+    d.innerHTML = `<div class="d-flex"><div class="toast-body"><strong>${title}</strong>: ${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+    t.appendChild(d);
+    setTimeout(() => d.remove(), 4000);
+}
+
+function setupAutocomplete() {
+    const bots = [
+        { name: 'FactChecker', icon: 'ri-checkbox-circle-line text-success', desc: 'Verify claims' },
+        { name: 'Historian', icon: 'ri-book-open-line text-warning', desc: 'Context' },
+        { name: 'DevilsAdvocate', icon: 'ri-fire-line text-danger', desc: 'Debate' },
+        { name: 'Analyst', icon: 'ri-bar-chart-line text-info', desc: 'Stats' }
+    ];
+
+    let dropdown = document.getElementById('bot-autocomplete-dropdown');
+    if(!dropdown) {
+        dropdown = document.createElement('div');
+        dropdown.id = 'bot-autocomplete-dropdown';
+        dropdown.className = 'list-group position-absolute shadow';
+        dropdown.style.display = 'none';
+        dropdown.style.zIndex = '200005';
+        document.body.appendChild(dropdown);
+    }
+
+    document.body.addEventListener('keyup', function(e) {
+        if(e.target.matches('.comment-textarea')) {
+            const val = e.target.value;
+            const lastAt = val.lastIndexOf('@');
+            if(lastAt > -1 && !val.substring(lastAt).includes(' ')) {
+                const query = val.substring(lastAt + 1).toLowerCase();
+                const rect = e.target.getBoundingClientRect();
+                dropdown.style.top = (window.scrollY + rect.top - (bots.length * 50)) + 'px';
+                dropdown.style.left = (window.scrollX + rect.left) + 'px';
+                dropdown.innerHTML = bots.filter(b=>b.name.toLowerCase().startsWith(query)).map(b => `
+                    <button class="list-group-item list-group-item-action" onclick="insertBot('${b.name}')">
+                        <i class="${b.icon} me-2"></i> ${b.name} <small class="text-muted ms-2">${b.desc}</small>
+                    </button>
+                `).join('');
+                dropdown.style.display = 'block';
+                dropdown.currentInput = e.target;
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+    });
+
+    window.insertBot = function(name) {
+        const input = dropdown.currentInput;
+        const val = input.value;
+        const lastAt = val.lastIndexOf('@');
+        input.value = val.substring(0, lastAt) + '@' + name + ' ';
+        dropdown.style.display = 'none';
+        input.focus();
+    };
+
+    document.addEventListener('click', (e) => {
+        if(e.target.closest('#bot-autocomplete-dropdown')) return;
+        dropdown.style.display = 'none';
+    });
 }
 </script>

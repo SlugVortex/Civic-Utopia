@@ -156,7 +156,7 @@ $activeTopic = $activeTopic ?? null;
 document.addEventListener('DOMContentLoaded', function () {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    // --- NEW: Progress Bar Logic ---
+    // --- Progress Bar Logic ---
     const localizeBtn = document.getElementById('btn-localize-news');
     const progressContainer = document.getElementById('ai-progress-container');
     const progressBar = document.getElementById('ai-progress-bar');
@@ -176,7 +176,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // 1. Start UI
             localizeBtn.disabled = true;
             const originalBtnText = localizeBtn.innerHTML;
             localizeBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Working...';
@@ -187,29 +186,20 @@ document.addEventListener('DOMContentLoaded', function () {
             navigator.geolocation.getCurrentPosition(success, error);
 
             function success(position) {
-                // 2. Location Found
                 updateProgress(50, '<i class="ri-broadcast-line"></i> Contacting News Agents...');
-
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
 
-                // Call Laravel Backend
                 fetch('{{ route("news.fetch") }}', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
                     body: JSON.stringify({ lat: lat, lon: lon })
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // 3. Job Started
                     updateProgress(90, '<i class="ri-quill-pen-line"></i> Generating summaries & images... (~45s)');
                     progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
 
-                    // Wait 15s then reload (time for ~3 posts)
                     setTimeout(() => {
                         updateProgress(100, '<i class="ri-check-double-line"></i> Done! Reloading...');
                         setTimeout(() => window.location.reload(), 1000);
@@ -261,10 +251,41 @@ document.addEventListener('DOMContentLoaded', function () {
         else if (modalBackdrop && event.target === modalBackdrop) closeModal();
     });
 
+    // --- Main Dashboard Logic ---
+    const postFeedContainer = document.getElementById('post-feed-container');
+    let currentAudio = null;
+    let lastPlayedButton = null;
+
+    const explainModalEl = document.getElementById('explanation-modal');
+    const explainModal = new bootstrap.Modal(explainModalEl);
+    const explanationContent = document.getElementById('explanation-content');
+
+    document.body.addEventListener('click', function (event) {
+        const likeButton = event.target.closest('.btn-like');
+        const bookmarkButton = event.target.closest('.btn-bookmark');
+        const shareButton = event.target.closest('.btn-share');
+        const summarizeButton = event.target.closest('.btn-summarize');
+        const readAloudButton = event.target.closest('.btn-read-aloud');
+        const explainButton = event.target.closest('.btn-explain');
+        const imageModalTrigger = event.target.closest('.carousel-image');
+        const modalClose = event.target.closest('.image-modal-close');
+        const modalBackdrop = event.target.closest('.image-modal');
+
+        if (likeButton) handleLikeClick(likeButton);
+        else if (bookmarkButton) handleBookmarkClick(bookmarkButton);
+        else if (shareButton) handleShareClick(shareButton);
+        else if (summarizeButton) handleSummarizeClick(summarizeButton);
+        else if (readAloudButton) handleReadAloudClick(readAloudButton);
+        else if (explainButton) handleExplainClick(explainButton);
+        else if (imageModalTrigger) openImageModal(imageModalTrigger);
+        else if (modalClose) closeModal();
+        else if (modalBackdrop && event.target === modalBackdrop) closeModal();
+    });
+
     const mediaUploadInput = document.getElementById('media-upload');
     const mediaPreviewContainer = document.getElementById('media-preview');
 
-    if(mediaUploadInput) {
+    if (mediaUploadInput) {
         mediaUploadInput.addEventListener('change', function() {
             mediaPreviewContainer.innerHTML = '';
             if (this.files.length > 0) {
@@ -278,6 +299,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 mediaPreviewContainer.appendChild(fileList);
             }
         });
+    }
+
+    // Explained Logic (Restored from your branch)
+    async function handleExplainClick(button) {
+        const postId = button.dataset.postId;
+        explanationContent.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+        explainModal.show();
+        try {
+            const response = await fetch(`/posts/${postId}/explain`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            });
+            if (!response.ok) throw new Error('Explanation failed');
+            const data = await response.json();
+            explanationContent.textContent = data.explanation;
+        } catch (error) {
+            console.error('Error explaining post:', error);
+            explanationContent.textContent = 'Sorry, something went wrong while trying to explain this.';
+        }
     }
 
     async function handleReadAloudClick(button) {
@@ -307,11 +347,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const response = await fetch('{{ route("speech.generate") }}', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
                 body: JSON.stringify({ post_id: postId })
             });
 
@@ -319,16 +355,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Speech generation failed.');
             }
-
             const data = await response.json();
             if (!data.audio) throw new Error('No audio data received.');
 
             const audioSrc = `data:audio/mp3;base64,${data.audio}`;
             currentAudio = new Audio(audioSrc);
-
             icon.className = 'ri-stop-circle-line';
 
             currentAudio.play().catch(e => {
+                console.error("Audio playback failed:", e);
                 alert("Audio playback was blocked by the browser. Please interact with the page first.");
                 icon.className = 'ri-volume-up-line';
             });
@@ -338,11 +373,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 currentAudio = null;
                 lastPlayedButton = null;
             };
-
         } catch (error) {
             console.error('[Speech] Error:', error);
             icon.className = 'ri-volume-up-line';
-            alert('Could not generate audio.');
+            alert('Could not generate audio for this post.');
             currentAudio = null;
             lastPlayedButton = null;
         }
@@ -442,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // CAROUSEL
+    // CAROUSEL LOGIC (Retained from Main branch)
     document.querySelectorAll('.post-carousel').forEach(carousel => {
         const slides = carousel.querySelectorAll('.carousel-slide');
         const indicators = carousel.querySelectorAll('.indicator');
@@ -469,7 +503,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // MODAL
+    // IMAGE MODAL LOGIC (Merged)
     const modalContainer = document.getElementById('image-modal-container');
     if(modalContainer) {
         modalContainer.innerHTML = `<div class="image-modal"><span class="image-modal-close">&times;</span><img src="" alt="Expanded image"></div>`;
@@ -488,9 +522,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(); });
     }
 
-    // POST FORM
+    // Post Creation Form
     const createPostForm = document.querySelector('#post-creation-form');
-    if(createPostForm) {
+    if (createPostForm) {
         const postSubmitButton = createPostForm.querySelector('button[type="submit"]');
         createPostForm.addEventListener('submit', async function (event) {
             event.preventDefault();
@@ -508,9 +542,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     throw new Error(errorData.message || 'Could not create post.');
                 }
                 createPostForm.reset();
-                if(mediaPreviewContainer) mediaPreviewContainer.innerHTML = '';
+                if (mediaPreviewContainer) mediaPreviewContainer.innerHTML = '';
                 location.reload();
             } catch (error) {
+                console.error('Error:', error);
                 alert(error.message);
             } finally {
                 postSubmitButton.disabled = false;
@@ -518,7 +553,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-
 });
 </script>
 @endpush
