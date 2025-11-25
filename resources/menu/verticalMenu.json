@@ -13,6 +13,12 @@
       "slug": "ballots.index"
     },
     {
+      "url": "/candidates",
+      "name": "Candidate Compass",
+      "icon": "menu-icon icon-base ri ri-user-star-line",
+      "slug": "candidates.index"
+    },
+    {
       "url": "/page-2",
       "icon": "menu-icon icon-base ri ri-file-3-line",
       "name": "Page 2",

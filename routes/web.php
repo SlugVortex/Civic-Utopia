@@ -80,4 +80,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/ballots/{ballot}/analyze', [BallotController::class, 'analyze'])->name('ballots.analyze');
     Route::post('/ballots/{ballot}/ask', [BallotController::class, 'askBot'])->name('ballots.ask');
     Route::post('/ballots/{ballot}/translate', [BallotController::class, 'translate'])->name('ballots.translate'); // <-- NEW TRANSLATE ROUTE
+
+    // --- CANDIDATE COMPARISON ROUTES ---
+    Route::get('/candidates/compare', [App\Http\Controllers\CandidateController::class, 'compareSelect'])->name('candidates.compare.select');
+    Route::post('/candidates/compare', [App\Http\Controllers\CandidateController::class, 'compareAnalyze'])->name('candidates.compare.analyze');
+
+    // --- CANDIDATE ROUTES ---
+    Route::get('/candidates', [App\Http\Controllers\CandidateController::class, 'index'])->name('candidates.index');
+    Route::get('/candidates/create', [App\Http\Controllers\CandidateController::class, 'create'])->name('candidates.create'); // <-- New
+    Route::post('/candidates', [App\Http\Controllers\CandidateController::class, 'store'])->name('candidates.store');       // <-- New
+    Route::get('/candidates/{candidate}', [App\Http\Controllers\CandidateController::class, 'show'])->name('candidates.show');
+    Route::post('/candidates/{candidate}/analyze', [App\Http\Controllers\CandidateController::class, 'analyze'])->name('candidates.analyze');
+    Route::post('/candidates/{candidate}/ask', [App\Http\Controllers\CandidateController::class, 'askBot'])->name('candidates.ask'); // <-- New Chat
+
 });
