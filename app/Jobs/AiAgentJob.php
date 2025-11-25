@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Post;
+use App\Models\Comment;
 use App\Models\User;
 use App\Services\BingSearchService;
 use App\Events\CommentCreated;
@@ -19,17 +20,17 @@ class AiAgentJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $post;
-    protected $userComment;
+    protected $triggerComment;
     protected $botName;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Post $post, string $userComment, string $botName)
+    public function __construct(Post $post, Comment $triggerComment, string $botName)
     {
         $this->post = $post;
-        $this->userComment = $userComment;
-        $this->botName = $botName; // e.g., "FactChecker"
+        $this->triggerComment = $triggerComment;
+        $this->botName = $botName;
     }
 
     /**
@@ -39,7 +40,7 @@ class AiAgentJob implements ShouldQueue
     {
         Log::info("[AiAgentJob] Waking up {$this->botName} for Post ID: {$this->post->id}");
 
-        // 1. Find the Bot User (Mapping names to emails from Seeder)
+        // 1. Find the Bot User
         $emailMap = [
             'FactChecker' => 'agent_factchecker@civicutopia.ai',
             'Historian' => 'agent_historian@civicutopia.ai',
@@ -51,18 +52,21 @@ class AiAgentJob implements ShouldQueue
         $botUser = User::where('email', $email)->first();
 
         if (!$botUser) {
-            Log::error("[AiAgentJob] Bot user not found for: {$this->botName}. Run the AiAgentUserSeeder!");
+            Log::error("[AiAgentJob] Bot user not found for: {$this->botName}.");
             return;
         }
 
         // 2. Gather Context
-        $context = "Original Post: \"{$this->post->content}\"\n\nUser Question/Comment: \"{$this->userComment}\"";
+        $userQuestion = $this->triggerComment->content;
+        // Clean up question to remove the trigger tag for search purposes
+        $cleanQuestion = str_ireplace("@{$this->botName}", '', $userQuestion);
 
-        // 3. Research Phase (Bing Search)
-        // FactChecker, Analyst, and Historian benefit from external data.
+        $context = "Original Post: \"{$this->post->content}\"\n\nUser Question: \"{$cleanQuestion}\"";
+
+        // 3. Research Phase
         $searchResults = "";
         if (in_array($this->botName, ['FactChecker', 'Analyst', 'Historian'])) {
-            $query = $this->generateSearchQuery();
+            $query = $this->generateSearchQuery($cleanQuestion);
             Log::info("[AiAgentJob] Searching Bing for: $query");
 
             $results = $bing->searchWeb($query, 5);
@@ -71,28 +75,35 @@ class AiAgentJob implements ShouldQueue
             }
         }
 
-        // 4. Generate Response (Azure OpenAI)
-        $replyText = $this->generateAiResponse($context, $searchResults);
+        // 4. Generate Response
+        $aiResponse = $this->generateAiResponse($context, $searchResults);
 
-        // 5. Post Comment
-        if ($replyText) {
+        // 5. Post Comment (With Reply Context)
+        if ($aiResponse) {
+            // Create a quote string to visually reply to the user
+            // Limit the quote length
+            $quoteText = mb_substr($userQuestion, 0, 80) . (mb_strlen($userQuestion) > 80 ? '...' : '');
+            // Format: > **User**: Question \n\n Answer
+            $finalContent = "> **{$this->triggerComment->user->name}**: {$quoteText}\n\n{$aiResponse}";
+
             $comment = $this->post->comments()->create([
                 'user_id' => $botUser->id,
-                'content' => $replyText,
+                'content' => $finalContent,
             ]);
 
             $comment->load('user');
             CommentCreated::dispatch($comment);
 
-            Log::info("[AiAgentJob] {$this->botName} successfully replied.");
+            Log::info("[AiAgentJob] {$this->botName} replied.");
         }
     }
 
-    private function generateSearchQuery()
+    private function generateSearchQuery($text)
     {
-        // Simple keyword extraction
-        $cleanContent = substr(preg_replace('/[^a-zA-Z0-9 ]/', '', $this->post->content), 0, 100);
-        return "Jamaica " . $cleanContent . " facts statistics history news";
+        // Basic keyword extraction: take first 10 words + "Jamaica"
+        $words = explode(' ', preg_replace('/[^a-zA-Z0-9 ]/', '', $text));
+        $keywords = implode(' ', array_slice($words, 0, 10));
+        return "Jamaica " . $keywords . " facts statistics history";
     }
 
     private function generateAiResponse($context, $searchResults)
@@ -104,18 +115,17 @@ class AiAgentJob implements ShouldQueue
             $apiVersion = config('services.azure.openai.api_version');
             $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
 
-            // Personas
             $personas = [
-                'FactChecker' => "You are a strict Fact Checker. Verify the post using the search results. Be polite but firm. Cite sources.",
+                'FactChecker' => "You are a strict Fact Checker. Verify the user's claim using the search results. Be polite but firm.",
                 'Historian' => "You are a Jamaican Historian. Connect the topic to Jamaica's history (1960s-2020s).",
-                'DevilsAdvocate' => "You are a Devil's Advocate. Offer a counter-argument or alternative perspective to foster debate. Be respectful.",
-                'Analyst' => "You are a Data Analyst. Use the search results to provide numbers, percentages, or economic data.",
+                'DevilsAdvocate' => "You are a Devil's Advocate. Offer a counter-argument or alternative perspective. Be respectful.",
+                'Analyst' => "You are a Data Analyst. Use the search results to provide numbers and statistics.",
             ];
 
             $systemPrompt = $personas[$this->botName] ?? "You are a helpful AI assistant.";
 
             if ($searchResults) {
-                $systemPrompt .= "\n\nUSE THESE REAL-TIME SEARCH RESULTS:\n" . $searchResults;
+                $systemPrompt .= "\n\nUSE THESE SEARCH RESULTS:\n" . $searchResults;
             }
 
             $response = Http::withHeaders([

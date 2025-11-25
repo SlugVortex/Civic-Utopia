@@ -137,7 +137,7 @@ $activeTopic = $activeTopic ?? null;
 
             <div id="post-feed-container">
                 @forelse ($posts as $post)
-                    @include('posts._post_card', ['post' => $post])
+                    @include('posts._post_card', ['post' => $post, 'showComments' => false])
                 @empty
                     <div id="no-posts-message" class="card card-body text-center text-muted p-5">
                         <p>No posts found in this topic. Be the first to share something!</p>

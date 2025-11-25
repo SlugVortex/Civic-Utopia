@@ -1,7 +1,7 @@
-<div class="card mb-3 post-card" id="post-{{ $post->id }}">
+<div class="card mb-3 post-card transition-all" id="post-{{ $post->id }}">
     <div class="card-body p-4 d-flex flex-column h-100">
 
-        {{-- TOP HEADER: Avatar & Names --}}
+        {{-- HEADER --}}
         <div class="d-flex gap-3 flex-shrink-0 post-header">
             <div class="avatar flex-shrink-0">
                 @if(Str::startsWith($post->user->email, 'agent'))
@@ -21,17 +21,17 @@
                         <small class="text-muted ms-2">· {{ $post->created_at->diffForHumans() }}</small>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        {{-- Full Screen Chat Button --}}
-                        <button class="btn btn-sm btn-icon btn-text-secondary btn-fullscreen" onclick="toggleChatFullscreen({{ $post->id }})" title="Full Screen Chat">
-                            <i class="ri-fullscreen-line"></i>
-                        </button>
+                        {{-- Only show Fullscreen button if we are in the detailed view --}}
+                        @if($showComments ?? false)
+                            <button class="btn btn-sm btn-icon btn-text-secondary btn-fullscreen" onclick="toggleChatFullscreen({{ $post->id }})" title="Full Screen Chat">
+                                <i class="ri-fullscreen-line"></i>
+                            </button>
+                        @endif
 
-                        {{-- Read Aloud --}}
                         <button class="btn btn-sm btn-text-secondary btn-read-aloud p-0" data-post-id="{{ $post->id }}" title="Read post aloud">
                             <i class="ri-volume-up-line"></i>
                         </button>
 
-                        {{-- Dropdown Menu --}}
                         @if (Auth::check() && $post->user_id === Auth::id())
                           <div class="dropdown">
                             <button class="btn p-0" type="button" data-bs-toggle="dropdown"><i class="ri-more-2-line"></i></button>
@@ -48,12 +48,12 @@
                     </div>
                 </div>
 
-                {{-- Content (Collapsible in Fullscreen) --}}
+                {{-- BODY CONTENT --}}
                 <div class="post-content mb-3 text-break">
                     {!! Str::markdown($post->content) !!}
                 </div>
 
-                {{-- Carousel/Video (Collapsible in Fullscreen) --}}
+                {{-- MEDIA --}}
                  @if($post->media && $post->media->isNotEmpty())
                     @php $images = $post->media->where('file_type', 'image'); $videos = $post->media->where('file_type', 'video'); @endphp
                     @if($images->isNotEmpty())
@@ -88,12 +88,20 @@
                     <p class="mb-0 summary-content"></p>
                 </div>
 
-                {{-- Actions (Collapsible in Fullscreen) --}}
-                <div class="d-flex justify-content-between align-items-center pt-2 post-actions">
+                {{-- ACTIONS --}}
+                <div class="d-flex justify-content-between align-items-center pt-2 post-actions {{ ($showComments ?? false) ? 'border-bottom pb-3' : '' }}">
                     <div class="d-flex gap-2">
-                        <a href="{{ route('posts.show', $post) }}" class="btn btn-sm btn-text-secondary comment-count-btn">
-                            <i class="ri-chat-3-line me-1"></i> {{ $post->comments->count() }}
-                        </a>
+                        {{-- Logic: If on dashboard, Link to Show page. If on Show page, just a static button/counter --}}
+                        @if(!($showComments ?? false))
+                            <a href="{{ route('posts.show', $post) }}" class="btn btn-sm btn-text-secondary comment-count-btn">
+                                <i class="ri-chat-3-line me-1"></i> {{ $post->comments->count() }}
+                            </a>
+                        @else
+                            <button class="btn btn-sm btn-text-secondary comment-count-btn" disabled>
+                                <i class="ri-chat-3-line me-1"></i> {{ $post->comments->count() }}
+                            </button>
+                        @endif
+
                         <button class="btn btn-sm btn-text-secondary btn-like {{ $post->is_liked ? 'liked' : '' }}" data-post-id="{{ $post->id }}">
                             <i class="ri-heart-{{ $post->is_liked ? 'fill' : 'line' }} me-1"></i>
                             <span class="like-count">{{ $post->likers->count() > 0 ? $post->likers->count() : '' }}</span>
@@ -107,18 +115,14 @@
                     </div>
                 </div>
 
-                {{-- Collapse/Expand Button (Visible Only in Fullscreen) --}}
-                <button class="btn btn-sm btn-text-secondary mt-2 toggle-post-details" style="display: none;" onclick="togglePostDetails({{ $post->id }})">
-                    <i class="ri-eye-line me-1"></i> <span>Show Original Post</span>
-                </button>
+                {{-- CHAT SECTION (Visible ONLY if $showComments is true) --}}
+                @if($showComments ?? false)
+                <div class="chat-section d-flex flex-column flex-grow-1 mt-3">
 
-                {{-- COMMENT SECTION (Grows in Fullscreen) --}}
-                <div class="border-top pt-3 mt-3 d-flex flex-column flex-grow-1 comments-section">
-
-                    {{-- Scrollable List --}}
-                    <div class="comments-list mb-3 custom-scrollbar">
+                    {{-- Comments Container --}}
+                    <div class="comments-list mb-3 custom-scrollbar flex-grow-1" id="comments-container-{{ $post->id }}" style="max-height: 350px; overflow-y: auto; padding-right: 5px;">
                         @foreach($post->comments as $comment)
-                            <div class="d-flex mb-3 comment-item animate__animated animate__fadeIn">
+                            <div class="d-flex mb-3 comment-item animate__animated animate__fadeIn" id="comment-{{ $comment->id }}">
                                 <div class="flex-shrink-0">
                                      <img src="{{ $comment->user->profile_photo_url ?? 'https://ui-avatars.com/api/?name='.urlencode($comment->user->name).'&background=random' }}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;">
                                 </div>
@@ -128,9 +132,11 @@
                                             <span class="fw-semibold text-dark small mb-0">{{ $comment->user->name }}</span>
                                             <small class="text-muted" style="font-size: 0.7rem">{{ $comment->created_at->diffForHumans() }}</small>
                                         </div>
-                                        <div class="comment-text small mb-0 text-break" id="comment-text-{{ $comment->id }}">{!! Str::markdown($comment->content) !!}</div>
 
-                                        {{-- Hover Actions: Reply & Read --}}
+                                        <div class="comment-text small mb-0 text-break" id="comment-text-{{ $comment->id }}">
+                                            {!! Str::markdown($comment->content) !!}
+                                        </div>
+
                                         <div class="comment-actions">
                                             <button class="btn btn-xs btn-icon rounded-pill"
                                                     onclick="initReply({{ $post->id }}, '{{ $comment->user->name }}', `{{ addslashes($comment->content) }}`)"
@@ -149,9 +155,8 @@
                         @endforeach
                     </div>
 
-                    {{-- Comment Form Wrapper --}}
-                    <div class="comment-form-wrapper mt-auto">
-                        {{-- Reply Preview Container --}}
+                    {{-- Input Area --}}
+                    <div class="comment-form-wrapper mt-auto bg-white pt-2">
                         <div class="reply-preview-container mb-2" style="display:none;"></div>
 
                         <form action="{{ route('comments.store', $post->id) }}" method="POST" class="comment-form">
@@ -175,6 +180,7 @@
                         </form>
                     </div>
                 </div>
+                @endif
 
             </div>
         </div>

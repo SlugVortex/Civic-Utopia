@@ -1,4 +1,3 @@
-@php
 @extends('layouts/layoutMaster')
 
 @section('title', 'Post Details')
@@ -11,10 +10,8 @@
                 <i class="ri-arrow-left-line me-1"></i> Back to Feed
             </a>
 
-            {{-- JUST INCLUDE THE CARD.
-                 It now contains the images, content, AND the comment form/list.
-                 No need to duplicate code here. --}}
-            @include('posts._post_card', ['post' => $post])
+            {{-- Pass 'showComments' => true to SHOW the chat logic here --}}
+            @include('posts._post_card', ['post' => $post, 'showComments' => true])
 
         </div>
     </div>

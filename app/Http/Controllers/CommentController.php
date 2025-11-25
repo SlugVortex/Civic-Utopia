@@ -40,18 +40,26 @@ class CommentController extends Controller
             return back()->with('error', 'Failed to post comment.');
         }
 
-        // 2. AI Detection
+        // 2. AI DETECTION LOGIC (Improved)
+
+        // Strip out quotes (lines starting with >) to prevent triggering on replies
+        // This regex replaces lines starting with > with empty string
+        $contentForDetection = preg_replace('/^>.*$/m', '', $content);
+
         $pattern = '/@(FactChecker|Historian|DevilsAdvocate|Analyst)/i';
         $botTriggered = false;
 
-        if (preg_match($pattern, $content, $matches)) {
+        if (preg_match($pattern, $contentForDetection, $matches)) {
             $detectedBot = $this->normalizeBotName($matches[1]);
             Log::info("[CommentController] Bot summoned: {$detectedBot}");
-            AiAgentJob::dispatch($post, $content, $detectedBot);
+
+            // Pass the actual Comment object so the bot can reply specifically to it
+            AiAgentJob::dispatch($post, $comment, $detectedBot);
+
             $botTriggered = $detectedBot;
         }
 
-        // 3. Return JSON if AJAX (Prevents Page Refresh)
+        // 3. Return JSON
         if ($request->wantsJson()) {
             return response()->json([
                 'status' => 'success',

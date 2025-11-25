@@ -59,15 +59,52 @@
         display: flex;
         flex-direction: column;
         background-color: var(--bs-body-bg);
-        box-shadow: none !important;
     }
 
     .chat-fullscreen .card-body {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        padding: 1.5rem !important;
-        overflow: hidden;
+        height: 100vh;
+        overflow: hidden; /* Prevent body scrolling */
+        padding: 1rem !important;
+    }
+
+    /* In fullscreen, make comment list huge */
+    .chat-fullscreen .comments-list {
+        max-height: none !important;
+        flex-grow: 1;
+        overflow-y: auto;
+        background: var(--bs-body-bg);
+    }
+
+  /* FIX: Remove white background from wrapper */
+    .comment-form-wrapper {
+        margin-top: auto;
+        flex-shrink: 0;
+        background: transparent; /* Changed from bg-white */
+        padding-top: 0.5rem;
+    }
+
+    /* Ensure form stays at bottom */
+    .chat-fullscreen .comment-form-wrapper {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        padding: 10px 0;
+    }
+
+    /* Adjust header in fullscreen */
+    .chat-fullscreen .post-header {
+        border-bottom: 1px solid var(--bs-border-color);
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+
+    * COMMENT INPUT STYLE FIX */
+    .comment-textarea {
+        border: 1px solid var(--bs-border-color);
+        background-color: var(--bs-card-bg); /* Matches card/theme */
+        color: var(--bs-body-color);
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
     }
 
     /* Collapse original post content in fullscreen by default */
@@ -90,330 +127,93 @@
         display: block;
     }
 
-    .chat-fullscreen .post-header {
-        flex-shrink: 0;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid var(--bs-border-color);
-        margin-bottom: 1rem;
+    /* ============================================ */
+    /* WHATSAPP-STYLE REPLIES & QUOTES */
+    /* ============================================ */
+    .comment-text blockquote {
+        border-left: 4px solid var(--bs-primary);
+        background-color: rgba(105, 108, 255, 0.1);
+        margin: 0 0 8px 0;
+        padding: 8px 12px;
+        border-radius: 0 8px 8px 0;
+        font-size: 0.85em;
+        color: var(--bs-secondary-color);
+        cursor: pointer;
+        transition: background-color 0.2s;
     }
 
-    .chat-fullscreen .comments-section {
-        border: none !important;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-        min-height: 0; /* Important for flex overflow */
+    .comment-text blockquote:hover {
+        background-color: rgba(105, 108, 255, 0.2);
     }
 
-    .chat-fullscreen .comments-list {
-        flex-grow: 1;
-        max-height: none !important;
-        overflow-y: auto;
-        margin-bottom: 1rem;
-        padding-right: 8px;
+    .comment-text blockquote p {
+        margin: 0;
     }
 
-    .chat-fullscreen .comment-form-wrapper {
-        margin-top: auto;
-        flex-shrink: 0;
-        background: var(--bs-body-bg);
-        padding-top: 1rem;
-        border-top: 1px solid var(--bs-border-color);
+    /* Highlight animation for jump-to */
+    @keyframes highlightFade {
+        0% { background-color: rgba(255, 255, 0, 0.3); }
+        100% { background-color: transparent; }
+    }
+    .highlight-message {
+        animation: highlightFade 2s ease-out;
     }
 
     /* ============================================ */
-    /* COMMENT STYLES */
+    /* SCROLLBAR & BUBBLES */
     /* ============================================ */
-    .comment-item {
-        transition: all 0.2s ease;
-    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 
     .comment-bubble {
         background-color: var(--bs-gray-100);
-        border: 1px solid var(--bs-border-color);
-        transition: all 0.2s ease;
-        position: relative;
+        border: 1px solid transparent;
     }
+    [data-bs-theme="dark"] .comment-bubble { background-color: #3a3b55; }
 
-    .comment-bubble:hover {
-        background-color: var(--bs-gray-200);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-
-    .comment-text {
-        color: var(--bs-body-color);
-        line-height: 1.5;
-    }
-
-    .comment-text p {
-        margin-bottom: 0.5rem;
-    }
-
-    .comment-text p:last-child {
-        margin-bottom: 0;
-    }
-
-    /* Comment Action Buttons */
-    .comment-actions {
-        position: absolute;
-        bottom: 4px;
-        right: 4px;
-        display: flex;
-        gap: 4px;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    }
-
-    .comment-bubble:hover .comment-actions {
-        opacity: 1;
-    }
-
-    .comment-actions .btn {
-        background: var(--bs-body-bg);
-        border: 1px solid var(--bs-border-color);
-        width: 26px;
-        height: 26px;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .comment-actions .btn:hover {
-        background: var(--bs-primary);
-        color: white;
-        border-color: var(--bs-primary);
-    }
-
-    .comment-actions .btn i {
-        font-size: 0.85rem;
-    }
+    /* Actions visibility */
+    .comment-actions { opacity: 0; transition: opacity 0.2s; }
+    .comment-bubble:hover .comment-actions { opacity: 1; }
 
     /* ============================================ */
-    /* REPLY CONTEXT BOX */
+    /* REPLY PREVIEW BOX */
     /* ============================================ */
     .reply-context {
         border-left: 3px solid var(--bs-primary);
         background-color: var(--bs-gray-100);
-        font-size: 0.85rem;
+        padding: 8px 12px;
+        border-radius: 4px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        animation: slideDown 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        font-size: 0.85rem;
+        margin-bottom: 5px;
     }
-
-    .reply-context i {
-        color: var(--bs-primary);
-    }
-
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+    [data-bs-theme="dark"] .reply-context { background-color: #2b2c40; }
 
     /* ============================================ */
-    /* COMMENT INPUT */
-    /* ============================================ */
-    .comment-textarea {
-        border: 1px solid var(--bs-border-color);
-        background-color: var(--bs-body-bg);
-        transition: all 0.2s ease;
-        font-size: 0.95rem;
-    }
-
-    .comment-textarea:focus {
-        border-color: var(--bs-primary);
-        box-shadow: 0 0 0 3px rgba(105, 108, 255, 0.1);
-        background-color: var(--bs-body-bg);
-    }
-
-    .comment-input-group {
-        padding: 0;
-    }
-
-    .send-btn {
-        transition: all 0.2s ease;
-    }
-
-    .send-btn:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(105, 108, 255, 0.3);
-    }
-
-    .send-btn:active {
-        transform: scale(0.95);
-    }
-
-    /* ============================================ */
-    /* BOT AUTOCOMPLETE DROPDOWN */
+    /* AUTOCOMPLETE DROPDOWN */
     /* ============================================ */
     #bot-autocomplete-dropdown {
-        border-radius: 12px;
+        border-radius: 8px;
         border: 1px solid var(--bs-border-color);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         overflow: hidden;
-        animation: fadeInUp 0.2s ease;
-        background-color: var(--bs-body-bg) !important;
     }
-
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
     #bot-autocomplete-dropdown .list-group-item {
         border: none;
         border-bottom: 1px solid var(--bs-border-color);
-        padding: 0.85rem 1rem;
-        background-color: var(--bs-body-bg);
-        color: var(--bs-body-color);
-        transition: all 0.15s ease;
+        cursor: pointer;
     }
-
-    #bot-autocomplete-dropdown .list-group-item:last-child {
-        border-bottom: none;
-    }
-
     #bot-autocomplete-dropdown .list-group-item:hover {
-        background-color: var(--bs-primary);
-        color: white;
-        transform: translateX(4px);
-    }
-
-    #bot-autocomplete-dropdown .list-group-item:hover i {
+        background-color: var(--bs-primary) !important;
         color: white !important;
     }
-
-    /* ============================================ */
-    /* SCROLLBAR STYLING */
-    /* ============================================ */
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
+    #bot-autocomplete-dropdown .list-group-item:hover small {
+        color: rgba(255,255,255,0.8) !important;
     }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: var(--bs-gray-200);
-        border-radius: 10px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: var(--bs-gray-400);
-        border-radius: 10px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: var(--bs-gray-500);
-    }
-
-    /* ============================================ */
-    /* DARK MODE SUPPORT */
-    /* ============================================ */
-    [data-bs-theme="dark"] .comment-bubble {
-        background-color: #3a3b55;
-        border-color: #4a4b65;
-    }
-
-    [data-bs-theme="dark"] .comment-bubble:hover {
-        background-color: #4a4b65;
-    }
-
-    [data-bs-theme="dark"] .reply-context {
-        background-color: #3a3b55;
-        border-left-color: #696cff;
-    }
-
-    [data-bs-theme="dark"] .comment-textarea {
-        background-color: #2b2c40;
-        border-color: #4a4b65;
-        color: #cfcfe4;
-    }
-
-    [data-bs-theme="dark"] .comment-textarea:focus {
-        background-color: #2b2c40;
-        border-color: #696cff;
-    }
-
-    [data-bs-theme="dark"] .comment-actions .btn {
-        background: #2b2c40;
-        border-color: #4a4b65;
-        color: #cfcfe4;
-    }
-
-    [data-bs-theme="dark"] #bot-autocomplete-dropdown {
-        background-color: #2b2c40 !important;
-        border-color: #4a4b65;
-    }
-
-    [data-bs-theme="dark"] #bot-autocomplete-dropdown .list-group-item {
-        background-color: #2b2c40;
-        color: #cfcfe4;
-        border-color: #4a4b65;
-    }
-
-    [data-bs-theme="dark"] #bot-autocomplete-dropdown .list-group-item:hover {
-        background-color: #696cff;
-        color: white;
-    }
-
-    /* ============================================ */
-    /* RESPONSIVE ADJUSTMENTS */
-    /* ============================================ */
-    @media (max-width: 768px) {
-        .chat-fullscreen .card-body {
-            padding: 1rem !important;
-        }
-
-        .comment-bubble {
-            padding: 0.75rem 1rem;
-        }
-
-        .comment-actions .btn {
-            width: 28px;
-            height: 28px;
-        }
-    }
-
-    /* ============================================ */
-    /* ANIMATION CLASSES */
-    /* ============================================ */
-    .animate__animated {
-        animation-duration: 0.5s;
-    }
-
-    .animate__fadeIn {
-        animation-name: fadeIn;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    .animate__pulse {
-        animation-name: pulse;
-        animation-iteration-count: infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+    #bot-autocomplete-dropdown .list-group-item:hover i {
+        color: white !important;
     }
 </style>
 
@@ -425,7 +225,13 @@ let currentUserName = "{{ auth()->check() ? auth()->user()->name : 'Guest' }}";
 
 document.addEventListener('DOMContentLoaded', function() {
 
-    // --- 1. REAL-TIME LISTENER (Pusher) ---
+    // --- 1. INITIAL SETUP ---
+    // Scroll all comment lists to bottom on load
+    document.querySelectorAll('.comments-list').forEach(list => {
+        list.scrollTop = list.scrollHeight;
+    });
+
+    // --- 2. REAL-TIME LISTENER (Pusher) ---
     if (window.Echo) {
         window.Echo.channel('comments')
             .listen('CommentCreated', (e) => {
@@ -439,9 +245,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const loader = document.getElementById(`typing-${e.post_id}`);
                 if (loader) loader.remove();
 
+                // Prevent duplicate if user just posted it
+                const lastComment = list.lastElementChild;
+                if(lastComment && lastComment.innerText.includes(e.content) && lastComment.innerText.includes(e.user.name)) {
+                    return;
+                }
+
                 // Build HTML
                 const html = `
-                    <div class="d-flex mb-3 comment-item animate__animated animate__fadeIn">
+                    <div class="d-flex mb-3 comment-item animate__animated animate__fadeIn" id="comment-new-${e.id}">
                         <div class="flex-shrink-0">
                              <img src="${e.user.avatar_url}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;">
                         </div>
@@ -479,14 +291,41 @@ document.addEventListener('DOMContentLoaded', function() {
                     countBtn.innerHTML = `<i class="ri-chat-3-line me-1"></i> ${num + 1}`;
                 }
 
-                // NOTIFICATION: Did they mention me?
                 if (e.content.includes(`@${currentUserName}`)) {
                     showToast(`New mention from ${e.user.name}`, e.content);
                 }
             });
     }
 
-    // --- 2. COMMENT SUBMISSION (AJAX + Reply Logic) ---
+    // --- 3. CLICK EVENT DELEGATION (For Quote Clicking) ---
+    document.body.addEventListener('click', function(e) {
+        const blockquote = e.target.closest('.comment-text blockquote');
+        if (blockquote) {
+            const text = blockquote.innerText;
+            // Extract username and content from quote format: "User: Content..."
+            const parts = text.split(':');
+            if(parts.length > 1) {
+                const searchStr = parts[1].trim().substring(0, 15); // Search for first 15 chars
+
+                const postCard = blockquote.closest('.post-card');
+                const comments = postCard.querySelectorAll('.comment-text');
+
+                for (let comment of comments) {
+                    if (comment === blockquote.parentElement) continue;
+
+                    if (comment.innerText.includes(searchStr)) {
+                        comment.closest('.comment-item').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        const bubble = comment.closest('.comment-bubble');
+                        bubble.classList.add('highlight-message');
+                        setTimeout(() => bubble.classList.remove('highlight-message'), 2000);
+                        break;
+                    }
+                }
+            }
+        }
+    });
+
+    // --- 4. COMMENT SUBMISSION ---
     document.body.addEventListener('submit', async function(e) {
         if (e.target.matches('.comment-form')) {
             e.preventDefault();
@@ -496,21 +335,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const postCard = form.closest('.card');
             const list = postCard.querySelector('.comments-list');
             const postId = postCard.id.replace('post-', '');
-
-            // Check for Reply Context
             const replyContext = form.querySelector('input[name="reply_to_context"]');
             let content = textarea.value;
 
-            // If replying, prepend the quote in Markdown format
+            // Append quote if replying
             if (replyContext && replyContext.value) {
                 content = `${replyContext.value}\n\n${content}`;
             }
 
             if(!content.trim()) return;
 
-            // 1. Optimistic Append
+            // Optimistic Append
             const userAvatar = form.querySelector('.user-avatar-img').src;
             const tempId = Date.now();
+
+            // Simple Markdown Parse for preview
+            let previewContent = content
+                .replace(/> (.*?)(\n|$)/g, '<blockquote>$1</blockquote>')
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                .replace(/\n/g, '<br>');
+
             const userHtml = `
                 <div class="d-flex mb-3 comment-item" id="temp-${tempId}" style="opacity: 0.6;">
                     <div class="flex-shrink-0"><img src="${userAvatar}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;"></div>
@@ -520,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <span class="fw-semibold text-dark small mb-0">You</span>
                                 <small class="text-muted" style="font-size: 0.7rem">Sending...</small>
                             </div>
-                            <div class="comment-text small mb-0 text-break">${content.replace(/\n/g, '<br>')}</div>
+                            <div class="comment-text small mb-0 text-break">${previewContent}</div>
                         </div>
                     </div>
                 </div>
@@ -528,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
             list.insertAdjacentHTML('beforeend', userHtml);
             list.scrollTop = list.scrollHeight;
 
-            // 2. Check for Bot Summon
+            // Check for Bot
             const bots = ['FactChecker', 'Historian', 'DevilsAdvocate', 'Analyst'];
             let botName = null;
             bots.forEach(b => { if(content.toLowerCase().includes('@'+b.toLowerCase())) botName = b; });
@@ -537,15 +381,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const loadingHtml = `
                     <div id="typing-${postId}" class="d-flex mb-3 comment-item animate__animated animate__pulse animate__infinite">
                         <div class="flex-shrink-0">
-                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
-                                <i class="ri-robot-line"></i>
-                            </div>
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;"><i class="ri-robot-line"></i></div>
                         </div>
                         <div class="flex-grow-1 ms-2">
                             <div class="comment-bubble px-3 py-2 rounded-3">
-                                <span class="text-muted small fst-italic">
-                                    <i class="ri-loader-4-line ri-spin me-1"></i> ${botName} is investigating...
-                                </span>
+                                <span class="text-muted small fst-italic"><i class="ri-loader-4-line ri-spin me-1"></i> ${botName} is investigating...</span>
                             </div>
                         </div>
                     </div>
@@ -554,33 +394,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 list.scrollTop = list.scrollHeight;
             }
 
-            // 3. Reset Form & Reply State
+            // Cleanup form
             textarea.value = '';
             textarea.style.height = 'auto';
             cancelReply(postId);
             btn.disabled = true;
 
-            // 4. Send Request
             try {
                 const formData = new FormData();
                 formData.append('content', content);
-
                 const response = await fetch(form.action, {
                     method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    },
+                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
                     body: formData
                 });
-
                 if(!response.ok) throw new Error('Failed');
-                const tempEl = document.getElementById(`temp-${tempId}`);
-                if(tempEl) {
-                    tempEl.style.opacity = 1;
-                    tempEl.querySelector('small').innerText = "Just now";
-                }
 
+                const tempEl = document.getElementById(`temp-${tempId}`);
+                if(tempEl) { tempEl.style.opacity = 1; tempEl.querySelector('small').innerText = "Just now"; }
             } catch (err) {
                 console.error(err);
                 showToast('Error', 'Failed to send comment');
@@ -592,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- 3. AUTOCOMPLETE LOGIC ---
+    // --- 5. AUTOCOMPLETE LOGIC ---
     const bots = [
         { id: 'FactChecker', name: 'FactChecker', desc: 'Verifies claims & sources', icon: 'ri-checkbox-circle-line text-success' },
         { id: 'Historian', name: 'Historian', desc: 'Provides historical context', icon: 'ri-book-open-line text-warning' },
@@ -604,10 +435,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!dropdown) {
         dropdown = document.createElement('div');
         dropdown.id = 'bot-autocomplete-dropdown';
-        dropdown.className = 'list-group position-absolute';
+        dropdown.className = 'list-group position-absolute shadow-lg';
         dropdown.style.display = 'none';
         dropdown.style.zIndex = '10000';
         dropdown.style.width = '280px';
+        dropdown.style.backgroundColor = '#ffffff';
+        dropdown.style.color = '#000000';
         document.body.appendChild(dropdown);
     }
 
@@ -649,6 +482,8 @@ document.addEventListener('DOMContentLoaded', function() {
         matches.forEach(bot => {
             const item = document.createElement('button');
             item.className = 'list-group-item list-group-item-action d-flex align-items-center';
+            item.style.backgroundColor = '#fff';
+            item.style.color = '#333';
             item.innerHTML = `
                 <i class="${bot.icon} fs-4 me-3"></i>
                 <div>
@@ -680,13 +515,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- HELPER FUNCTIONS (Global Scope) ---
 
-// Auto-grow textarea
 function autoGrowTextarea(element) {
     element.style.height = 'auto';
     element.style.height = Math.min(element.scrollHeight, 120) + 'px';
 }
 
-// Toggle Full Screen Chat
 function toggleChatFullscreen(postId) {
     const card = document.getElementById(`post-${postId}`);
     const icon = card.querySelector('.btn-fullscreen i');
@@ -701,7 +534,6 @@ function toggleChatFullscreen(postId) {
         document.body.style.overflow = 'hidden';
         icon.className = 'ri-fullscreen-exit-line';
 
-        // Scroll to bottom of comments
         setTimeout(() => {
             const list = card.querySelector('.comments-list');
             if(list) list.scrollTop = list.scrollHeight;
@@ -709,7 +541,6 @@ function toggleChatFullscreen(postId) {
     }
 }
 
-// Toggle Post Details in Fullscreen
 function togglePostDetails(postId) {
     const card = document.getElementById(`post-${postId}`);
     const btn = card.querySelector('.toggle-post-details');
@@ -727,7 +558,6 @@ function togglePostDetails(postId) {
     }
 }
 
-// Initialize Reply
 function initReply(postId, userName, content) {
     const card = document.getElementById(`post-${postId}`);
     const form = card.querySelector('.comment-form');
@@ -735,39 +565,29 @@ function initReply(postId, userName, content) {
     const replyInput = form.querySelector('input[name="reply_to_context"]');
     const textarea = form.querySelector('textarea');
 
-    // Truncate content for display
     const snippet = content.length > 80 ? content.substring(0, 80) + '...' : content;
-
-    // Set hidden input value (Markdown Quote)
     replyInput.value = `> **${userName}**: ${snippet}`;
 
-    // Show visual UI
     replyContainer.innerHTML = `
         <div class="reply-context">
-            <div>
-                <i class="ri-reply-fill me-2"></i>
-                <span>Replying to <strong>${userName}</strong>: "${snippet}"</span>
-            </div>
-            <button type="button" class="btn-close" onclick="cancelReply(${postId})" aria-label="Cancel reply"></button>
+            <div><i class="ri-reply-fill me-2"></i><span>Replying to <strong>${userName}</strong></span></div>
+            <button type="button" class="btn-close" onclick="cancelReply(${postId})"></button>
         </div>
     `;
     replyContainer.style.display = 'block';
     textarea.focus();
 }
 
-// Cancel Reply
 function cancelReply(postId) {
     const card = document.getElementById(`post-${postId}`);
     const form = card.querySelector('.comment-form');
     const replyContainer = form.parentElement.querySelector('.reply-preview-container');
     const replyInput = form.querySelector('input[name="reply_to_context"]');
-
     replyInput.value = '';
     replyContainer.innerHTML = '';
     replyContainer.style.display = 'none';
 }
 
-// Audio Player
 function toggleGlobalAudio(elementId, btn) {
     const el = document.getElementById(elementId);
     if(!el) return;
@@ -791,10 +611,7 @@ function toggleGlobalAudio(elementId, btn) {
 
     fetch('{{ route("speech.generate") }}', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
         body: JSON.stringify({ text: text })
     })
     .then(res => res.json())
@@ -817,7 +634,6 @@ function toggleGlobalAudio(elementId, btn) {
     });
 }
 
-// Toast Notification
 function showToast(title, message) {
     const div = document.createElement('div');
     div.className = 'toast show position-fixed top-0 end-0 m-3';
