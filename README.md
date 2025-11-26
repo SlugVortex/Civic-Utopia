@@ -1,66 +1,205 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<div align="center">
+  <img src="https://i.ibb.co/39sW3qF/civic-utopia-banner.png" alt="CivicUtopia Banner" width="100%">
+</div>
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# 🏛️ CivicUtopia: The AI-Powered "Digital Town Square" 🗳️
 
-## About Laravel
+[![Microsoft Azure](https://img.shields.io/badge/Built%20with-Microsoft%20Azure-0078D4?style=for-the-badge&logo=microsoftazure)](https://azure.microsoft.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Laravel v10.x](https://img.shields.io/badge/Laravel-v10.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com/)
+[![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
+[![Built with ❤️](https://img.shields.io/badge/Built%20with-❤️-ff69b4.svg?style=for-the-badge)](https://github.com/SlugVortex/CivicUtopia)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🌟 Introduction
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**CivicUtopia** is an AI-powered "Digital Town Square" designed to modernize democracy. It solves the problem that government is too complex, too boring, and too inaccessible for the average citizen.
 
-## Learning Laravel
+Unlike traditional government portals (which are just static PDF dumps), CivicUtopia is alive. It combines social networking with collaborative productivity and agentic AI to turn 100-page legal bills into "Explain Like I'm 5" summaries, allow communities to annotate policy in real-time, and let citizens chat directly with digital twins of their political candidates.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## 📝 Table of Contents
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. [Introduction](#-introduction)
+2. [The Problem](#️-the-problem)
+3. [Our Solution](#-our-solution)
+4. [Key Features](#-key-features)
+5. [System Architecture](#️-system-architecture)
+6. [Technology Stack](#️-technology-stack)
+7. [Quick Start](#-quick-start)
+8. [Project Screenshots](#-project-screenshots)
+9. [Responsible AI Commitment](#-responsible-ai-commitment)
+10. [Team Members](#-team-members)
+11. [License](#-license)
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## ⚠️ The Problem
 
-### Premium Partners
+Community members often struggle to find accurate, timely information about local policies, events, and services. Traditional channels lack interactivity and personalization, leading to disengagement and misinformation. Citizens feel disconnected from their representatives, confused by legalese, and powerless to report simple infrastructure issues.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+---
 
-## Contributing
+## 💡 Our Solution
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+CivicUtopia is a unified civic engagement platform that empowers communities to access local government information, participate in discussions, and receive personalized updates using Azure AI services.
 
-## Code of Conduct
+It achieves three goals:
+*   **Demystification:** It turns legal jargon into simple language and local dialects (e.g., Jamaican Patois).
+*   **Inclusion:** It allows users to navigate the entire site using voice commands and listen to any content via text-to-speech.
+*   **Collaboration:** It fosters healthy debate through AI-moderated comments and collaborative document annotation.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## ✨ Key Features
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 1. The "Civic Guide" (Agentic Voice Navigator) 🧭
+An always-on AI companion that allows users (especially the visually impaired) to navigate and control the entire website using natural voice commands.
+*   **How it works:** You ask *"Take me to the ballot box"* or *"Read this page"*. The browser captures audio, sends it to **Azure Speech SDK**, and **Azure OpenAI** interprets the intent to execute clicks, scrolls, and navigation automatically.
 
-## License
+### 2. The Ballot Box (Law Decoder) 🗳️
+A tool that translates complex legal referendums into "Explain Like I'm 5" summaries and local dialects.
+*   **How it works:** **Azure OpenAI** rewrites legal text into Plain English, Jamaican Patois, and Pros/Cons lists. **Azure AI Speech** reads the Patois breakdown aloud for accessibility.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 3. The AI Council (Multi-Agent Chat System) 🤖
+A real-time social feed where users can summon specialized AI Agents to fact-check or debate posts.
+*   **How it works:** A user tags `@FactChecker` or `@Historian`. A background job wakes up the Agent, which uses **Bing Search** to find real-time data and **Azure OpenAI** to formulate a persona-based reply. All comments are filtered by **Azure Content Safety**.
+
+### 4. Candidate Compass (Politician Analyzer) 🧭
+An automated research tool that builds profiles for politicians and allows users to chat with their "Digital Twins."
+*   **How it works:** You type a name, and the system auto-researches their manifesto using **Bing Search**. Users can then "Deep Dive" into specific stances (Crime, Economy) or chat with the candidate to ask specific policy questions.
+
+### 5. Civic Lens (Infrastructure Reporter) 📸
+A tool for citizens to report infrastructure issues (potholes, leaks) by simply taking a photo.
+*   **How it works:** **Azure AI Vision** scans the uploaded photo to detect objects (e.g., "Asphalt," "Pothole"). **Azure OpenAI** then drafts a formal complaint letter to the correct government agency based on the image tags and GPS location.
+
+### 6. Legal Library (Smart Document Reader) 📚
+A "GitHub for Laws" where users upload PDFs, and the AI parses them for interactive reading.
+*   **How it works:** **Azure Document Intelligence** performs OCR on uploaded PDFs. Users can then view the document in a split-screen reader, highlight sections to annotate, and ask the AI questions specifically about the document's content using RAG (Retrieval-Augmented Generation).
+
+### 7. Civic Pulse (Hyper-Local News) 📰
+A location-aware news feed that creates a daily briefing based on where the user is standing.
+*   **How it works:** The system captures GPS coordinates, reverse geocodes them to a city/town, and queries **Bing News Search** for headlines specific to that community.
+
+---
+
+## 🏛️ System Architecture
+
+<div align="center">
+  <img src="https://i.ibb.co/d471gPpJ/sys-arch-artemis.png" alt="CivicUtopia Architecture" width="800"/>
+</div>
+
+*(Note: You may want to update this image link with a diagram specific to CivicUtopia later)*
+
+---
+
+## 🛠️ Technology Stack
+
+| Category | Technology / Azure Service |
+|:---------|:---------------------------|
+| **Frontend** | Laravel Blade, Bootstrap 5, Vanilla JS |
+| **Backend** | Laravel 10, PHP 8.2 |
+| **Database** | MySQL |
+| **Real-Time** | Pusher, Laravel Echo |
+| **Intelligence** | Azure OpenAI (GPT-4o), Azure AI Agent Service |
+| **Vision** | Azure AI Vision (Image Analysis) |
+| **Speech** | Azure AI Speech (Text-to-Speech & Speech-to-Text) |
+| **Documents** | Azure Document Intelligence (OCR) |
+| **Safety** | Azure Content Safety |
+| **Data** | Bing Search API (Web & News) |
+| **Media** | FFMpeg (Audio Conversion) |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- PHP 8.2+
+- Composer
+- Node.js & NPM
+- FFmpeg (Installed and in PATH)
+- MySQL Database
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/SlugVortex/CivicUtopia.git
+    cd CivicUtopia
+    ```
+
+2.  **Install Dependencies:**
+    ```bash
+    composer install
+    npm install
+    ```
+
+3.  **Environment Setup:**
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
+    *Update `.env` with your Database credentials and Azure API Keys.*
+
+4.  **Database Setup:**
+    ```bash
+    php artisan migrate
+    php artisan db:seed --class=AiAgentUserSeeder
+    php artisan db:seed --class=BallotQuestionSeeder
+    ```
+
+5.  **Storage Link:**
+    ```bash
+    php artisan storage:link
+    ```
+
+6.  **Run the App:**
+    *   **Terminal 1 (Server):** `php artisan serve`
+    *   **Terminal 2 (Assets):** `npm run dev`
+    *   **Terminal 3 (Queue Worker):** `php artisan queue:work` *(Crucial for AI Agents)*
+
+7.  **Access:**
+    Navigate to `http://localhost:8000`
+
+---
+
+## 📸 Project Screenshots
+
+*(Add your screenshots here)*
+
+| Digital Town Square | The AI Council |
+|:---:|:---:|
+| <img src="https://via.placeholder.com/400x200?text=Feed" width="100%"> | <img src="https://via.placeholder.com/400x200?text=Chat" width="100%"> |
+
+| Civic Lens Reporter | Candidate Compass |
+|:---:|:---:|
+| <img src="https://via.placeholder.com/400x200?text=Lens" width="100%"> | <img src="https://via.placeholder.com/400x200?text=Candidates" width="100%"> |
+
+---
+
+## 🤝 Responsible AI Commitment
+
+CivicUtopia is built with a "Safety First" approach to AI in democracy:
+
+*   **Moderation:** Every user comment and post is passed through **Azure Content Safety** to detect and flag hate speech, violence, or self-harm before it is published.
+*   **Grounding:** Our AI Agents (Historian, FactChecker) do not hallucinate answers. They are programmed to search **Bing** or reference uploaded **Official Documents** before speaking, citing their sources.
+*   **Transparency:** AI-generated content (summaries, candidate profiles) is clearly labeled as such. Users are empowered to verify information via "Deep Dive" links.
+*   **Accessibility:** By integrating Voice Navigation and Text-to-Speech, we ensure that the platform is usable by the elderly, the visually impaired, and those with low literacy levels.
+
+---
+
+## 👥 Team Members
+
+| **[Gary Bryan](https://github.com/SlugVortex)** | **[Adrian Tennant](https://github.com/10ANT)** |
+|:---:|:---:|
+| [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/SlugVortex) | [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/10ANT) |
+
+---
+
+## 📄 License
+
+MIT License
+
+Copyright (c) 2025 CivicUtopia Team.
