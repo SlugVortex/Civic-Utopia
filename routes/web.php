@@ -31,6 +31,10 @@ Route::post('register', [AuthenticationsController::class, 'storeRegistration'])
 // --- Main Application Routes ---
 Route::middleware('auth')->group(function () {
 
+  // --- AI VOICE ---
+    Route::post('/ai/voice', [App\Http\Controllers\VoiceController::class, 'transcribe'])->name('ai.voice');
+    Route::get('/ai/voice-token', [App\Http\Controllers\VoiceController::class, 'getToken'])->name('ai.voice_token');
+
   // --- AI NAVIGATOR ---
     Route::post('/ai/navigate', [App\Http\Controllers\AiNavigatorController::class, 'navigate'])->name('ai.navigate');
     // --- SEARCH ROUTES ---

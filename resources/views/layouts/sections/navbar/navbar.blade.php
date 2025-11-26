@@ -3,6 +3,9 @@ $containerNav = $configData['contentLayout'] === 'compact' ? 'container-xxl' : '
 $navbarDetached = ($navbarDetached ?? '');
 @endphp
 
+<!-- INCLUDE AZURE SPEECH SDK -->
+<script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+
 <!-- Navbar -->
 @if(isset($navbarDetached) && $navbarDetached == 'navbar-detached')
 <nav class="layout-navbar {{$containerNav}} navbar navbar-expand-xl {{$navbarDetached}} align-items-center bg-navbar-theme" id="layout-navbar">
@@ -106,28 +109,33 @@ $navbarDetached = ($navbarDetached ?? '');
             <i class="ri-robot-2-line me-2"></i>
             <span class="fw-bold small">Civic Guide</span>
         </div>
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <!-- Live Status Text -->
+            <span id="mic-status" class="badge bg-white text-primary small d-none">Listening...</span>
             <button type="button" class="btn btn-icon btn-sm btn-text-white rounded-pill p-0" onclick="toggleAiWidget()">
                 <i class="ri-close-line"></i>
             </button>
         </div>
     </div>
 
-    {{-- Chat Body (Flex grow to fill space) --}}
     <div id="ai-chat-history" class="card-body p-3 bg-body" style="flex-grow: 1; overflow-y: auto; scroll-behavior: smooth;">
         <!-- Content loaded via JS -->
     </div>
 
     <div class="card-footer p-2 bg-body border-top mt-auto">
         <div class="input-group input-group-merge">
-            <input type="text" id="ai-widget-input" class="form-control form-control-sm" placeholder="Type a command..." onkeypress="handleAiEnter(event)">
+            <button class="btn btn-outline-primary border-end-0" type="button" id="ai-mic-btn" onclick="toggleRealTimeMic()">
+                <i class="ri-mic-line"></i>
+            </button>
+
+            <input type="text" id="ai-widget-input" class="form-control form-control-sm border-start-0" placeholder="Type or click mic..." onkeypress="handleAiEnter(event)">
+
             <button class="btn btn-primary btn-sm" type="button" onclick="sendAiCommand()">
                 <i class="ri-send-plane-fill"></i>
             </button>
         </div>
     </div>
 
-    {{-- Resize Handle --}}
     <div id="ai-widget-resize" class="resize-handle"></div>
 </div>
 
@@ -135,42 +143,39 @@ $navbarDetached = ($navbarDetached ?? '');
     #ai-navigator-widget {
         position: fixed;
         width: 320px;
-        height: 450px; /* Default height */
+        height: 450px;
         min-width: 280px;
         min-height: 300px;
         z-index: 99999;
         border-radius: 12px;
-        overflow: hidden; /* Important for resize */
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
     }
-
     .resize-handle {
-        width: 15px;
-        height: 15px;
-        background: transparent;
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        cursor: se-resize;
-        z-index: 100000;
+        width: 15px; height: 15px; background: transparent;
+        position: absolute; right: 0; bottom: 0; cursor: se-resize; z-index: 100000;
     }
-
-    /* Visual cue for resize handle */
     .resize-handle::after {
-        content: '';
-        position: absolute;
-        right: 3px;
-        bottom: 3px;
-        width: 6px;
-        height: 6px;
-        border-right: 2px solid #ccc;
-        border-bottom: 2px solid #ccc;
+        content: ''; position: absolute; right: 3px; bottom: 3px; width: 6px; height: 6px;
+        border-right: 2px solid #ccc; border-bottom: 2px solid #ccc;
     }
-
     [data-bs-theme="dark"] #ai-chat-history { background-color: #2b2c40; }
     [data-bs-theme="dark"] .bg-label-primary { background-color: rgba(105, 108, 255, 0.16) !important; color: #696cff !important; }
+
+    /* Pulse Animation for Mic */
+    .mic-active {
+        animation: pulse-red 1.5s infinite;
+        background-color: #ff3e1d !important;
+        color: white !important;
+        border-color: #ff3e1d !important;
+    }
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(255, 62, 29, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 62, 29, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 62, 29, 0); }
+    }
 </style>
 
 <script>
@@ -180,7 +185,117 @@ document.addEventListener('DOMContentLoaded', function() {
     makeResizable(document.getElementById("ai-navigator-widget"));
 });
 
-// --- PERSISTENCE ---
+// --- REAL-TIME SPEECH LOGIC ---
+let recognizer;
+let isListening = false;
+let silenceTimer;
+
+// CONFIGURATION
+const SILENCE_TIMEOUT_MS = 3000; // 3 Seconds
+const MAGIC_WORDS = ["shazam", "boom", "send", "go"];
+
+async function toggleRealTimeMic() {
+    const btn = document.getElementById('ai-mic-btn');
+    const status = document.getElementById('mic-status');
+    const input = document.getElementById('ai-widget-input');
+
+    if (isListening) {
+        stopRecognition();
+        return;
+    }
+
+    try {
+        btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i>';
+
+        // 1. Get Token
+        const tokenRes = await fetch('{{ route("ai.voice_token") }}');
+        const tokenData = await tokenRes.json();
+
+        if(tokenData.error) throw new Error(tokenData.error);
+
+        // 2. Configure SDK
+        const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(tokenData.token, tokenData.region);
+        speechConfig.speechRecognitionLanguage = "en-US";
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+
+        recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+        // 3. Event: Recognizing (Intermediate results)
+        recognizer.recognizing = (s, e) => {
+            input.value = e.result.text;
+            status.innerText = "Listening...";
+            resetSilenceTimer(); // User is talking, reset timer
+        };
+
+        // 4. Event: Recognized (Final sentence)
+        recognizer.recognized = (s, e) => {
+            if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                let text = e.result.text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+                input.value = e.result.text;
+
+                // Check for Magic Word
+                if (MAGIC_WORDS.some(word => text.includes(word))) {
+                    console.log("Magic word detected!");
+                    stopRecognition();
+                    sendAiCommand(); // Trigger Send
+                } else {
+                    // Wait for silence if no magic word
+                    resetSilenceTimer();
+                }
+            }
+        };
+
+        // 5. Start
+        recognizer.startContinuousRecognitionAsync();
+        isListening = true;
+
+        // UI Updates
+        btn.innerHTML = '<i class="ri-mic-line"></i>';
+        btn.classList.add('mic-active');
+        status.classList.remove('d-none');
+        input.placeholder = "Speak now...";
+
+    } catch (err) {
+        console.error(err);
+        alert("Microphone error: " + err.message);
+        stopRecognition();
+    }
+}
+
+function stopRecognition() {
+    if (recognizer) {
+        recognizer.stopContinuousRecognitionAsync();
+        recognizer.close();
+        recognizer = undefined;
+    }
+    isListening = false;
+    clearTimeout(silenceTimer);
+
+    // UI Reset
+    const btn = document.getElementById('ai-mic-btn');
+    const status = document.getElementById('mic-status');
+    const input = document.getElementById('ai-widget-input');
+
+    btn.classList.remove('mic-active');
+    btn.innerHTML = '<i class="ri-mic-line"></i>';
+    status.classList.add('d-none');
+    input.placeholder = "Type or click mic...";
+}
+
+function resetSilenceTimer() {
+    clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+        console.log("Silence detected (3s). Auto-sending.");
+        stopRecognition(); // Stop mic
+
+        const input = document.getElementById('ai-widget-input');
+        if(input.value.trim().length > 0) {
+            sendAiCommand(); // Send logic
+        }
+    }, SILENCE_TIMEOUT_MS);
+}
+
+// --- STANDARD AI LOGIC (Keep Existing) ---
 function restoreWidgetState() {
     const widget = document.getElementById('ai-navigator-widget');
     const historyDiv = document.getElementById('ai-chat-history');
@@ -194,6 +309,8 @@ function restoreWidgetState() {
         widget.style.left = config.left;
         if (config.width) widget.style.width = config.width;
         if (config.height) widget.style.height = config.height;
+        widget.style.bottom = 'auto';
+        widget.style.right = 'auto';
     } else {
         widget.style.bottom = '30px';
         widget.style.right = '30px';
@@ -206,7 +323,7 @@ function restoreWidgetState() {
         historyDiv.innerHTML = savedHistory;
         historyDiv.scrollTop = historyDiv.scrollHeight;
     } else {
-        historyDiv.innerHTML = `<div class="d-flex justify-content-start mb-2"><div class="bg-label-primary p-2 rounded" style="max-width: 85%; font-size: 0.85rem;"><strong>I'm ready!</strong><br>Try 'Take me to ballots' or 'Read this page'.</div></div>`;
+        historyDiv.innerHTML = `<div class="d-flex justify-content-start mb-2"><div class="bg-label-primary p-2 rounded" style="max-width: 85%; font-size: 0.85rem;"><strong>I'm ready!</strong><br>Click the Mic or type to start navigating.</div></div>`;
     }
 }
 
@@ -239,7 +356,6 @@ function toggleAiWidget() {
 
 function handleAiEnter(e) { if (e.key === 'Enter') sendAiCommand(); }
 
-// --- AI LOGIC ---
 function sendAiCommand() {
     const input = document.getElementById('ai-widget-input');
     const history = document.getElementById('ai-chat-history');
@@ -247,13 +363,11 @@ function sendAiCommand() {
 
     if (!command) return;
 
-    // User Msg
     history.innerHTML += `<div class="d-flex justify-content-end mb-2"><div class="bg-primary text-white p-2 rounded text-wrap text-end" style="max-width: 85%; font-size: 0.85rem;">${command}</div></div>`;
     input.value = '';
     history.scrollTop = history.scrollHeight;
     saveChatHistory();
 
-    // Loader
     const loadingId = 'ai-loading-' + Date.now();
     history.innerHTML += `<div id="${loadingId}" class="d-flex justify-content-start mb-2"><div class="bg-label-secondary p-2 rounded" style="max-width: 85%; font-size: 0.85rem;"><i class="ri-loader-4-line ri-spin"></i> Thinking...</div></div>`;
     history.scrollTop = history.scrollHeight;
@@ -270,19 +384,13 @@ function sendAiCommand() {
     .then(data => {
         document.getElementById(loadingId).remove();
 
-        // --- ACTION HANDLER ---
         if (data.action === 'clear_chat') {
             localStorage.removeItem('civicAiHistory');
             history.innerHTML = `<div class="d-flex justify-content-start mb-2"><div class="bg-label-primary p-2 rounded" style="max-width: 85%; font-size: 0.85rem;">${data.message}</div></div>`;
         }
         else if (data.action === 'redirect') {
             addBotMessage(data.message);
-            console.log("AI Redirecting to:", data.target); // DEBUG LOG
-
-            setTimeout(() => {
-                // Use assign for cleaner redirect
-                window.location.assign(data.target);
-            }, 800);
+            setTimeout(() => { window.location.assign(data.target); }, 800);
         }
         else if (data.action === 'tool') {
             addBotMessage(data.message);
@@ -294,7 +402,6 @@ function sendAiCommand() {
         saveChatHistory();
     })
     .catch(err => {
-        console.error(err);
         document.getElementById(loadingId)?.remove();
         addBotMessage("Error connecting to AI.");
     });
@@ -307,9 +414,7 @@ function addBotMessage(msg) {
     saveChatHistory();
 }
 
-// --- EXECUTION LOGIC (Tool Handler) ---
 function executeTool(data) {
-    // 1. Set Value (Dropdowns)
     if (data.tool_type === 'set_value') {
         const el = document.querySelector(data.selector);
         if(el) {
@@ -322,13 +427,11 @@ function executeTool(data) {
             }, 800);
         } else { addBotMessage("Element not found."); }
     }
-    // 2. Read All
     else if (data.tool_type === 'sequence') {
         const els = document.querySelectorAll(data.selector);
         if(els.length > 0) playSequence(Array.from(els));
         else addBotMessage("Nothing to read.");
     }
-    // 3. Click Match (Text search)
     else if (data.tool_type === 'click_match') {
         const containers = document.querySelectorAll(data.container_selector);
         let found = false;
@@ -345,7 +448,6 @@ function executeTool(data) {
         });
         if(!found) addBotMessage("Could not find '" + data.target_text + "'.");
     }
-    // 4. Click Index
     else if (data.tool_type === 'click_index') {
         const els = document.querySelectorAll(data.selector);
         const idx = parseInt(data.index) - 1;
@@ -354,7 +456,6 @@ function executeTool(data) {
             setTimeout(() => els[idx].click(), 500);
         } else { addBotMessage("Item not found."); }
     }
-    // 5. Simple Click
     else if (data.tool_type === 'click') {
         const el = document.querySelector(data.selector);
         if(el) {
@@ -362,7 +463,6 @@ function executeTool(data) {
             setTimeout(() => el.click(), 500);
         } else { addBotMessage("Button not found."); }
     }
-    // 6. Dropdown Click
     else if (data.tool_type === 'click_last_dropdown') {
         const els = document.querySelectorAll(data.selector);
         if(els.length > 0) {
@@ -390,7 +490,6 @@ function playSequence(elements) {
     document.addEventListener('civic-audio-ended', onEnd);
 }
 
-// --- DRAG & RESIZE ---
 function makeDraggable(elmnt) {
     let pos1=0, pos2=0, pos3=0, pos4=0;
     const header = document.getElementById("ai-widget-header");
