@@ -24,7 +24,8 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select" name="country">
+                    {{-- Added ID for AI control if needed later --}}
+                    <select class="form-select" name="country" id="ballot-country-filter">
                         <option value="">All Countries</option>
                         @foreach($countries as $country)
                             <option value="{{ $country }}" {{ request('country') == $country ? 'selected' : '' }}>{{ $country }}</option>
@@ -44,7 +45,8 @@
     <div class="row">
         @forelse($ballots as $ballot)
         <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100">
+            {{-- CLASS ADDED: ballot-card (For AI Target) --}}
+            <div class="card h-100 ballot-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
                         <span class="badge bg-label-primary">{{ $ballot->election_date ? $ballot->election_date->format('M d, Y') : 'Upcoming' }}</span>
@@ -59,14 +61,15 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ $ballot->title }}</h5>
                     <p class="card-text text-muted">
-                        {{ Str::limit($ballot->official_text, 100) }}
+                        {{ Str::limit($ballot->official_text, 120) }}
                     </p>
                     @if($ballot->region)
                         <small class="text-muted"><i class="ti ti-map-pin me-1"></i>{{ $ballot->region }}</small>
                     @endif
                 </div>
                 <div class="card-footer border-top">
-                    <a href="{{ route('ballots.show', $ballot->id) }}" class="btn btn-primary w-100">
+                    {{-- CLASS ADDED: btn-view-decoder (For AI Trigger) --}}
+                    <a href="{{ route('ballots.show', $ballot->id) }}" class="btn btn-primary w-100 btn-view-decoder">
                         <i class="ti ti-eye me-1"></i> View Decoder
                     </a>
                 </div>
@@ -78,7 +81,8 @@
                 <i class="ti ti-folder-off fs-1"></i>
             </div>
             <h5>No ballot questions found.</h5>
-            <p class="text-muted">Try adjusting your search filters.</p>
+            <p class="text-muted">There are no upcoming elections or referendums loaded in the system yet.</p>
+            <a href="{{ route('ballots.create') }}" class="btn btn-outline-primary mt-2">Add the first one</a>
         </div>
         @endforelse
     </div>

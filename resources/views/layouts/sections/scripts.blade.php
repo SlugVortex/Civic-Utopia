@@ -28,7 +28,7 @@
         left: 0;
         width: 100vw !important;
         height: 100vh !important;
-        z-index: 200000 !important;
+        z-index: 200000 !important; /* Force top */
         margin: 0 !important;
         border-radius: 0 !important;
         display: flex;
@@ -72,14 +72,14 @@
         flex-direction: column;
         margin: 0 !important;
         padding: 0 !important;
-        min-height: 0;
+        min-height: 0; /* Key for flex scrolling */
     }
 
     .chat-fullscreen .comments-list {
         flex-grow: 1;
         overflow-y: auto;
         padding: 1rem;
-        max-height: none !important;
+        max-height: none !important; /* Override inline style */
     }
 
     /* The Input Area (Sticky Bottom) */
@@ -134,13 +134,13 @@
 
 <script>
 // --- GLOBAL HELPERS ---
-let globalAudio = null;
+// Exposed to window so the AI Agent in Navbar can access it
+window.civicAudio = null;
 let globalAudioBtn = null;
 let currentUserName = "{{ auth()->check() ? auth()->user()->name : 'Guest' }}";
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
-// --- 1. BUTTON HANDLERS (Delegated Event Listener) ---
-// This ensures buttons inside dynamic content (like loaded posts) still work
+// --- 1. BUTTON HANDLERS (Delegated) ---
 document.addEventListener('click', async function(e) {
 
     // LIKE BUTTON
@@ -157,7 +157,7 @@ document.addEventListener('click', async function(e) {
             const data = await res.json();
             likeBtn.classList.toggle('liked', data.action === 'liked');
             icon.className = data.action === 'liked' ? 'ri-heart-fill me-1 text-danger' : 'ri-heart-line me-1';
-            countSpan.innerText = data.likes_count > 0 ? data.likes_count : '';
+            countSpan.innerText = data.likes_count || '';
         } catch(err) { console.error(err); }
         return;
     }
@@ -179,7 +179,7 @@ document.addEventListener('click', async function(e) {
         const postId = sumBtn.dataset.postId;
         const card = document.getElementById(`post-${postId}`);
         const container = card.querySelector('.summary-container');
-        const contentP = container.querySelector('.summary-content');
+        const contentP = container.querySelector('.summary-content'); // Ensure this element exists in _post_card
 
         if(container.style.display === 'block') {
             container.style.display = 'none';
@@ -194,7 +194,8 @@ document.addEventListener('click', async function(e) {
                 method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/json' }
             });
             const data = await res.json();
-            contentP.innerText = data.summary;
+            if(contentP) contentP.innerText = data.summary;
+            else container.innerText = data.summary; // Fallback if inner p missing
             container.style.display = 'block';
         } catch(err) {
             alert('Summary failed.');
@@ -205,13 +206,12 @@ document.addEventListener('click', async function(e) {
         return;
     }
 
-    // EXPLAIN BUTTON (Explain Like I'm 5)
+    // EXPLAIN BUTTON (ELI5)
     const explainBtn = e.target.closest('.btn-explain');
     if(explainBtn) {
         const postId = explainBtn.dataset.postId;
-        // Assuming you have a modal with id 'explanation-modal' in dashboard layout
         const modalEl = document.getElementById('explanation-modal');
-        if(!modalEl) return; // Safety check
+        if(!modalEl) return;
 
         const modal = new bootstrap.Modal(modalEl);
         const content = document.getElementById('explanation-content');
@@ -248,7 +248,7 @@ document.addEventListener('click', async function(e) {
                 const data = await res.json();
 
                 if(data.status === 'success') {
-                    alert(data.message);
+                    // Wait for queue processing then reload (simulated delay)
                     setTimeout(() => window.location.reload(), 5000);
                 }
             } catch(e) {
@@ -329,13 +329,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!content.trim()) return;
 
             const fullContent = replyContext ? `${replyContext}\n\n${content}` : content;
-            const postId = form.action.split('/').slice(-1)[0];
+            const postId = form.action.split('/').slice(-1)[0]; // Extract ID
 
             // Optimistic UI
             const tempId = Date.now();
             const userAvatar = form.querySelector('.user-avatar-img').src;
 
-            // Parse quote for preview
             const displayContent = fullContent.replace(/> (.*?)(\n|$)/g, '<blockquote>$1</blockquote>').replace(/\n/g, '<br>');
 
             const tempHtml = `
@@ -384,7 +383,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await res.json();
                 if(!res.ok) throw new Error('Failed');
 
-                // Safety Check Result
                 if(data.comment.is_flagged) {
                     document.getElementById(`temp-${tempId}`).querySelector('.comment-text').innerHTML = `<span class="text-danger"><i class="ri-alarm-warning-line"></i> ${data.comment.content}</span>`;
                     showToast('Safety Alert', 'Your comment was flagged by AI.');
@@ -467,10 +465,18 @@ function toggleGlobalAudio(id, btn) {
     if(!el) return;
     const text = el.innerText;
 
-    if(globalAudio && !globalAudio.paused) {
-        globalAudio.pause();
+    // UPDATED: Using window.civicAudio for AI Control
+    if (window.civicAudio && !window.civicAudio.paused && globalAudioBtn === btn) {
+        window.civicAudio.pause();
+        globalAudioBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
+        window.civicAudio = null;
+        globalAudioBtn = null;
+        return;
+    }
+
+    if(window.civicAudio) {
+        window.civicAudio.pause();
         if(globalAudioBtn) globalAudioBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
-        if(globalAudioBtn === btn) return;
     }
 
     globalAudioBtn = btn;
@@ -481,11 +487,23 @@ function toggleGlobalAudio(id, btn) {
         body: JSON.stringify({ text: text })
     })
     .then(r => r.json())
-    .then(d => {
-        globalAudio = new Audio("data:audio/mp3;base64," + d.audio);
-        globalAudio.play();
+    .then(data => {
+        window.civicAudio = new Audio("data:audio/mp3;base64," + data.audio);
+        window.civicAudio.play();
         btn.innerHTML = '<i class="ri-stop-circle-line text-danger"></i>';
-        globalAudio.onended = () => btn.innerHTML = '<i class="ri-volume-up-line"></i>';
+
+        // Add class for Agent to track state
+        btn.classList.add('playing-audio');
+
+        window.civicAudio.onended = () => {
+            btn.innerHTML = '<i class="ri-volume-up-line"></i>';
+            btn.classList.remove('playing-audio');
+            window.civicAudio = null;
+            globalAudioBtn = null;
+
+            // DISPATCH EVENT FOR AI AGENT
+            document.dispatchEvent(new Event('civic-audio-ended'));
+        };
     })
     .catch(() => { btn.innerHTML = '<i class="ri-volume-up-line"></i>'; alert('Audio failed'); });
 }

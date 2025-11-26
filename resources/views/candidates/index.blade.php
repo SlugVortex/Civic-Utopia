@@ -8,15 +8,17 @@
         <h4 class="fw-bold py-3 mb-0">
             <span class="text-muted fw-light">CivicUtopia /</span> Candidate Compass
         </h4>
-      <div>
-          <!-- NEW BUTTON -->
-              <a href="{{ route('candidates.compare.select') }}" class="btn btn-outline-primary me-2">
-                  <i class="ti ti-scale me-1"></i> Compare
-              </a>
-          <a href="{{ route('candidates.create') }}" class="btn btn-primary">
-              <i class="ti ti-plus me-1"></i> Add Candidate
-          </a>
-      </div>
+        <div>
+            {{-- ID ADDED: btn-compare-candidates --}}
+            <a href="{{ route('candidates.compare.select') }}" class="btn btn-outline-primary me-2" id="btn-compare-candidates">
+                <i class="ti ti-scale me-1"></i> Compare
+            </a>
+
+            {{-- ID ADDED: btn-add-candidate --}}
+            <a href="{{ route('candidates.create') }}" class="btn btn-primary" id="btn-add-candidate">
+                <i class="ti ti-plus me-1"></i> Add Candidate
+            </a>
+        </div>
     </div>
 
     <!-- Filters -->
@@ -50,13 +52,15 @@
     <div class="row">
         @forelse($candidates as $candidate)
         <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100">
+            {{-- CLASS ADDED: candidate-card (Target for AI) --}}
+            <div class="card h-100 candidate-card">
                 <div class="card-body text-center">
                     <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle bg-label-secondary" style="width: 100px; height: 100px; overflow:hidden;">
-                        <!-- Simple visual logic for generic parties -->
-                        @if(Str::contains($candidate->party, ['JLP', 'Republican', 'Conservative']))
+                        @if($candidate->photo_url)
+                            <img src="{{ $candidate->photo_url }}" alt="{{ $candidate->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        @elseif(Str::contains($candidate->party, ['JLP', 'Republican']))
                             <i class="ti ti-bell fs-1 text-success"></i>
-                        @elseif(Str::contains($candidate->party, ['PNP', 'Democrat', 'Labour']))
+                        @elseif(Str::contains($candidate->party, ['PNP', 'Democrat']))
                             <i class="ti ti-user fs-1 text-warning"></i>
                         @else
                             <i class="ti ti-flag fs-1 text-primary"></i>
@@ -74,7 +78,8 @@
                         {{ Str::limit($candidate->ai_summary ?? 'No analysis yet.', 80) }}
                     </p>
 
-                    <a href="{{ route('candidates.show', $candidate->id) }}" class="btn btn-primary w-100">View Stances</a>
+                    {{-- CLASS ADDED: btn-view-stances --}}
+                    <a href="{{ route('candidates.show', $candidate->id) }}" class="btn btn-primary w-100 btn-view-stances">View Stances</a>
                 </div>
             </div>
         </div>
