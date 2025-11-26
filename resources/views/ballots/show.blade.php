@@ -3,16 +3,13 @@
 @section('title', $ballot->title)
 
 @section('content')
-<div class="container-xxl flex-grow-1 container-p-y position-relative">
+<div class="container-xxl flex-grow-1 container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-0">
-                <span class="text-muted fw-light">Ballot /</span> {{ $ballot->country }}
-            </h4>
-            @if($ballot->region) <small class="text-muted">{{ $ballot->region }}</small> @endif
-        </div>
+        <h4 class="fw-bold mb-0">
+            <span class="text-muted fw-light">Ballot /</span> Decoder
+        </h4>
         <a href="{{ route('ballots.index') }}" class="btn btn-label-secondary">
-            <i class="ti ti-arrow-left me-1"></i> Back
+            <i class="ti ti-arrow-left me-1"></i> Back to List
         </a>
     </div>
 
@@ -32,7 +29,7 @@
                 <div class="card mb-4 text-center p-5">
                     <i class="ti ti-robot fs-1 text-primary mb-3"></i>
                     <h3>AI Analysis Needed</h3>
-                    <p>This ballot has not been decoded yet.</p>
+                    <p>This ballot has not been decoded yet. Click below to ask Azure AI to explain it.</p>
                     <form action="{{ route('ballots.analyze', $ballot->id) }}" method="POST">
                         @csrf
                         <button type="submit" class="btn btn-primary">
@@ -41,10 +38,13 @@
                     </form>
                 </div>
             @else
-                <!-- TRANSLATION TOOLBAR -->
+                <!-- State: Analyzed -->
+
+                <!-- Translation Toolbar -->
                 <div class="card mb-3 bg-label-secondary">
                     <div class="card-body py-2 d-flex align-items-center justify-content-between">
                         <span class="fw-bold"><i class="ti ti-world me-2"></i>Translate Page:</span>
+                        {{-- ID ADDED FOR AI: languageSelector --}}
                         <select class="form-select w-px-200" id="languageSelector" onchange="translatePage(this.value)">
                             <option value="English" selected>English (Original)</option>
                             <option value="Jamaican Patois">Jamaican Patois</option>
@@ -58,30 +58,31 @@
                     </div>
                 </div>
 
-                <!-- Dynamic Breakdown Section (ELI5) -->
+                <!-- Patois Section -->
                 <div class="card mb-4 border-primary shadow-sm">
                     <div class="card-header bg-label-primary d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 text-primary" id="lbl-breakdown">
                             <i class="ti ti-language me-2"></i>
                             {{ $ballot->country == 'Jamaica' ? 'Patois Breakdown' : 'Local Dialect Breakdown' }}
                         </h5>
-                        <!-- Added text-primary to ensure icon visibility -->
-                        <button class="btn btn-white btn-sm rounded-pill btn-icon shadow-sm" onclick="toggleAudio('txt-breakdown', this)" title="Read Aloud">
-                            <i class="ti ti-volume text-primary"></i>
+                        {{-- ID ADDED FOR AI: btn-audio-patois --}}
+                        <button id="btn-audio-patois" class="btn btn-primary btn-sm rounded-pill" onclick="playAudio('txt-breakdown', this)">
+                            <i class="ti ti-volume me-1"></i> Listen
                         </button>
                     </div>
                     <div class="card-body pt-3">
                         <p class="fs-5 fst-italic mb-0 text-dark" id="txt-breakdown">
-                            {{ $ballot->summary_patois }}
+                            "{{ $ballot->summary_patois }}"
                         </p>
                     </div>
                 </div>
 
-                <!-- Standard Summary -->
+                <!-- Plain English Section -->
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Formal Summary</h5>
-                        <button class="btn btn-label-secondary btn-sm rounded-pill btn-icon" onclick="toggleAudio('txt-summary', this)">
+                        <h5 class="mb-0">Plain English Summary</h5>
+                        {{-- ID ADDED FOR AI: btn-audio-summary --}}
+                        <button id="btn-audio-summary" class="btn btn-label-secondary btn-sm rounded-pill btn-icon" onclick="playAudio('txt-summary', this)">
                             <i class="ti ti-volume"></i>
                         </button>
                     </div>
@@ -96,8 +97,8 @@
                         <div class="card h-100 border-success">
                             <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 text-white"><i class="ti ti-check me-2"></i> If you vote YES</h6>
-                                <!-- Explicitly set icon color to white -->
-                                <button class="btn btn-success btn-sm rounded-pill btn-icon shadow-none" style="background: rgba(255,255,255,0.2);" onclick="toggleAudio('txt-yes', this)">
+                                {{-- ID ADDED FOR AI: btn-audio-yes --}}
+                                <button id="btn-audio-yes" class="btn btn-success btn-sm rounded-pill btn-icon border-white" onclick="playAudio('txt-yes', this)">
                                     <i class="ti ti-volume text-white"></i>
                                 </button>
                             </div>
@@ -110,8 +111,8 @@
                         <div class="card h-100 border-danger">
                             <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 text-white"><i class="ti ti-x me-2"></i> If you vote NO</h6>
-                                <!-- Explicitly set icon color to white -->
-                                <button class="btn btn-danger btn-sm rounded-pill btn-icon shadow-none" style="background: rgba(255,255,255,0.2);" onclick="toggleAudio('txt-no', this)">
+                                {{-- ID ADDED FOR AI: btn-audio-no --}}
+                                <button id="btn-audio-no" class="btn btn-danger btn-sm rounded-pill btn-icon border-white" onclick="playAudio('txt-no', this)">
                                     <i class="ti ti-volume text-white"></i>
                                 </button>
                             </div>
@@ -126,11 +127,8 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
+                            <div class="card-header">
                                 <h5 class="mb-0">Arguments For</h5>
-                                <button class="btn btn-label-success btn-sm rounded-pill btn-icon" onclick="toggleAudio('list-pros', this)">
-                                    <i class="ti ti-volume"></i>
-                                </button>
                             </div>
                             <div class="card-body">
                                 <ul class="list-group list-group-flush" id="list-pros">
@@ -143,11 +141,8 @@
                     </div>
                     <div class="col-md-6">
                         <div class="card h-100">
-                            <div class="card-header d-flex justify-content-between align-items-center">
+                            <div class="card-header">
                                 <h5 class="mb-0">Arguments Against</h5>
-                                <button class="btn btn-label-danger btn-sm rounded-pill btn-icon" onclick="toggleAudio('list-cons', this)">
-                                    <i class="ti ti-volume"></i>
-                                </button>
                             </div>
                             <div class="card-body">
                                 <ul class="list-group list-group-flush" id="list-cons">
@@ -163,7 +158,7 @@
 
         </div>
 
-        <!-- RIGHT COLUMN: Meta Data -->
+        <!-- RIGHT COLUMN: Official Meta Data -->
         <div class="col-lg-4">
             <div class="card mb-4">
                 <div class="card-body">
@@ -175,7 +170,8 @@
 
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="text-muted text-uppercase small fw-bold mb-0">Official Legal Text</h6>
-                        <button class="btn btn-label-secondary btn-sm rounded-pill btn-icon" onclick="toggleAudio('txt-official', this)">
+                        {{-- ID ADDED FOR AI: btn-audio-official --}}
+                        <button id="btn-audio-official" class="btn btn-label-secondary btn-sm rounded-pill btn-icon" onclick="playAudio('txt-official', this)">
                             <i class="ti ti-volume"></i>
                         </button>
                     </div>
@@ -190,7 +186,8 @@
 
     <!-- AI CHAT FLOATING BUTTON -->
     <div style="position: fixed; bottom: 30px; right: 30px; z-index: 9999;">
-        <button class="btn btn-primary rounded-pill shadow-lg p-3 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#aiChatModal">
+        {{-- ID ADDED FOR AI: btn-ask-bot --}}
+        <button id="btn-ask-bot" class="btn btn-primary rounded-pill shadow-lg p-3 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#aiChatModal">
             <i class="ti ti-message-chatbot fs-2"></i>
             <span class="fw-bold d-none d-md-inline">Ask the Ballot Bot</span>
         </button>
@@ -220,103 +217,8 @@
     </div>
 </div>
 
-<!-- Scripts -->
 <script>
-// --- GLOBAL AUDIO STATE ---
-let currentAudio = null;
-let currentBtn = null;
-let originalIcon = '<i class="ti ti-volume"></i>'; // Default fallback
-
-// Audio Playback / Toggle Logic
-function toggleAudio(elementId, btnElement) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-    const text = element.innerText;
-    if (!text.trim()) return alert("No text available.");
-
-    // Check if user clicked the SAME button while it's playing
-    if (currentAudio && currentBtn === btnElement) {
-        stopCurrentAudio();
-        return;
-    }
-
-    // Check if user clicked a DIFFERENT button while audio is playing
-    if (currentAudio) {
-        stopCurrentAudio();
-    }
-
-    // --- START NEW AUDIO ---
-    currentBtn = btnElement;
-
-    // Save original icon (handling text color classes if present)
-    const iconEl = btnElement.querySelector('i');
-    const iconClass = iconEl ? iconEl.className : 'ti ti-volume';
-    originalIcon = `<i class="${iconClass}"></i>`;
-
-    // Show loading spinner
-    btnElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-    btnElement.disabled = true;
-
-    fetch('{{ route("speech.generate") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({ text: text })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) throw new Error(data.error);
-
-        const audioSrc = "data:audio/mp3;base64," + data.audio;
-        currentAudio = new Audio(audioSrc);
-
-        // Play Audio
-        currentAudio.play();
-
-        // Change Icon to Stop
-        // We keep the same color class but change the icon to a square (stop)
-        const baseClass = iconClass.replace('ti-volume', '').trim();
-        btnElement.innerHTML = `<i class="ti ti-player-stop ${baseClass}"></i>`;
-        btnElement.disabled = false;
-
-        // When audio finishes naturally
-        currentAudio.onended = function() {
-            resetButton(btnElement);
-            currentAudio = null;
-            currentBtn = null;
-        };
-    })
-    .catch(error => {
-        console.error(error);
-        alert('Could not generate audio.');
-        resetButton(btnElement);
-        currentAudio = null;
-        currentBtn = null;
-    });
-}
-
-function stopCurrentAudio() {
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-    }
-    if (currentBtn) {
-        resetButton(currentBtn);
-    }
-    currentAudio = null;
-    currentBtn = null;
-}
-
-function resetButton(btn) {
-    if(!btn) return;
-    btn.innerHTML = originalIcon;
-    btn.disabled = false;
-}
-
-// Translation Logic
+// --- Translation Logic (Same as before) ---
 function translatePage(language) {
     const selector = document.getElementById('languageSelector');
     selector.disabled = true;
@@ -325,17 +227,13 @@ function translatePage(language) {
 
     fetch('{{ route("ballots.translate", $ballot->id) }}', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
         body: JSON.stringify({ language: language })
     })
     .then(res => res.json())
     .then(data => {
         if(data.error) throw new Error(data.error);
 
-        // Update Fields
         document.getElementById('txt-official').innerText = data.official_text;
         document.getElementById('lbl-breakdown').innerHTML = `<i class="ti ti-language me-2"></i> ${data.breakdown_label}`;
         document.getElementById('txt-breakdown').innerText = data.breakdown_text;
@@ -353,16 +251,68 @@ function translatePage(language) {
         document.getElementById('txt-official').style.opacity = '1';
         selector.disabled = false;
         document.body.style.cursor = 'default';
-
-        // Stop audio if playing during translation switch
-        stopCurrentAudio();
     })
     .catch(err => {
-        console.error(err);
         alert('Translation failed.');
         selector.disabled = false;
         document.body.style.cursor = 'default';
         document.getElementById('txt-official').style.opacity = '1';
+    });
+}
+
+// --- Audio Playback (Updated to use window.civicAudio for Agent Sync) ---
+function playAudio(elementId, btnElement) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    const text = element.innerText;
+    if (!text.trim()) return alert("No text available.");
+
+    // Use global audio tracking
+    if (window.civicAudio && !window.civicAudio.paused && window.globalAudioBtn === btnElement) {
+        window.civicAudio.pause();
+        window.globalAudioBtn.innerHTML = '<i class="ti ti-volume"></i>';
+        window.civicAudio = null;
+        window.globalAudioBtn = null;
+        return;
+    }
+    if(window.civicAudio) {
+        window.civicAudio.pause();
+        if(window.globalAudioBtn) window.globalAudioBtn.innerHTML = '<i class="ti ti-volume"></i>';
+    }
+
+    window.globalAudioBtn = btnElement;
+    const originalIcon = btnElement.innerHTML;
+    btnElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    btnElement.disabled = true;
+
+    fetch('{{ route("speech.generate") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+        body: JSON.stringify({ text: text })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) throw new Error(data.error);
+        const audioSrc = "data:audio/mp3;base64," + data.audio;
+        window.civicAudio = new Audio(audioSrc);
+        window.civicAudio.play();
+
+        // Determine icon based on button type (white for yes/no, regular for others)
+        const isWhite = btnElement.classList.contains('border-white');
+        btnElement.innerHTML = isWhite ? '<i class="ti ti-player-stop text-white"></i>' : '<i class="ti ti-player-stop text-danger"></i>';
+        btnElement.disabled = false;
+
+        window.civicAudio.onended = () => {
+            btnElement.innerHTML = originalIcon;
+            window.civicAudio = null;
+            window.globalAudioBtn = null;
+            document.dispatchEvent(new Event('civic-audio-ended'));
+        };
+    })
+    .catch(error => {
+        alert('Could not generate audio.');
+        btnElement.innerHTML = originalIcon;
+        btnElement.disabled = false;
     });
 }
 

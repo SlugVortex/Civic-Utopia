@@ -10,20 +10,39 @@ class AiNavigatorController extends Controller
 {
     public function navigate(Request $request)
     {
-        $request->validate(['command' => 'required|string|max:200']);
+        $request->validate(['command' => 'required|string|max:500']);
         $command = $request->command;
 
-        // Define the Site Map (The "Tools" the agent knows about)
+        // 1. Define Site Map
         $siteMap = [
             '/dashboard' => "Town Square, Feed, Social, Posts, Discussion, Home",
-            '/ballots' => "Ballot Box, Laws, Voting, Referendum, Bills",
-            '/ballots/create' => "Add Ballot, Create Law",
-            '/candidates' => "Candidate Compass, Politicians, Leaders, Election, Profile",
+            '/ballots' => "Ballot Box, Laws, Voting, Referendum, Bills, Legislation",
+            '/ballots/create' => "Add Ballot, Create Law, Upload Bill",
+            '/candidates' => "Candidate Compass, Politicians, Leaders, Election, Profiles",
             '/candidates/compare' => "Compare Candidates, Head to Head, Versus",
-            '/issues' => "Civic Lens, Report Issue, Pothole, Garbage, Complaint",
-            '/documents' => "Legal Library, Documents, PDFs, Legislation, Research",
+            '/issues' => "Civic Lens, Report Issue, Pothole, Garbage, Complaint, Camera",
+            '/documents' => "Legal Library, Documents, PDFs, Research, Archives",
             '/interview' => "Political Interview, Simulation, Talk to Politician",
         ];
+
+        // 2. Define Tools
+        $toolsInstructions = "
+        GLOBAL TOOLS:
+        - 'read all' / 'read posts' -> { \"action\": \"tool\", \"tool_type\": \"sequence\", \"selector\": \".btn-read-aloud\", \"message\": \"Reading items...\" }
+        - 'summarize' -> { \"action\": \"tool\", \"tool_type\": \"click_last\", \"selector\": \".btn-summarize\", \"message\": \"Summarizing...\" }
+        - 'explain' -> { \"action\": \"tool\", \"tool_type\": \"click_last_dropdown\", \"selector\": \".btn-explain\", \"message\": \"Explaining...\" }
+        - 'local news' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-localize-news\", \"message\": \"Generating local news...\" }
+        - 'clear chat' -> { \"action\": \"clear_chat\", \"message\": \"Chat cleared.\" }
+
+        BALLOT PAGE TOOLS:
+        - 'read patois' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-audio-patois\", \"message\": \"Playing Patois...\" }
+        - 'read summary' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-audio-summary\", \"message\": \"Reading summary...\" }
+        - 'vote yes' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-audio-yes\", \"message\": \"Reading Yes implications...\" }
+        - 'vote no' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-audio-no\", \"message\": \"Reading No implications...\" }
+        - 'read official' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-audio-official\", \"message\": \"Reading legal text...\" }
+        - 'translate to [Lang]' -> { \"action\": \"tool\", \"tool_type\": \"set_value\", \"selector\": \"#languageSelector\", \"value\": \"[Lang]\", \"message\": \"Translating...\" }
+        - 'ask bot' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-ask-bot\", \"message\": \"Opening chat...\" }
+        ";
 
         try {
             $endpoint = config('services.azure.openai.endpoint');
@@ -32,34 +51,53 @@ class AiNavigatorController extends Controller
             $apiVersion = config('services.azure.openai.api_version');
             $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
 
-            $systemMessage = "You are a navigation assistant for the 'CivicUtopia' app.
-            Map the user's request to one of the following URL paths based on the keywords provided.
+            // FIX: Explicitly telling the model it must output JSON to satisfy API requirements
+            $systemMessage = "You are the 'Civic Guide' AI. You control the website UI.
+            IMPORTANT: You must output your response in valid JSON format.
 
-            Site Map:
-            " . json_encode($siteMap) . "
+            SITE MAP: " . json_encode($siteMap) . "
+            TOOLS: " . $toolsInstructions . "
 
-            If the request is 'help' or 'what can I do', return specific text listing features.
+            INSTRUCTIONS:
+            1. If the user wants to GO somewhere, return: { \"action\": \"redirect\", \"target\": \"/exact/url\", \"message\": \"Navigating...\" }
+            2. If the user wants to DO something (read, click), return: { \"action\": \"tool\", \"tool_type\": \"...\", \"selector\": \"...\", \"message\": \"...\" }
+            3. If general chat, return: { \"action\": \"message\", \"message\": \"...\" }
+            ";
 
-            Output valid JSON: { \"action\": \"redirect\" or \"message\", \"target\": \"/url\" or \"The text message to show\" }";
-
-            $response = Http::withHeaders([
+            $response = Http::timeout(30)->withHeaders([
                 'api-key' => $apiKey, 'Content-Type' => 'application/json'
             ])->post($url, [
                 'messages' => [
                     ['role' => 'system', 'content' => $systemMessage],
                     ['role' => 'user', 'content' => $command],
                 ],
-                'temperature' => 0.1, // Low temp for precision
+                'temperature' => 0.1,
                 'response_format' => ['type' => 'json_object'],
             ]);
 
+            if ($response->failed()) {
+                Log::error("AI Navigator Azure Error: Status " . $response->status() . " - " . $response->body());
+                return response()->json(['action' => 'message', 'message' => 'My brain is unreachable right now.']);
+            }
+
             $aiData = json_decode($response->json('choices.0.message.content'), true);
+
+            if (!$aiData) {
+                return response()->json(['action' => 'message', 'message' => 'I got confused.']);
+            }
+
+            // Failsafe for redirect URL formatting
+            if (isset($aiData['action']) && $aiData['action'] === 'redirect') {
+                if (!str_starts_with($aiData['target'], '/')) {
+                    $aiData['target'] = '/' . $aiData['target'];
+                }
+            }
 
             return response()->json($aiData);
 
         } catch (\Exception $e) {
-            Log::error("AI Navigator Error: " . $e->getMessage());
-            return response()->json(['action' => 'message', 'target' => 'Sorry, I got lost. Try clicking the menu instead.']);
+            Log::error("AI Navigator System Error: " . $e->getMessage());
+            return response()->json(['action' => 'message', 'message' => 'System error.']);
         }
     }
 }
