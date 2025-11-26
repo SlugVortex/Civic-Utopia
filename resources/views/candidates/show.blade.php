@@ -38,7 +38,8 @@
                     <div class="text-start">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <small class="text-uppercase text-muted fw-bold">AI Summary</small>
-                            <button class="btn btn-xs btn-icon btn-label-primary rounded-pill" onclick="toggleAudio('txt-summary', this)">
+                            {{-- ID ADDED: btn-read-summary (For AI Navigator) --}}
+                            <button id="btn-read-summary" class="btn btn-xs btn-icon btn-label-primary rounded-pill" onclick="toggleAudio('txt-summary', this)">
                                 <i class="ti ti-volume"></i>
                             </button>
                         </div>
@@ -48,7 +49,8 @@
                     @if(!$candidate->ai_summary)
                     <form action="{{ route('candidates.analyze', $candidate->id) }}" method="POST">
                         @csrf
-                        <button class="btn btn-outline-primary w-100 mt-3"><i class="ti ti-wand me-1"></i> Initial Analysis</button>
+                        {{-- ID ADDED: btn-analyze-profile (For AI Navigator) --}}
+                        <button id="btn-analyze-profile" class="btn btn-outline-primary w-100 mt-3"><i class="ti ti-wand me-1"></i> Initial Analysis</button>
                     </form>
                     @endif
                 </div>
@@ -62,6 +64,7 @@
             <div class="card mb-3 bg-label-secondary">
                 <div class="card-body py-2 d-flex align-items-center justify-content-between">
                     <span class="fw-bold"><i class="ti ti-world me-2"></i>Translate Profile:</span>
+                    {{-- ID ADDED: langSelector (For AI Navigator 'set_value') --}}
                     <select class="form-select w-px-200" id="langSelector" onchange="translateProfile(this.value)">
                         <option value="English">English</option>
                         <option value="Jamaican Patois">Patois</option>
@@ -80,13 +83,15 @@
                     <div class="row" id="stances-container">
                         @if($candidate->stances)
                             @foreach($candidate->stances as $issue => $stance)
+                            {{-- CLASS: stance-card (For AI Navigator 'click_match') --}}
                             <div class="col-md-6 mb-4 stance-card" data-key="{{ $issue }}">
                                 <div class="p-3 border rounded h-100 shadow-sm position-relative">
 
                                     <!-- Header: Title + Research Button -->
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <h6 class="text-dark fw-bold text-uppercase small mb-0 issue-title">{{ $issue }}</h6>
-                                        <button class="btn btn-xs btn-outline-primary" onclick="researchStance('{{ $issue }}', this)" title="Search Web & Update">
+                                        {{-- CLASS: btn-research-stance (For AI Navigator) --}}
+                                        <button class="btn btn-xs btn-outline-primary btn-research-stance" onclick="researchStance('{{ $issue }}', this)" title="Search Web & Update">
                                             <i class="ti ti-world-search"></i> Research
                                         </button>
                                     </div>
@@ -98,7 +103,8 @@
 
                                     <!-- Audio Button (Bottom Right) -->
                                     <div class="text-end">
-                                        <button class="btn btn-xs btn-icon btn-label-secondary rounded-pill" onclick="toggleAudio('stance-{{ Str::slug($issue) }}', this)">
+                                        {{-- CLASS: btn-read-stance (For AI Navigator) --}}
+                                        <button class="btn btn-xs btn-icon btn-label-secondary rounded-pill btn-read-stance" onclick="toggleAudio('stance-{{ Str::slug($issue) }}', this)">
                                             <i class="ti ti-volume"></i>
                                         </button>
                                     </div>
@@ -135,7 +141,8 @@
 
     <!-- AI CHAT FLOATING BUTTON -->
     <div style="position: fixed; bottom: 30px; right: 30px; z-index: 9999;">
-        <button class="btn btn-primary rounded-pill shadow-lg p-3 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#aiChatModal">
+        {{-- ID ADDED: btn-ask-candidate (For AI Navigator) --}}
+        <button id="btn-ask-candidate" class="btn btn-primary rounded-pill shadow-lg p-3 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#aiChatModal">
             <i class="ti ti-message-chatbot fs-2"></i>
             <span class="fw-bold d-none d-md-inline">Ask {{ explode(' ', $candidate->name)[0] }}'s Bot</span>
         </button>
@@ -279,7 +286,6 @@ function translateProfile(lang) {
         // Update Stances using data-key to handle styling/case mismatch
         const stanceCards = document.querySelectorAll('.stance-card');
         stanceCards.forEach(card => {
-            // IMPORTANT: We use data-key which stores the exact DB key
             const key = card.dataset.key;
             const textEl = card.querySelector('.stance-text');
 

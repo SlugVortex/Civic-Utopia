@@ -13,6 +13,7 @@ class AiNavigatorController extends Controller
         $request->validate(['command' => 'required|string|max:500']);
         $command = $request->command;
 
+        // 1. Define Site Map (Navigation Targets)
         $siteMap = [
             '/dashboard' => "Town Square, Feed, Social, Posts, Discussion, Home",
             '/ballots' => "Ballot Box, Laws, Voting, Referendum, Bills, Legislation",
@@ -24,16 +25,19 @@ class AiNavigatorController extends Controller
             '/interview' => "Political Interview, Simulation, Talk to Politician",
         ];
 
+        // 2. Define Page Tools (Interactive Actions)
         $toolsInstructions = "
         GLOBAL TOOLS:
         - 'read all' / 'read posts' -> { \"action\": \"tool\", \"tool_type\": \"sequence\", \"selector\": \".btn-read-aloud\", \"message\": \"Reading items...\" }
-        - 'summarize' -> { \"action\": \"tool\", \"tool_type\": \"click_last\", \"selector\": \".btn-summarize\", \"message\": \"Summarizing...\" }
-        - 'explain' -> { \"action\": \"tool\", \"tool_type\": \"click_last_dropdown\", \"selector\": \".btn-explain\", \"message\": \"Explaining...\" }
-        - 'local news' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-localize-news\", \"message\": \"Generating local news...\" }
         - 'clear chat' -> { \"action\": \"clear_chat\", \"message\": \"Chat cleared.\" }
 
+        DASHBOARD TOOLS:
+        - 'summarize [X]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".post-card\", \"target_text\": \"[X]\", \"trigger_selector\": \".btn-summarize\", \"message\": \"Summarizing...\" }
+        - 'explain [X]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".post-card\", \"target_text\": \"[X]\", \"trigger_selector\": \".btn-explain\", \"message\": \"Explaining...\" }
+        - 'local news' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-localize-news\", \"message\": \"Generating local news...\" }
+
         BALLOT LIST TOOLS:
-        - 'open [X]' / 'view [X]' / 'decode [X]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".ballot-card\", \"target_text\": \"[X]\", \"trigger_selector\": \".btn-view-decoder\", \"message\": \"Opening [X]...\" }
+        - 'open [X]' / 'view [X]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".ballot-card\", \"target_text\": \"[X]\", \"trigger_selector\": \".btn-view-decoder\", \"message\": \"Opening [X]...\" }
 
         BALLOT DETAIL TOOLS:
         - 'read patois' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-audio-patois\", \"message\": \"Playing Patois...\" }
@@ -43,6 +47,23 @@ class AiNavigatorController extends Controller
         - 'read official' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-audio-official\", \"message\": \"Reading legal text...\" }
         - 'translate to [Lang]' -> { \"action\": \"tool\", \"tool_type\": \"set_value\", \"selector\": \"#languageSelector\", \"value\": \"[Lang]\", \"message\": \"Translating...\" }
         - 'ask bot' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-ask-bot\", \"message\": \"Opening chat...\" }
+
+        CANDIDATE LIST TOOLS:
+        - 'view [Name]' / 'open [Name]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".candidate-card\", \"target_text\": \"[Name]\", \"trigger_selector\": \".btn-view-stances\", \"message\": \"Opening profile for [Name]...\" }
+        - 'add candidate' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-add-candidate\", \"message\": \"Opening creation form...\" }
+        - 'compare' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-compare-candidates\", \"message\": \"Go to comparison tool...\" }
+
+        CANDIDATE PROFILE TOOLS:
+        - 'research [Topic]' / 'deep dive [Topic]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".stance-card\", \"target_text\": \"[Topic]\", \"trigger_selector\": \".btn-research-stance\", \"message\": \"Researching [Topic]...\" }
+        - 'read [Topic]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".stance-card\", \"target_text\": \"[Topic]\", \"trigger_selector\": \".btn-read-stance\", \"message\": \"Reading stance on [Topic]...\" }
+        - 'read summary' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-read-summary\", \"message\": \"Reading summary...\" }
+        - 'analyze' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-analyze-profile\", \"message\": \"Running initial analysis...\" }
+        - 'translate to [Lang]' -> { \"action\": \"tool\", \"tool_type\": \"set_value\", \"selector\": \"#langSelector\", \"value\": \"[Lang]\", \"message\": \"Translating profile...\" }
+        - 'chat' / 'talk to candidate' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-ask-candidate\", \"message\": \"Opening chat...\" }
+
+        COMPARE PAGE TOOLS:
+        - 'select [Name]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".selection-card\", \"target_text\": \"[Name]\", \"trigger_selector\": \".candidate-checkbox\", \"message\": \"Selecting [Name]...\" }
+        - 'run analysis' / 'compare now' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#compare-btn\", \"message\": \"Comparing...\" }
         ";
 
         try {
@@ -59,11 +80,12 @@ class AiNavigatorController extends Controller
             TOOLS: " . $toolsInstructions . "
 
             INSTRUCTIONS:
-            1. If the user wants to GO somewhere, return: { \"action\": \"redirect\", \"target\": \"/exact/url\", \"message\": \"Navigating...\" }
-            2. If the user wants to DO something, return: { \"action\": \"tool\", \"tool_type\": \"...\", \"selector\": \"...\", \"message\": \"...\" }
+            1. If the user wants to GO somewhere, check the SITE MAP.
+               Return: { \"action\": \"redirect\", \"target\": \"/exact/url\", \"message\": \"Navigating...\" }
+            2. If the user wants to DO something (read, click, translate), check the TOOLS list.
+               Return: { \"action\": \"tool\", \"tool_type\": \"...\", \"selector\": \"...\", \"message\": \"...\" }
+               If it's a 'click_match', fill in 'container_selector', 'target_text', and 'trigger_selector'.
             3. If general chat, return: { \"action\": \"message\", \"message\": \"...\" }
-
-            HINT: If user says 'open [Name]', check BALLOT LIST TOOLS.
             ";
 
             $response = Http::timeout(30)->withHeaders([
@@ -84,8 +106,11 @@ class AiNavigatorController extends Controller
 
             $aiData = json_decode($response->json('choices.0.message.content'), true);
 
-            if (!$aiData) return response()->json(['action' => 'message', 'message' => 'I got confused.']);
+            if (!$aiData) {
+                return response()->json(['action' => 'message', 'message' => 'I got confused.']);
+            }
 
+            // Failsafe for redirect URL formatting
             if (isset($aiData['action']) && $aiData['action'] === 'redirect') {
                 if (!str_starts_with($aiData['target'], '/')) {
                     $aiData['target'] = '/' . $aiData['target'];
