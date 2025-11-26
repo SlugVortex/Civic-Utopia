@@ -5,10 +5,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&ampdisplay=swap" rel="stylesheet">
 
 @vite([
-    // Hardcode the path to the base core and theme files.
-    // Dark mode is handled by a data attribute on the <html> tag, not a different file.
+    // Hardcode the path to the base core files.
     'resources/assets/vendor/scss/core.scss',
-    'resources/assets/vendor/scss/theme-default.scss',
+    // 'resources/assets/vendor/scss/theme-default.scss', <--- REMOVED (File Missing)
 
     // Other essential files
     'resources/assets/css/demo.css',
@@ -26,4 +25,4 @@
 @yield('vendor-style')
 
 <!-- Page Styles -->
-@yield('page-style')yield('page-style')
+@yield('page-style')yield('page-style')yield('page-style')

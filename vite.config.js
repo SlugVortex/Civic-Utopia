@@ -11,7 +11,8 @@ import iconsPlugin from './vite.icons.plugin.js';
  * @returns array
  */
 function GetFilesArray(query) {
-  return glob.sync(query);
+  // Use windowsPathsNoEscape to prevent glob issues on Windows
+  return glob.sync(query, { windowsPathsNoEscape: true });
 }
 
 // Page JS Files
@@ -39,7 +40,6 @@ const FontsCssFiles = GetFilesArray('resources/assets/vendor/fonts/**/!(_)*.css'
 function libsWindowAssignment() {
   return {
     name: 'libsWindowAssignment',
-
     transform(src, id) {
       if (id.includes('jkanban.js')) {
         return src.replace('this.jKanban', 'window.jKanban');
@@ -54,13 +54,20 @@ export default defineConfig({
   plugins: [
     laravel({
       input: [
-        'resources/css/app.css',
+        // --- Explicitly List Core Assets (Excluding missing theme file) ---
+        'resources/assets/vendor/scss/core.scss',
         'resources/assets/css/demo.css',
+        'resources/assets/vendor/libs/node-waves/node-waves.scss',
+        'resources/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.scss',
+        'resources/assets/vendor/libs/typeahead-js/typeahead.scss',
+        'resources/css/app.css',
         'resources/js/app.js',
+        // ------------------------------------------------------------------
+
         ...pageJsFiles,
         ...vendorJsFiles,
         ...LibsJsFiles,
-        'resources/js/laravel-user-management.js', // Processing Laravel User Management CRUD JS File
+        'resources/js/laravel-user-management.js',
         ...CoreScssFiles,
         ...LibsScssFiles,
         ...LibsCssFiles,
@@ -80,11 +87,11 @@ export default defineConfig({
     }
   },
   json: {
-    stringify: true // Helps with JSON import compatibility
+    stringify: true
   },
   build: {
     commonjsOptions: {
-      include: [/node_modules/] // Helps with importing CommonJS modules
+      include: [/node_modules/]
     }
   }
 });
