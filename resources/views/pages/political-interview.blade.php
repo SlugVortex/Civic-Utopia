@@ -67,11 +67,11 @@
 
                  <div class="card-body overflow-auto" id="chatHistory" style="height: 350px; background-color: #f8f9fa;">
                     {{-- Initial Greeting --}}
-                    <div class="d-flex justify-content-start mb-3">
+                    <div class="d-flex justify-content-start mb-3" style=" margin-top:30px">
                         <div class="avatar avatar-sm me-2">
-                            <span class="avatar-initial rounded-circle bg-primary"><i class="ri-robot-line"></i></span>
+                            <span class="avatar-initial rounded-circle bg-primary" ><i class="ri-robot-line"></i></span>
                         </div>
-                        <div class="p-3 bg-white rounded shadow-sm text-dark" style="max-width: 80%;">
+                        <div class="p-3 bg-white rounded shadow-sm text-dark" style="max-width: 80%; margin-top:20px">
                             Hello. I am here to help you explore your political values neutrally. To begin, what issues matter most to you in your community right now?
                         </div>
                     </div>

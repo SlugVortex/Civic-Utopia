@@ -43,6 +43,12 @@
       "menuHeader": "Administration"
     },
     {
+      "url": "/admin/dashboard",
+      "name": "Command Center",
+      "icon": "menu-icon icon-base ri-dashboard-3-line",
+      "slug": "admin.dashboard"
+    },
+    {
       "url": "/admin/topics",
       "name": "Manage Topics",
       "icon": "menu-icon icon-base ri-hashtag",

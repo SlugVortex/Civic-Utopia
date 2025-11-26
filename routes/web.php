@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthenticationsController;
 use App\Http\Controllers\ProfileController;
@@ -9,14 +10,19 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Admin\TopicController as AdminTopicController;
+use App\Http\Controllers\Admin\AdminDashboardController; // NEW
 use App\Http\Controllers\TopicController;
 use App\Http\Controllers\SpeechController;
 use App\Http\Controllers\BallotController;
+use App\Http\Controllers\PollController; // NEW
+use App\Http\Controllers\SuggestionController; // NEW
 use App\Models\Post;
 use App\Models\Topic;
+use App\Models\Poll; // NEW
+use App\Models\Suggestion; // NEW
 use App\Http\Controllers\pages\PoliticalInterviewController;
-
 use App\Http\Controllers\NewsController;
+
 // Redirect homepage to dashboard
 Route::redirect('/', '/dashboard');
 
@@ -34,13 +40,32 @@ Route::middleware('auth')->group(function () {
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::post('/search', [SearchController::class, 'search'])->name('search.perform');
 
-    // Dashboard
+    // --- DASHBOARD (Modified to include Polls/Suggestions) ---
     Route::get('/dashboard', function () {
+        // 1. Existing Posts
         $posts = Post::with('user', 'comments', 'media', 'topics', 'likers', 'bookmarkers')->latest()->take(20)->get();
         $topics = Topic::withCount('posts')->orderBy('name')->get();
-        Log::info('[CivicUtopia] Loading dashboard view.', ['post_count' => $posts->count(), 'topic_count' => $topics->count()]);
-        return view('dashboard', compact('posts', 'topics'));
 
+        // 2. Active Polls
+        $activePoll = Poll::with(['options.votes', 'votes' => function($q) {
+            $q->where('user_id', auth()->id());
+        }])
+        ->where('is_active', true)
+        ->where('expires_at', '>', now())
+        ->latest()
+        ->first();
+
+        // 3. Approved Suggestions
+        $suggestions = Suggestion::with(['votes'])
+            ->where('status', 'approved')
+            ->withCount('votes')
+            ->orderByDesc('votes_count')
+            ->take(5)
+            ->get();
+
+        Log::info('[CivicUtopia] Loading dashboard.', ['post_count' => $posts->count(), 'poll_active' => $activePoll ? 'yes' : 'no']);
+
+        return view('dashboard', compact('posts', 'topics', 'activePoll', 'suggestions'));
 
     })->name('dashboard');
 
@@ -71,7 +96,24 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->group(function() {
         Route::resource('documents', DocumentController::class)->only(['index', 'store']);
         Route::resource('topics', AdminTopicController::class)->except(['show', 'edit', 'update']);
+
+        // NEW ADMIN STATISTICS DASHBOARD
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::post('/polls', [AdminDashboardController::class, 'storePoll'])->name('polls.store');
+        Route::patch('/suggestions/{suggestion}', [AdminDashboardController::class, 'updateSuggestion'])->name('suggestions.update');
+
+
+
+         // SUGGESTION MANAGEMENT
+        Route::patch('/suggestions/{suggestion}', [AdminDashboardController::class, 'updateSuggestion'])->name('suggestions.update');
+        Route::delete('/suggestions/{suggestion}', [SuggestionController::class, 'destroy'])->name('suggestions.destroy'); // <--- Added Delete Route
     });
+
+    // --- USER INTERACTION (VOTING/SUGGESTIONS) ---
+    Route::post('/polls/{poll}/vote', [PollController::class, 'vote'])->name('polls.vote');
+    Route::post('/suggestions', [SuggestionController::class, 'store'])->name('suggestions.store');
+    Route::post('/suggestions/{suggestion}/vote', [SuggestionController::class, 'vote'])->name('suggestions.vote');
+
 
     // --- SPEECH ROUTE ---
     Route::post('/speech/generate', [SpeechController::class, 'generate'])->name('speech.generate');
@@ -83,7 +125,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/ballots/{ballot}', [BallotController::class, 'show'])->name('ballots.show');
     Route::post('/ballots/{ballot}/analyze', [BallotController::class, 'analyze'])->name('ballots.analyze');
     Route::post('/ballots/{ballot}/ask', [BallotController::class, 'askBot'])->name('ballots.ask');
-    Route::post('/ballots/{ballot}/translate', [BallotController::class, 'translate'])->name('ballots.translate'); // <-- NEW TRANSLATE ROUTE
+    Route::post('/ballots/{ballot}/translate', [BallotController::class, 'translate'])->name('ballots.translate');
 
     // --- CANDIDATE COMPARISON ROUTES ---
     Route::get('/candidates/compare', [App\Http\Controllers\CandidateController::class, 'compareSelect'])->name('candidates.compare.select');
@@ -91,11 +133,11 @@ Route::middleware('auth')->group(function () {
 
     // --- CANDIDATE ROUTES ---
     Route::get('/candidates', [App\Http\Controllers\CandidateController::class, 'index'])->name('candidates.index');
-    Route::get('/candidates/create', [App\Http\Controllers\CandidateController::class, 'create'])->name('candidates.create'); // <-- New
-    Route::post('/candidates', [App\Http\Controllers\CandidateController::class, 'store'])->name('candidates.store');       // <-- New
+    Route::get('/candidates/create', [App\Http\Controllers\CandidateController::class, 'create'])->name('candidates.create');
+    Route::post('/candidates', [App\Http\Controllers\CandidateController::class, 'store'])->name('candidates.store');
     Route::get('/candidates/{candidate}', [App\Http\Controllers\CandidateController::class, 'show'])->name('candidates.show');
     Route::post('/candidates/{candidate}/analyze', [App\Http\Controllers\CandidateController::class, 'analyze'])->name('candidates.analyze');
-    Route::post('/candidates/{candidate}/ask', [App\Http\Controllers\CandidateController::class, 'askBot'])->name('candidates.ask'); // <-- New Chat
+    Route::post('/candidates/{candidate}/ask', [App\Http\Controllers\CandidateController::class, 'askBot'])->name('candidates.ask');
     Route::post('/candidates/research', [App\Http\Controllers\CandidateController::class, 'research'])->name('candidates.research');
     Route::get('/candidates/{candidate}/edit', [App\Http\Controllers\CandidateController::class, 'edit'])->name('candidates.edit');
     Route::put('/candidates/{candidate}', [App\Http\Controllers\CandidateController::class, 'update'])->name('candidates.update');
@@ -109,7 +151,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/issues/{issue}', [App\Http\Controllers\IssueController::class, 'show'])->name('issues.show');
     Route::post('/issues/{issue}/analyze', [App\Http\Controllers\IssueController::class, 'analyze'])->name('issues.analyze');
 
-// --- SMART DOCUMENT ROUTES ---
+    // --- SMART DOCUMENT ROUTES ---
     Route::get('/documents', [App\Http\Controllers\DocumentController::class, 'index'])->name('documents.index');
     Route::get('/documents/create', [App\Http\Controllers\DocumentController::class, 'create'])->name('documents.create');
     Route::post('/documents', [App\Http\Controllers\DocumentController::class, 'store'])->name('documents.store');
@@ -117,52 +159,48 @@ Route::middleware('auth')->group(function () {
     Route::post('/documents/{document}/chat', [App\Http\Controllers\DocumentController::class, 'chat'])->name('documents.chat');
     Route::post('/documents/{document}/annotate', [App\Http\Controllers\DocumentController::class, 'annotate'])->name('documents.annotate');
     Route::post('/documents/{document}/regenerate', [App\Http\Controllers\DocumentController::class, 'regenerate'])->name('documents.regenerate');
-
     Route::post('/documents/{document}/publish', [App\Http\Controllers\DocumentController::class, 'togglePublic'])->name('documents.publish');
 
     // --- CIVIC NEWS AGENT ---
     Route::post('/news/fetch-local', [NewsController::class, 'fetchLocal'])->name('news.fetch');
 
- // Political Interview Agent
+    // Political Interview Agent
     Route::get('/interview', [PoliticalInterviewController::class, 'index'])->name('interview.index');
     Route::post('/interview/chat', [PoliticalInterviewController::class, 'chat'])->name('interview.chat');
     Route::post('/interview/speech', [PoliticalInterviewController::class, 'speech'])->name('interview.speech');
 
 
+    // Test Route (Preserved)
+    Route::get('/test-bing', function() {
+        $bingKey = config('services.rapidapi.key');
+        $bingHost = config('services.rapidapi.host');
 
+        Log::info("Testing Bing API with key: " . substr($bingKey, 0, 8) . "...");
 
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'x-rapidapi-key' => $bingKey,
+                    'x-rapidapi-host' => $bingHost,
+                ])
+                ->get('https://bing-search-apis.p.rapidapi.com/api/rapid/web_search', [
+                    'q' => 'Jamaica political parties',
+                    'keyword' => 'Jamaica political parties',
+                    'count' => 5,
+                    'mkt' => 'en-US'
+                ]);
 
-    // Add to routes/web.php temporarily
-Route::get('/test-bing', function() {
-    $bingKey = config('services.rapidapi.key');
-    $bingHost = config('services.rapidapi.host');
+            return response()->json([
+                'status' => $response->status(),
+                'headers' => $response->headers(),
+                'body' => $response->json()
+            ], 200, [], JSON_PRETTY_PRINT);
 
-    Log::info("Testing Bing API with key: " . substr($bingKey, 0, 8) . "...");
-
-    try {
-        $response = Http::timeout(15)
-            ->withHeaders([
-                'x-rapidapi-key' => $bingKey,
-                'x-rapidapi-host' => $bingHost,
-            ])
-            ->get('https://bing-search-apis.p.rapidapi.com/api/rapid/web_search', [
-                'q' => 'Jamaica political parties',
-                'keyword' => 'Jamaica political parties',
-                'count' => 5,
-                'mkt' => 'en-US'
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage()
             ]);
-
-        return response()->json([
-            'status' => $response->status(),
-            'headers' => $response->headers(),
-            'body' => $response->json()
-        ], 200, [], JSON_PRETTY_PRINT);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage()
-        ]);
-    }
-});
+        }
+    });
 
 });

@@ -51,4 +51,21 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Post::class, 'post_bookmark');
     }
+
+    // --- NEW RELATIONS ---
+
+    public function suggestions(): HasMany
+    {
+        return $this->hasMany(Suggestion::class);
+    }
+
+    public function supportedSuggestions(): BelongsToMany
+    {
+        return $this->belongsToMany(Suggestion::class, 'suggestion_votes', 'user_id', 'suggestion_id');
+    }
+
+    public function pollVotes(): HasMany
+    {
+        return $this->hasMany(PollVote::class);
+    }
 }
