@@ -10,6 +10,7 @@ use Illuminate\Support\ServiceProvider;
 use League\Flysystem\AzureBlobStorage\AzureBlobStorageAdapter;
 use League\Flysystem\Filesystem;
 use MicrosoftAzure\Storage\Blob\BlobRestProxy;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+      if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
         // The incorrect Http::macro has been removed.
         // This is the only code that should be in the boot method for now.
         try {
