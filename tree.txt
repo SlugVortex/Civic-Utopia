@@ -1,4 +1,5 @@
 .
+├── - Copy.env.txt
 ├── README.md
 ├── app
 │   ├── Events
@@ -9,16 +10,25 @@
 │   ├── Http
 │   │   ├── Controllers
 │   │   │   ├── Admin
+│   │   │   │   ├── AdminDashboardController.php
 │   │   │   │   └── TopicController.php
+│   │   │   ├── AiNavigatorController.php
 │   │   │   ├── AuthenticationsController.php
+│   │   │   ├── BallotController.php
+│   │   │   ├── CandidateController.php
 │   │   │   ├── CommentController.php
 │   │   │   ├── Controller.php
 │   │   │   ├── DocumentController.php
+│   │   │   ├── IssueController.php
+│   │   │   ├── NewsController.php
+│   │   │   ├── PollController.php
 │   │   │   ├── PostController.php
 │   │   │   ├── ProfileController.php
 │   │   │   ├── SearchController.php
 │   │   │   ├── SpeechController.php
+│   │   │   ├── SuggestionController.php
 │   │   │   ├── TopicController.php
+│   │   │   ├── VoiceController.php
 │   │   │   ├── authentications
 │   │   │   │   ├── LoginBasic.php
 │   │   │   │   └── RegisterBasic.php
@@ -27,7 +37,8 @@
 │   │   │   └── pages
 │   │   │       ├── HomePage.php
 │   │   │       ├── MiscError.php
-│   │   │       └── Page2.php
+│   │   │       ├── Page2.php
+│   │   │       └── PoliticalInterviewController.php
 │   │   ├── Middleware
 │   │   │   └── LocaleMiddleware.php
 │   │   └── Requests
@@ -37,11 +48,21 @@
 │   │       └── StorePostRequest.php
 │   ├── Jobs
 │   │   ├── AiAgentJob.php
+│   │   ├── FetchCivicNewsJob.php
 │   │   └── ProcessDocumentJob.php
 │   ├── Models
+│   │   ├── BallotQuestion.php
+│   │   ├── Candidate.php
 │   │   ├── Comment.php
+│   │   ├── Document.php
+│   │   ├── DocumentAnnotation.php
+│   │   ├── Issue.php
 │   │   ├── Media.php
+│   │   ├── Poll.php
+│   │   ├── PollOption.php
+│   │   ├── PollVote.php
 │   │   ├── Post.php
+│   │   ├── Suggestion.php
 │   │   ├── Topic.php
 │   │   └── User.php
 │   ├── Providers
@@ -50,11 +71,22 @@
 │   │   ├── EventServiceProvider.php
 │   │   ├── MenuServiceProvider.php
 │   │   └── RouteServiceProvider.php
+│   ├── Services
+│   │   ├── AzureSpeechService.php
+│   │   ├── BingSearchService.php
+│   │   ├── ContentSafetyService.php
+│   │   ├── NewsAgentService.php
+│   │   └── PoliticalInterviewService.php
 │   └── View
 │       └── Components
 │           ├── AppLayout.php
 │           └── GuestLayout.php
+├── array,
 ├── artisan
+├── azure-functions
+│   └── CivicNewsScheduler
+│       ├── function.json
+│       └── index.js
 ├── bootstrap
 │   ├── app.php
 │   ├── cache
@@ -92,9 +124,20 @@
 │   │   ├── 2025_11_24_133102_create_topics_table.php
 │   │   ├── 2025_11_24_133105_create_post_topic_table.php
 │   │   ├── 2025_11_24_135532_create_post_like_table.php
-│   │   └── 2025_11_24_135533_create_post_bookmark_table.php
+│   │   ├── 2025_11_24_135533_create_post_bookmark_table.php
+│   │   ├── 2025_11_24_223838_create_ballot_questions_table.php
+│   │   ├── 2025_11_24_231509_add_location_to_ballot_questions_table.php
+│   │   ├── 2025_11_24_234227_create_candidates_table.php
+│   │   ├── 2025_11_24_235521_add_location_to_candidates_table.php
+│   │   ├── 2025_11_25_001622_create_issues_table.php
+│   │   ├── 2025_11_25_010747_create_documents_table.php
+│   │   ├── 2025_11_25_010748_create_document_annotations_table.php
+│   │   ├── 2025_11_25_184540_add_safety_flags_to_tables.php
+│   │   └── 2025_11_25_204838_create_community_features_tables.php
 │   └── seeders
 │       ├── AiAgentUserSeeder.php
+│       ├── BallotQuestionSeeder.php
+│       ├── CandidateSeeder.php
 │       ├── DatabaseSeeder.php
 │       └── TopicSeeder.php
 ├── docker
@@ -30873,25 +30916,13 @@
 │   │   └── img
 │   │       ├── avatars
 │   │       │   ├── 1.png
-│   │       │   ├── 10.png
-│   │       │   ├── 11.png
-│   │       │   ├── 12.png
-│   │       │   ├── 13.png
-│   │       │   ├── 14.png
-│   │       │   ├── 15.png
-│   │       │   ├── 16.png
-│   │       │   ├── 17.png
-│   │       │   ├── 18.png
-│   │       │   ├── 19.png
+│   │       │   ├── 122.png
 │   │       │   ├── 2.png
-│   │       │   ├── 20.png
 │   │       │   ├── 3.png
 │   │       │   ├── 4.png
 │   │       │   ├── 5.png
 │   │       │   ├── 6.png
-│   │       │   ├── 7.png
-│   │       │   ├── 8.png
-│   │       │   └── 9.png
+│   │       │   └── dd1.png
 │   │       ├── customizer
 │   │       │   ├── content-compact.svg
 │   │       │   ├── content-wide.svg
@@ -30907,12 +30938,15 @@
 │   │       │   ├── skin-border.svg
 │   │       │   └── skin-default.svg
 │   │       ├── favicon
-│   │       │   └── favicon.ico
-│   │       └── illustrations
-│   │           ├── misc-bg-dark.png
-│   │           ├── misc-bg-light.png
-│   │           ├── misc-error-illustration.png
-│   │           └── misc-error-object.png
+│   │       │   ├── Generated Image November 25, 2025 - 12_56PM.png
+│   │       │   ├── favicon.ico
+│   │       │   ├── fawrwvicon.irco
+│   │       │   └── logo.png
+│   │       ├── illustrations
+│   │       │   ├── misc-bg-dark.png
+│   │       │   ├── misc-bg-light.png
+│   │       │   └── misc-error-object.png
+│   │       └── logo-sm.gif
 │   ├── favicon.ico
 │   ├── hot
 │   ├── index.php
@@ -31131,8 +31165,12 @@
 │       │   │   ├── macros.blade.php
 │       │   │   └── wizard-ex-checkout.blade.php
 │       │   ├── customizer.blade.php
-│       │   └── macros.blade.php
+│       │   ├── macros.blade.php
+│       │   ├── poll-widget.blade.php
+│       │   └── suggestion-widget.blade.php
 │       ├── admin
+│       │   ├── dashboard
+│       │   │   └── index.blade.php
 │       │   ├── documents
 │       │   │   └── index.blade.php
 │       │   └── topics
@@ -31144,6 +31182,17 @@
 │       │   ├── register.blade.php
 │       │   ├── reset-password.blade.php
 │       │   └── verify-email.blade.php
+│       ├── ballots
+│       │   ├── create.blade.php
+│       │   ├── index.blade.php
+│       │   └── show.blade.php
+│       ├── candidates
+│       │   ├── compare_result.blade.php
+│       │   ├── compare_select.blade.php
+│       │   ├── create.blade.php
+│       │   ├── edit.blade.php
+│       │   ├── index.blade.php
+│       │   └── show.blade.php
 │       ├── components
 │       │   ├── application-logo.blade.php
 │       │   ├── auth-session-status.blade.php
@@ -31167,6 +31216,14 @@
 │       │       ├── pages-misc-error.blade.php
 │       │       └── pages-page2.blade.php
 │       ├── dashboard.blade.php
+│       ├── documents
+│       │   ├── create.blade.php
+│       │   ├── index.blade.php
+│       │   └── show.blade.php
+│       ├── issues
+│       │   ├── create.blade.php
+│       │   ├── index.blade.php
+│       │   └── show.blade.php
 │       ├── layouts
 │       │   ├── app.blade.php
 │       │   ├── blankLayout.blade.php
@@ -31195,6 +31252,8 @@
 │       │       ├── scriptsIncludesFront.blade.php
 │       │       ├── styles.blade.php
 │       │       └── stylesFront.blade.php
+│       ├── pages
+│       │   └── political-interview.blade.php
 │       ├── posts
 │       │   ├── _post_card.blade.php
 │       │   └── show.blade.php
@@ -31215,38 +31274,54 @@
 ├── storage
 │   ├── app
 │   │   ├── private
-│   │   └── public
-│   │       └── post_media
-│   │           ├── 0P4Bw36JCetXmY2GR703DO8RVwj9sHlPJVqkcXNh.png
-│   │           ├── 2vMuCePoyLVroaq0yGLXDIBm6gtk0tSHaiPYacSt.png
-│   │           ├── 7xlIFaZ5UBtcsPMN8pkbNUL4TeBYsoOXFtjXSEcr.jpg
-│   │           ├── 94FXqCrZ91CqL4Dt3n8g9eboOV5Q5gmX5G5tx6lN.png
-│   │           ├── BnoWikjt6dvgZ0shp8WRCPd6CZhOUFNhIR812q3w.jpg
-│   │           ├── CDh6ppfYXxqgSjoNguvtHsSG45SQbKOQ7kjF5nMy.jpg
-│   │           ├── GCEcky89Gn6mGU3hkV1WjAcua1QGXmzoMYJlaVqB.jpg
-│   │           ├── Hf9NOedSKC1dPGwMBgWf3gUlE0xG5B5hBEDkOhil.jpg
-│   │           ├── KW4SCAjIlo9OqArNyaZSEIT7jjmGXXzlxQkzU1Aw.jpg
-│   │           ├── KfVb7KPBF22KJGjQs18amoifp3d5jedGzyTYcIxB.jpg
-│   │           ├── LCWHLoAXNctnfqhYd12honq9tF1ig0skSiJvpKNN.gif
-│   │           ├── O8My66j13lqFL6kruDrW40t8qEWWEqgUCdFGVMbW.jpg
-│   │           ├── VCCa0YGsv0aAHdAwzN9S6LiPzfd8dGUDUtgZzMsi.jpg
-│   │           ├── hEtx0u4KqDDO7YdnpEV87bFd6UlT7PQOGTK5V6Rg.png
-│   │           ├── kyyt4pbtNrdwxl2W94ry3UpIFOJQ9YFWw5GIwcwF.jpg
-│   │           ├── mr3FNMIWAU1NqE3vqge7w5wWNapNMzRtDqIrgMlL.jpg
-│   │           ├── n3FbX9hSmLNoccbRbt8Q3mIgH84FhmeE6Zhs1te3.jpg
-│   │           ├── ugidFop7Scon4sWASeS6T5WLnc4VnlX2amt4pOC9.png
-│   │           ├── uidmENV921C1tE9swZH6wtuKICKHrePrrpisb59q.jpg
-│   │           ├── wxDIZekq1QcGeg2yI9WjjVTz4swAA9vjrUIUyHLx.jpg
-│   │           ├── xAwoZYtGnFbb7SBUTy9QvlI4yeFAqqnasEdKTU9w.jpg
-│   │           └── zy7z1BwCdzqZqay51wQEnUtfpg4KztHVJxmFwZi4.png
+│   │   ├── public
+│   │   │   ├── documents
+│   │   │   │   ├── VLOEDKvseasNMj62sksc7Z316XeNW5JfIPEeA5Ox.pdf
+│   │   │   │   ├── YzrPle9Rc3H1ggq3xKWNjdlQGML0RdtedeYKB0c6.pdf
+│   │   │   │   ├── h7gxSHvga6guHLEGP2GfN3WMrJI02MO9QyYXpyyC.pdf
+│   │   │   │   ├── tclzuVDWBzNxDhrwdGijNx4OppmYKyamxoWJMP7p.pdf
+│   │   │   │   ├── xFtVTcN6XY6z9vHKDAivTIiaIEXdVab6sZjdG83v.pdf
+│   │   │   │   └── xX5QRtYuhDLRJicweZZClBGagiyo1LGscw98bf86.pdf
+│   │   │   ├── issues
+│   │   │   │   └── Vi6C70QfyuJzJ1ElL1GvkKLXOaM4jfqgOInXiFBM.gif
+│   │   │   └── post_media
+│   │   │       ├── 0P4Bw36JCetXmY2GR703DO8RVwj9sHlPJVqkcXNh.png
+│   │   │       ├── 2vMuCePoyLVroaq0yGLXDIBm6gtk0tSHaiPYacSt.png
+│   │   │       ├── 7xlIFaZ5UBtcsPMN8pkbNUL4TeBYsoOXFtjXSEcr.jpg
+│   │   │       ├── 94FXqCrZ91CqL4Dt3n8g9eboOV5Q5gmX5G5tx6lN.png
+│   │   │       ├── BnoWikjt6dvgZ0shp8WRCPd6CZhOUFNhIR812q3w.jpg
+│   │   │       ├── CDh6ppfYXxqgSjoNguvtHsSG45SQbKOQ7kjF5nMy.jpg
+│   │   │       ├── GCEcky89Gn6mGU3hkV1WjAcua1QGXmzoMYJlaVqB.jpg
+│   │   │       ├── Hf9NOedSKC1dPGwMBgWf3gUlE0xG5B5hBEDkOhil.jpg
+│   │   │       ├── KW4SCAjIlo9OqArNyaZSEIT7jjmGXXzlxQkzU1Aw.jpg
+│   │   │       ├── KfVb7KPBF22KJGjQs18amoifp3d5jedGzyTYcIxB.jpg
+│   │   │       ├── LCWHLoAXNctnfqhYd12honq9tF1ig0skSiJvpKNN.gif
+│   │   │       ├── O8My66j13lqFL6kruDrW40t8qEWWEqgUCdFGVMbW.jpg
+│   │   │       ├── VCCa0YGsv0aAHdAwzN9S6LiPzfd8dGUDUtgZzMsi.jpg
+│   │   │       ├── civic_5FNjKLGmoxWxX8GunKE6.jpg
+│   │   │       ├── civic_5WpYsj0lCfnaUpDF7awT.jpg
+│   │   │       ├── civic_DaoewttaVRvqK2XBxZvh.jpg
+│   │   │       ├── civic_NkpJ7wHJ2eUjsirnaiZD.jpg
+│   │   │       ├── civic_YMmpw2YXHlo8ricnj5p5.jpg
+│   │   │       ├── civic_cZeP3oQxYheaXeKhSE6t.jpg
+│   │   │       ├── civic_pFj2vXno0NxcOId3Cq6O.jpg
+│   │   │       ├── hEtx0u4KqDDO7YdnpEV87bFd6UlT7PQOGTK5V6Rg.png
+│   │   │       ├── kyyt4pbtNrdwxl2W94ry3UpIFOJQ9YFWw5GIwcwF.jpg
+│   │   │       ├── mr3FNMIWAU1NqE3vqge7w5wWNapNMzRtDqIrgMlL.jpg
+│   │   │       ├── n3FbX9hSmLNoccbRbt8Q3mIgH84FhmeE6Zhs1te3.jpg
+│   │   │       ├── ugidFop7Scon4sWASeS6T5WLnc4VnlX2amt4pOC9.png
+│   │   │       ├── uidmENV921C1tE9swZH6wtuKICKHrePrrpisb59q.jpg
+│   │   │       ├── wxDIZekq1QcGeg2yI9WjjVTz4swAA9vjrUIUyHLx.jpg
+│   │   │       ├── xAwoZYtGnFbb7SBUTy9QvlI4yeFAqqnasEdKTU9w.jpg
+│   │   │       └── zy7z1BwCdzqZqay51wQEnUtfpg4KztHVJxmFwZi4.png
+│   │   └── temp
+│   │       └── input_69265195b87c2.webm
 │   ├── framework
 │   │   ├── cache
 │   │   │   └── data
 │   │   ├── sessions
-│   │   │   ├── 2vq5fCwa9j5Yl2pRh7HHOhlxXO2a9ps4kxT8QWZA
-│   │   │   ├── ET3WKJ6CwwS66pk2ui9dv8ojZxcK0YOFZktiORjS
-│   │   │   ├── HbTbDvjIV3VPvz3h2DSkUFjKxcQxLQsIT4LtWo9p
-│   │   │   └── hxe9yy7EwZwj5sUZw73u3y7loG0JvSm1qPCbLVVH
+│   │   │   ├── Vjo4sWfqhnhlngfcvCtkwSfMwCpjK63lvYmBzqmj
+│   │   │   └── k3rqz0XRhOLe5PNfrvkGcQ57O0EG6dtx1VfPY46d
 │   │   ├── testing
 │   │   └── views
 │   │       ├── 0212dee3907e6ad6ed2d2338a4ccd88b.php
@@ -31254,34 +31329,42 @@
 │   │       ├── 0703640d3da113c162ff7fe68ef70cda.php
 │   │       ├── 0eb914e5b96c3c00b1a21a099838a4a6.php
 │   │       ├── 0fde89bcc815154c108ff099363e682b.php
+│   │       ├── 1546ebd8300d558763aa21e1306bda9b.php
+│   │       ├── 1861316e30b2bdc10f3ba85e6d495885.php
 │   │       ├── 1bb167e02d804b4c4eef19fd50438bca.php
 │   │       ├── 1fd6eed60af683fd9bb087648b2f038d.php
 │   │       ├── 22649f3bd28cbf4779378780b3af3725.php
+│   │       ├── 23f0263a4913aff2b8392b3e2e197f07.php
 │   │       ├── 25f77156fd88a8dc839459d7d3d8e77a.php
 │   │       ├── 2c468fe3a1ec451e856f6dbbf043ff04.php
 │   │       ├── 329f1e6bebf0623ecb609146e82e8a53.php
 │   │       ├── 3576057df2eac308dbf46a0a87234e69.php
 │   │       ├── 36373d213f6370a8a9a98904c68145d2.php
-│   │       ├── 3e7b792fd7e994755bdc1d11e58a1ad3.php
+│   │       ├── 3fcc7b8f6c61574bce6c797f9e845a26.php
 │   │       ├── 40c38f3667d8b21e08d447c58c500df1.php
 │   │       ├── 448f4a39509183553d3303c549784575.php
 │   │       ├── 451dd4f8ca28c60e00a9c6e995d7f41b.php
+│   │       ├── 45ee0001f15d0d60daa199e60a3b4a06.php
 │   │       ├── 4758003e63971311f713f4b6e115c808.php
 │   │       ├── 49ee1843179f67109050ce13f54cdd5d.php
 │   │       ├── 4a54d345c0ef12f16da34922fd5953bb.php
 │   │       ├── 4b61b43f4b98cc68f1fc7c43776e63f0.php
 │   │       ├── 4b8d7a6a556169cd42478449b75d2abf.php
+│   │       ├── 592e7e996447be4fbbf7101b2b2f63d4.php
+│   │       ├── 5eb7d90465f164462c04c1907df310f3.php
 │   │       ├── 600f6e9a2a83ab465865c2be0a38d533.php
-│   │       ├── 63f9b02690f0d2489f4f0ab277c3b596.php
 │   │       ├── 700daf37ebcaec8c04e1cde6fcfec709.php
-│   │       ├── 71700a2bddb26e0b68feb3a058689994.php
 │   │       ├── 7c38145c458032550cccdd0be289a8dd.php
 │   │       ├── 814843b19c642dd3ead9df8928e478ac.php
 │   │       ├── 85aa945c1ee129eabe7916a45ab7337d.php
 │   │       ├── 86efc90de8bf31294427589e17a94fd9.php
+│   │       ├── 88b932dcf329390abd26a6f1714d90fc.php
 │   │       ├── 8e4fef033c61bd7c35a74e27b3b9ab17.php
+│   │       ├── 96f689189461864c4af3acc04896430a.php
+│   │       ├── a6b8bb789e95887f7c8b9843cb5b06ec.php
 │   │       ├── ab00a8a0349e6c6ec3d3ae0676b5ef1d.php
 │   │       ├── ae5ffcc93d057be81f1d3f8089f5f58a.php
+│   │       ├── b1eaff36dd545b8d909cabd778de0fd9.php
 │   │       ├── b41a65666379362848b23c6af703618b.php
 │   │       ├── b5640a5fb81ce7f7fea85ed5d961acad.php
 │   │       ├── b6e94894efa8d0d3ff4746d2980e231e.php
@@ -31294,12 +31377,16 @@
 │   │       ├── c809779ae6410e35cad28de83c216570.php
 │   │       ├── ccfce49acdbb9b5846feb51ef152b5aa.php
 │   │       ├── cefecf2ab8f13c5cf65271c3285cecea.php
+│   │       ├── d23b4ae9863a2afba396065846642857.php
 │   │       ├── d3e2544a8bec42e182d4dc504e1ea364.php
 │   │       ├── d4f0ebd4c85ffd4f750b777326a14c75.php
+│   │       ├── d6bb33859056b2eb5218ec1948c45a6e.php
 │   │       ├── d6bff0f3e369d4e0572667ad25bc29fb.php
+│   │       ├── d7ff1910d47ae3bccb5d1bb4419f10f6.php
 │   │       ├── de23f9104f4239fa0e2674fb88255a28.php
 │   │       ├── e3f8dc331269e7eb73bbd418dfbe8116.php
 │   │       ├── e5f1ead43aae741c8e39a17fcb859879.php
+│   │       ├── e76633b7a7b315f65156af0f160489e3.php
 │   │       ├── eaa5e34500df25c11c602bbac948bfe5.php
 │   │       ├── f09f61e9e2ff7462767663b62d949f4c.php
 │   │       ├── f0d1b2a7128f66e66eb4270374ee5dc6.php
@@ -31470,6 +31557,15 @@
 │   │           ├── Result
 │   │           ├── Validation
 │   │           └── Warning
+│   ├── evenement
+│   │   └── evenement
+│   │       ├── LICENSE
+│   │       ├── README.md
+│   │       ├── composer.json
+│   │       └── src
+│   │           ├── EventEmitter.php
+│   │           ├── EventEmitterInterface.php
+│   │           └── EventEmitterTrait.php
 │   ├── fakerphp
 │   │   └── faker
 │   │       ├── CHANGELOG.md
@@ -32336,6 +32432,19 @@
 │   │           ├── VersionNumber.php
 │   │           ├── constraints
 │   │           └── exceptions
+│   ├── php-ffmpeg
+│   │   └── php-ffmpeg
+│   │       ├── CHANGELOG-0.x.md
+│   │       ├── CHANGELOG.md
+│   │       ├── LICENSE
+│   │       ├── ORIGINAL_ALCHEMY_CHANGELOG.md
+│   │       ├── ORIGINAL_ALCHEMY_LICENSE
+│   │       ├── ORIGINAL_ALCHEMY_README.md
+│   │       ├── README.md
+│   │       ├── composer.json
+│   │       └── src
+│   │           ├── Alchemy
+│   │           └── FFMpeg
 │   ├── php-http
 │   │   ├── discovery
 │   │   │   ├── CHANGELOG.md
@@ -32523,6 +32632,16 @@
 │   │           ├── TextUI
 │   │           └── Util
 │   ├── psr
+│   │   ├── cache
+│   │   │   ├── CHANGELOG.md
+│   │   │   ├── LICENSE.txt
+│   │   │   ├── README.md
+│   │   │   ├── composer.json
+│   │   │   └── src
+│   │   │       ├── CacheException.php
+│   │   │       ├── CacheItemInterface.php
+│   │   │       ├── CacheItemPoolInterface.php
+│   │   │       └── InvalidArgumentException.php
 │   │   ├── clock
 │   │   │   ├── CHANGELOG.md
 │   │   │   ├── LICENSE
@@ -32892,6 +33011,14 @@
 │   │       ├── composer.json
 │   │       └── src
 │   │           └── Version.php
+│   ├── spatie
+│   │   └── temporary-directory
+│   │       ├── LICENSE.md
+│   │       ├── README.md
+│   │       ├── composer.json
+│   │       └── src
+│   │           ├── Exceptions
+│   │           └── TemporaryDirectory.php
 │   ├── staabm
 │   │   └── side-effects-detector
 │   │       ├── LICENSE
@@ -32902,6 +33029,100 @@
 │   │           ├── SideEffectsDetector.php
 │   │           └── functionMetadata.php
 │   ├── symfony
+│   │   ├── cache
+│   │   │   ├── Adapter
+│   │   │   │   ├── AbstractAdapter.php
+│   │   │   │   ├── AbstractTagAwareAdapter.php
+│   │   │   │   ├── AdapterInterface.php
+│   │   │   │   ├── ApcuAdapter.php
+│   │   │   │   ├── ArrayAdapter.php
+│   │   │   │   ├── ChainAdapter.php
+│   │   │   │   ├── CouchbaseBucketAdapter.php
+│   │   │   │   ├── CouchbaseCollectionAdapter.php
+│   │   │   │   ├── DoctrineDbalAdapter.php
+│   │   │   │   ├── FilesystemAdapter.php
+│   │   │   │   ├── FilesystemTagAwareAdapter.php
+│   │   │   │   ├── MemcachedAdapter.php
+│   │   │   │   ├── NullAdapter.php
+│   │   │   │   ├── ParameterNormalizer.php
+│   │   │   │   ├── PdoAdapter.php
+│   │   │   │   ├── PhpArrayAdapter.php
+│   │   │   │   ├── PhpFilesAdapter.php
+│   │   │   │   ├── ProxyAdapter.php
+│   │   │   │   ├── Psr16Adapter.php
+│   │   │   │   ├── RedisAdapter.php
+│   │   │   │   ├── RedisTagAwareAdapter.php
+│   │   │   │   ├── TagAwareAdapter.php
+│   │   │   │   ├── TagAwareAdapterInterface.php
+│   │   │   │   ├── TraceableAdapter.php
+│   │   │   │   └── TraceableTagAwareAdapter.php
+│   │   │   ├── CHANGELOG.md
+│   │   │   ├── CacheItem.php
+│   │   │   ├── DataCollector
+│   │   │   │   └── CacheDataCollector.php
+│   │   │   ├── DependencyInjection
+│   │   │   │   ├── CacheCollectorPass.php
+│   │   │   │   ├── CachePoolClearerPass.php
+│   │   │   │   ├── CachePoolPass.php
+│   │   │   │   └── CachePoolPrunerPass.php
+│   │   │   ├── Exception
+│   │   │   │   ├── BadMethodCallException.php
+│   │   │   │   ├── CacheException.php
+│   │   │   │   ├── InvalidArgumentException.php
+│   │   │   │   └── LogicException.php
+│   │   │   ├── LICENSE
+│   │   │   ├── LockRegistry.php
+│   │   │   ├── Marshaller
+│   │   │   │   ├── DefaultMarshaller.php
+│   │   │   │   ├── DeflateMarshaller.php
+│   │   │   │   ├── MarshallerInterface.php
+│   │   │   │   ├── SodiumMarshaller.php
+│   │   │   │   └── TagAwareMarshaller.php
+│   │   │   ├── Messenger
+│   │   │   │   ├── EarlyExpirationDispatcher.php
+│   │   │   │   ├── EarlyExpirationHandler.php
+│   │   │   │   └── EarlyExpirationMessage.php
+│   │   │   ├── PruneableInterface.php
+│   │   │   ├── Psr16Cache.php
+│   │   │   ├── README.md
+│   │   │   ├── ResettableInterface.php
+│   │   │   ├── Traits
+│   │   │   │   ├── AbstractAdapterTrait.php
+│   │   │   │   ├── CachedValueInterface.php
+│   │   │   │   ├── ContractsTrait.php
+│   │   │   │   ├── FilesystemCommonTrait.php
+│   │   │   │   ├── FilesystemTrait.php
+│   │   │   │   ├── ProxyTrait.php
+│   │   │   │   ├── Redis5Proxy.php
+│   │   │   │   ├── Redis61ProxyTrait.php
+│   │   │   │   ├── Redis62ProxyTrait.php
+│   │   │   │   ├── Redis6Proxy.php
+│   │   │   │   ├── RedisCluster5Proxy.php
+│   │   │   │   ├── RedisCluster61ProxyTrait.php
+│   │   │   │   ├── RedisCluster62ProxyTrait.php
+│   │   │   │   ├── RedisCluster6Proxy.php
+│   │   │   │   ├── RedisClusterNodeProxy.php
+│   │   │   │   ├── RedisClusterProxy.php
+│   │   │   │   ├── RedisProxy.php
+│   │   │   │   ├── RedisProxyTrait.php
+│   │   │   │   ├── RedisTrait.php
+│   │   │   │   ├── Relay
+│   │   │   │   ├── RelayClusterProxy.php
+│   │   │   │   ├── RelayProxy.php
+│   │   │   │   ├── RelayProxyTrait.php
+│   │   │   │   └── ValueWrapper.php
+│   │   │   └── composer.json
+│   │   ├── cache-contracts
+│   │   │   ├── CHANGELOG.md
+│   │   │   ├── CacheInterface.php
+│   │   │   ├── CacheTrait.php
+│   │   │   ├── CallbackInterface.php
+│   │   │   ├── ItemInterface.php
+│   │   │   ├── LICENSE
+│   │   │   ├── NamespacedPoolInterface.php
+│   │   │   ├── README.md
+│   │   │   ├── TagAwareCacheInterface.php
+│   │   │   └── composer.json
 │   │   ├── clock
 │   │   │   ├── CHANGELOG.md
 │   │   │   ├── Clock.php
@@ -34094,6 +34315,33 @@
 │   │   │   │   └── VarDumperTestTrait.php
 │   │   │   ├── VarDumper.php
 │   │   │   └── composer.json
+│   │   ├── var-exporter
+│   │   │   ├── CHANGELOG.md
+│   │   │   ├── Exception
+│   │   │   │   ├── ClassNotFoundException.php
+│   │   │   │   ├── ExceptionInterface.php
+│   │   │   │   ├── LogicException.php
+│   │   │   │   └── NotInstantiableTypeException.php
+│   │   │   ├── Hydrator.php
+│   │   │   ├── Instantiator.php
+│   │   │   ├── Internal
+│   │   │   │   ├── Exporter.php
+│   │   │   │   ├── Hydrator.php
+│   │   │   │   ├── LazyDecoratorTrait.php
+│   │   │   │   ├── LazyObjectRegistry.php
+│   │   │   │   ├── LazyObjectState.php
+│   │   │   │   ├── LazyObjectTrait.php
+│   │   │   │   ├── Reference.php
+│   │   │   │   ├── Registry.php
+│   │   │   │   └── Values.php
+│   │   │   ├── LICENSE
+│   │   │   ├── LazyGhostTrait.php
+│   │   │   ├── LazyObjectInterface.php
+│   │   │   ├── LazyProxyTrait.php
+│   │   │   ├── ProxyHelper.php
+│   │   │   ├── README.md
+│   │   │   ├── VarExporter.php
+│   │   │   └── composer.json
 │   │   └── yaml
 │   │       ├── CHANGELOG.md
 │   │       ├── Command
@@ -34187,4 +34435,4 @@
 ├── vite.icons.plugin.js
 └── yarn.lock
 
-4946 directories, 29241 files
+4985 directories, 29450 files
