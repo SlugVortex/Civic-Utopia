@@ -235,8 +235,9 @@ document.addEventListener('click', async function(e) {
     if(locBtn) {
         if(!navigator.geolocation) return alert('No GPS support.');
 
+        const originalText = locBtn.innerHTML;
         locBtn.disabled = true;
-        locBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Locating...';
+        locBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Generating (takes ~60s)...';
 
         navigator.geolocation.getCurrentPosition(async (pos) => {
             try {
@@ -248,19 +249,24 @@ document.addEventListener('click', async function(e) {
                 const data = await res.json();
 
                 if(data.status === 'success') {
-                    // Wait for queue processing then reload (simulated delay)
-                    setTimeout(() => window.location.reload(), 5000);
+                    // INCREASED TIMEOUT: Wait 60 seconds for DALL-E to finish
+                    // In a real app, we would use Pusher to listen for "JobFinished" event
+                    // But for hackathon, a long timeout is safer than a short one.
+                    setTimeout(() => {
+                         alert("News feed generated! Reloading...");
+                         window.location.reload();
+                    }, 60000);
                 }
             } catch(e) {
                 console.error('News Error:', e);
                 alert('Failed to fetch local news.');
                 locBtn.disabled = false;
-                locBtn.innerHTML = 'Generate Local Feed';
+                locBtn.innerHTML = originalText;
             }
         }, () => {
             alert('GPS Permission Denied');
             locBtn.disabled = false;
-            locBtn.innerHTML = 'Generate Local Feed';
+            locBtn.innerHTML = originalText;
         });
     }
 });

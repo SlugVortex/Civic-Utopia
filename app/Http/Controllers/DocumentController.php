@@ -54,9 +54,14 @@ class DocumentController extends Controller
 
             // 1. Upload File
             $path = $request->file('file')->store('documents', 'public');
+
+            if (!Storage::disk('public')->exists($path)) {
+                throw new \Exception("File storage failed.");
+            }
+
             Log::info("File stored at: " . $path);
 
-            // 2. Create Initial Record
+            // 2. Create Initial Record (Draft Mode)
             $document = Document::create([
                 'user_id' => Auth::id(),
                 'title' => $request->title,
@@ -67,8 +72,8 @@ class DocumentController extends Controller
             ]);
 
             // 3. Azure Document Intelligence (Extract Text)
-            //$extractedText = $this->extractTextFromPdf($request->file('file'));
-            $extractedText = $this->extractTextFromRawContent($request->file('file'));
+            $fileContent = Storage::disk('public')->get($path);
+            $extractedText = $this->extractTextFromRawContent($fileContent);
 
             if (!$extractedText || strlen($extractedText) < 50) {
                 Log::warning("Text extraction failed or was too short.");
@@ -85,73 +90,101 @@ class DocumentController extends Controller
 
         } catch (\Exception $e) {
             Log::error("CRITICAL UPLOAD ERROR: " . $e->getMessage());
-            return back()->with('error', 'Upload failed. Check laravel.log for details.');
+            return back()->with('error', 'Upload failed. Check logs.');
         }
     }
 
     /**
-     * Logic to handle Azure's Async Polling
+     * Force re-analysis of the document
      */
-    private function extractTextFromPdf($file)
+    public function regenerate(Document $document)
+    {
+        try {
+            Log::info("--- MANUAL REGENERATION STARTED FOR DOC ID: {$document->id} ---");
+
+            // 1. Check if we need to re-extract text (OCR)
+            if (!$document->extracted_text || strlen($document->extracted_text) < 100) {
+                Log::info("Text missing or invalid. Retrying Azure Doc Intelligence...");
+
+                if (!Storage::disk('public')->exists($document->file_path)) {
+                    return back()->with('error', 'Original file not found in storage.');
+                }
+                $fileContent = Storage::disk('public')->get($document->file_path);
+
+                $extractedText = $this->extractTextFromRawContent($fileContent);
+
+                if (!$extractedText) {
+                    return back()->with('error', 'OCR Failed again. Please check the PDF file.');
+                }
+
+                $document->update(['extracted_text' => $extractedText]);
+            } else {
+                Log::info("Text exists (" . strlen($document->extracted_text) . " chars). Running AI Summary.");
+            }
+
+            // 2. Re-run OpenAI Summarization
+            $this->classifyAndSummarize($document, $document->extracted_text);
+
+            return back()->with('success', 'Document re-analyzed successfully!');
+
+        } catch (\Exception $e) {
+            Log::error("Regeneration Error: " . $e->getMessage());
+            return back()->with('error', 'Regeneration failed. Check logs.');
+        }
+    }
+
+    /**
+     * Helper: Extracts text using Azure Document Intelligence
+     */
+    private function extractTextFromRawContent($fileContent)
     {
         $endpoint = config('services.azure.document.endpoint');
         $key = config('services.azure.document.key');
 
-        // Correct API URL for Layout Analysis (reads text + tables)
+        // Using 'prebuilt-read' model for best OCR results
         $url = rtrim($endpoint, '/') . "/documentintelligence/documentModels/prebuilt-read:analyze?api-version=2024-02-29-preview";
 
-        Log::info("Sending to Azure Doc Intelligence: " . $url);
+        try {
+            $response = Http::timeout(60)->withHeaders([
+                'Ocp-Apim-Subscription-Key' => $key,
+                'Content-Type' => 'application/octet-stream',
+            ])->withBody($fileContent, 'application/octet-stream')->post($url);
 
-        $fileContent = file_get_contents($file->getRealPath());
+            if ($response->status() === 202) {
+                // ASYNC FLOW: Poll for results
+                $operationUrl = $response->header('Operation-Location');
 
-        // STEP A: SUBMIT JOB
-        $response = Http::withHeaders([
-            'Ocp-Apim-Subscription-Key' => $key,
-            'Content-Type' => 'application/octet-stream',
-        ])->withBody($fileContent, 'application/octet-stream')->post($url);
+                for ($i = 0; $i < 10; $i++) { // Poll for 30 seconds (10 x 3s)
+                    sleep(3);
+                    $pollResponse = Http::withHeaders(['Ocp-Apim-Subscription-Key' => $key])->get($operationUrl);
+                    $status = $pollResponse->json('status');
 
-        if ($response->status() === 202) {
-            // ASYNC FLOW (Expected)
-            $operationUrl = $response->header('Operation-Location');
-            Log::info("Azure Accepted Job (202). Polling URL: " . $operationUrl);
-
-            // Poll for up to 15 seconds (5 attempts x 3 seconds)
-            for ($i = 0; $i < 5; $i++) {
-                sleep(3); // Wait 3 seconds
-
-                $pollResponse = Http::withHeaders([
-                    'Ocp-Apim-Subscription-Key' => $key,
-                ])->get($operationUrl);
-
-                $status = $pollResponse->json('status');
-                Log::info("Polling Attempt " . ($i + 1) . ": Status = " . $status);
-
-                if ($status === 'succeeded') {
-                    $content = $pollResponse->json('analyzeResult.content');
-                    return $content;
+                    if ($status === 'succeeded') {
+                        return $pollResponse->json('analyzeResult.content');
+                    }
+                    if ($status === 'failed') {
+                        Log::error("Azure Analysis Status: FAILED");
+                        return null;
+                    }
                 }
-
-                if ($status === 'failed') {
-                    Log::error("Azure Analysis Failed: " . json_encode($pollResponse->json()));
-                    return null;
-                }
+                Log::error("Regen OCR Timed Out");
+                return null;
+            } elseif ($response->successful()) {
+                // SYNC FLOW (Rare)
+                return $response->json('analyzeResult.content');
             }
-            Log::error("Azure Analysis Timed Out after 15 seconds.");
+
+            Log::error("Regen OCR Error: " . $response->body());
             return null;
 
-        } elseif ($response->successful()) {
-            // SYNC FLOW (Rare, but possible for tiny files)
-            Log::info("Azure returned immediate result (200).");
-            return $response->json('analyzeResult.content');
-        } else {
-            // ERROR
-            Log::error("Azure Doc Intelligence Error: " . $response->status() . " - " . $response->body());
+        } catch (\Exception $e) {
+            Log::error("Azure Doc Exception: " . $e->getMessage());
             return null;
         }
     }
 
     /**
-     * UPDATED: Robust AI Summarizer with Debug Logging
+     * Helper: Summarize with OpenAI (Robust JSON handling)
      */
     private function classifyAndSummarize(Document $doc, $text)
     {
@@ -163,7 +196,7 @@ class DocumentController extends Controller
         $apiVersion = config('services.azure.openai.api_version');
         $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
 
-        // Explicit Prompt to ensure Keys match
+        // Explicit Prompt to ensure Keys match and JSON is valid
         $systemMessage = "You are a legal expert. Analyze this document.
         Output ONLY valid JSON with these exact keys:
         {
@@ -173,9 +206,9 @@ class DocumentController extends Controller
         }
         Do not use Markdown formatting.";
 
-        $sampleText = substr($text, 0, 15000);
+        $sampleText = substr($text, 0, 15000); // Truncate to save tokens
 
-        $response = Http::withHeaders([
+        $response = Http::timeout(45)->withHeaders([
             'api-key' => $apiKey, 'Content-Type' => 'application/json'
         ])->post($url, [
             'messages' => [
@@ -188,12 +221,8 @@ class DocumentController extends Controller
         if ($response->successful()) {
             $contentRaw = $response->json('choices.0.message.content');
 
-            // LOG THE RAW RESPONSE TO SEE WHAT IS WRONG
-            Log::info("OpenAI Raw Response: " . $contentRaw);
-
-            // Clean Markdown if present (```json ... ```)
+            // FIX: Strip Markdown backticks if present (Common GPT-4 issue)
             $contentClean = str_replace(['```json', '```'], '', $contentRaw);
-
             $data = json_decode($contentClean, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -238,8 +267,6 @@ class DocumentController extends Controller
         $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
 
         $systemMessage = "You are an assistant helping a user read a legal document. Use the provided document text to answer. If the answer isn't there, say so.";
-
-        // RAG-lite: Context injection
         $context = substr($document->extracted_text, 0, 20000);
 
         $response = Http::withHeaders([
@@ -270,97 +297,61 @@ class DocumentController extends Controller
         return back()->with('success', 'Note added!');
     }
 
-        /**
-     * Force re-analysis of the document
-     */
-    public function regenerate(Document $document)
-    {
-        try {
-            Log::info("--- MANUAL REGENERATION STARTED FOR DOC ID: {$document->id} ---");
-
-            // 1. Check if we need to re-extract text (OCR)
-            if (!$document->extracted_text || strlen($document->extracted_text) < 100) {
-                Log::info("Text missing or invalid. Retrying Azure Doc Intelligence...");
-
-                if (!Storage::disk('public')->exists($document->file_path)) {
-                    return back()->with('error', 'Original file not found in storage.');
-                }
-                $fileContent = Storage::disk('public')->get($document->file_path);
-
-                // Call the helper (modified to accept raw content)
-                $extractedText = $this->extractTextFromRawContent($fileContent);
-
-                if (!$extractedText) {
-                    return back()->with('error', 'OCR Failed again. Please check the PDF file.');
-                }
-
-                $document->update(['extracted_text' => $extractedText]);
-            } else {
-                Log::info("Text exists (" . strlen($document->extracted_text) . " chars). Running AI Summary.");
-            }
-
-            // 2. Re-run OpenAI Summarization
-            $this->classifyAndSummarize($document, $document->extracted_text);
-
-            return back()->with('success', 'Document re-analyzed successfully!');
-
-        } catch (\Exception $e) {
-            Log::error("Regeneration Error: " . $e->getMessage());
-            return back()->with('error', 'Regeneration failed. Check logs.');
-        }
-    }
-
     /**
-     * MODIFIED HELPER: Extracts text from raw file content (from Storage)
-     * This replaces the previous logic that required an UploadedFile object.
+     * Toggle Public/Private
      */
-    private function extractTextFromRawContent($fileContent)
-    {
-        $endpoint = config('services.azure.document.endpoint');
-        $key = config('services.azure.document.key');
-        $url = rtrim($endpoint, '/') . "/documentintelligence/documentModels/prebuilt-read:analyze?api-version=2024-02-29-preview";
-
-        $response = Http::withHeaders([
-            'Ocp-Apim-Subscription-Key' => $key,
-            'Content-Type' => 'application/octet-stream',
-        ])->withBody($fileContent, 'application/octet-stream')->post($url);
-
-        if ($response->status() === 202) {
-            $operationUrl = $response->header('Operation-Location');
-            // Poll Loop
-            for ($i = 0; $i < 8; $i++) { // Increased to 8 attempts (24 seconds)
-                sleep(3);
-                $poll = Http::withHeaders(['Ocp-Apim-Subscription-Key' => $key])->get($operationUrl);
-                if ($poll->json('status') === 'succeeded') {
-                    return $poll->json('analyzeResult.content');
-                }
-            }
-            Log::error("Regen OCR Timed Out");
-            return null;
-        } elseif ($response->successful()) {
-            return $response->json('analyzeResult.content');
-        }
-
-        Log::error("Regen OCR Error: " . $response->body());
-        return null;
-    }
-
-    // Ensure your existing 'store' method uses this new 'extractTextFromRawContent' helper
-    // or keep the old one but map it correctly.
-    // To keep it simple, you can Replace 'extractTextFromPdf' in your STORE method
-    // with: $this->extractTextFromRawContent(file_get_contents($request->file('file')->getRealPath()));
-    //
-    //
-
-    // Add this new method to the class:
     public function togglePublic(Document $document)
     {
-        // Toggle the boolean
         $document->is_public = !$document->is_public;
         $document->save();
 
         $status = $document->is_public ? 'Published! It is now visible in the Legal Library.' : 'Unpublished. It is now a private draft.';
-
         return back()->with('success', $status);
+    }
+
+    /**
+     * Translate Document Summaries
+     */
+    public function translate(Request $request, Document $document)
+    {
+        $request->validate(['language' => 'required|string']);
+        $lang = $request->language;
+
+        if ($lang === 'English') {
+            return response()->json([
+                'summary_plain' => $document->summary_plain,
+                'summary_eli5' => $document->summary_eli5,
+            ]);
+        }
+
+        try {
+            $endpoint = config('services.azure.openai.endpoint');
+            $apiKey = config('services.azure.openai.api_key');
+            $deployment = config('services.azure.openai.deployment');
+            $apiVersion = config('services.azure.openai.api_version');
+            $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
+
+            $systemMessage = "You are a professional translator. Translate the JSON values into {$lang}. Maintain JSON structure.";
+
+            $payload = [
+                'summary_plain' => $document->summary_plain,
+                'summary_eli5' => $document->summary_eli5
+            ];
+
+            $response = Http::withHeaders([
+                'api-key' => $apiKey, 'Content-Type' => 'application/json'
+            ])->post($url, [
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemMessage],
+                    ['role' => 'user', 'content' => json_encode($payload)],
+                ],
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+            return response()->json(json_decode($response->json('choices.0.message.content')));
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Translation failed'], 500);
+        }
     }
 }

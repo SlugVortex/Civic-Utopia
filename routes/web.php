@@ -32,7 +32,9 @@ Route::post('login', [AuthenticationsController::class, 'storeLogin'])->middlewa
 Route::post('logout', [AuthenticationsController::class, 'destroy'])->middleware('auth')->name('logout');
 Route::get('register', [AuthenticationsController::class, 'showRegistrationPage'])->middleware('guest')->name('register');
 Route::post('register', [AuthenticationsController::class, 'storeRegistration'])->middleware('guest');
-
+// --- STATIC LEGAL PAGES ---
+Route::get('/privacy-policy', [App\Http\Controllers\PagesController::class, 'privacy'])->name('pages.privacy');
+Route::get('/terms-of-service', [App\Http\Controllers\PagesController::class, 'terms'])->name('pages.terms');
 
 // --- Main Application Routes ---
 Route::middleware('auth')->group(function () {
