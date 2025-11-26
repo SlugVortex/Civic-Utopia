@@ -3,7 +3,7 @@ name: Deploy Laravel to Azure
 on:
   push:
     branches:
-      - main  # Change this if your branch is 'master'
+      - main
 
 jobs:
   build-and-deploy:
@@ -23,29 +23,21 @@ jobs:
         coverage: none
 
     # 3. Install Backend Dependencies (Composer)
+    # We still need this for the backend logic
     - name: Install Composer Dependencies
       run: composer install --no-dev --optimize-autoloader --no-progress --prefer-dist
 
-    # 4. Install Frontend Dependencies (NPM/Vite)
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
+    # --- REMOVED NODE/NPM STEPS HERE because you pushed public/build to git ---
 
-    - name: Install NPM and Build Assets
-      run: |
-        npm install
-        npm run build
-
-    # 5. Create Deployment Package (Zip)
-    # We explicitly EXCLUDE .git, node_modules (since we built assets), and tests
+    # 4. Create Deployment Package (Zip)
+    # We exclude .git and node_modules, BUT we keep public/build
     - name: Zip Artifact
       run: zip -r deploy.zip . -x ".git/*" ".github/*" "node_modules/*" "tests/*" "phpunit.xml" "README.md"
 
-    # 6. Deploy to Azure Web App
+    # 5. Deploy to Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'utopia-app' # <--- VERIFY THIS MATCHES YOUR AZURE APP NAME EXACTLY
+        app-name: 'utopia-app' # Ensure this matches your Azure App Name
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         package: deploy.zip
