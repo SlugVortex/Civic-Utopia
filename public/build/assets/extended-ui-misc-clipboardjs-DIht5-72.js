@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded",function(n){const t=[].slice.call(document.querySelectorAll(".clipboard-btn")),i=new Notyf({duration:3e3,dismissible:!0,position:{x:"right",y:"top"}});ClipboardJS?t.map(function(o){new ClipboardJS(o).on("success",function(e){e.action==="copy"&&i.success("Copied to Clipboard!!")})}):t.map(function(o){o.setAttribute("disabled",!0)})});

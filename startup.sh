@@ -1,54 +1,56 @@
 #!/bin/bash
 
 # --- 1. System Dependencies ---
-# Install FFmpeg (Required by your .env and README)
-# NOTE: This runs on every restart. For faster boots, consider a custom Docker image later.
 echo "Installing FFmpeg..."
 apt-get update && apt-get install -y ffmpeg
 
-# --- 2. Server Configuration ---
-# Copy custom Nginx config (Ensure you created nginx.conf from the previous step)
+# --- 2. Create Missing Directories (Fixes the 500 Errors) ---
+echo "Creating storage directories..."
+mkdir -p /home/site/wwwroot/storage/framework/sessions
+mkdir -p /home/site/wwwroot/storage/framework/views
+mkdir -p /home/site/wwwroot/storage/framework/cache
+mkdir -p /home/site/wwwroot/storage/logs
+
+# --- 3. SSL Certificate (Fixes Database SSL Error) ---
+# We check if the file exists; if not, we download it.
+if [ ! -f /home/site/wwwroot/ssl/DigiCertGlobalRootG2.crt.pem ]; then
+    echo "Downloading Azure MySQL SSL Certificate..."
+    mkdir -p /home/site/wwwroot/ssl
+    wget -O /home/site/wwwroot/ssl/DigiCertGlobalRootG2.crt.pem https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem
+fi
+
+# --- 4. Permissions ---
+# Ensure the server can write to storage
+echo "Setting permissions..."
+chmod -R 775 /home/site/wwwroot/storage
+chown -R www-data:www-data /home/site/wwwroot/storage
+
+# --- 5. Nginx Config ---
 cp /home/site/wwwroot/nginx.conf /etc/nginx/sites-available/default
 service nginx reload
 
-# --- 3. Laravel Setup ---
+# --- 6. Laravel Setup ---
 cd /home/site/wwwroot
 
-# Install PHP dependencies (Only if vendor folder is missing)
+# Install PHP deps if missing (usually handled by GitHub Actions, but good backup)
 if [ ! -d "vendor" ]; then
-    echo "Vendor folder missing, running composer install..."
     composer install --optimize-autoloader --no-dev
 fi
 
-# Link storage (Crucial for file uploads)
+# Link storage
 php artisan storage:link
 
-# Run Migrations
-# We use --force because we are in production
+# Run Migrations (Force is required in production)
+echo "Running Migrations..."
 php artisan migrate --force
 
-# Run Seeders
-# WARNING: Running seeders on every startup can duplicate data if not handled carefully in the seeder code.
-# If your seeders are safe to run multiple times, keep these lines:
-php artisan db:seed --class=AiAgentUserSeeder --force
-php artisan db:seed --class=BallotQuestionSeeder --force
-
-# Optimization & Caching
-echo "Caching configuration..."
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+# --- 7. Caching ---
+echo "Clearing and Rebuilding Cache..."
+php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# --- 4. Queue Worker (The "Brain") ---
-# The README asks for `php artisan queue:work`.
-# In Azure, we must run this in the background (nohup) so it doesn't block the web server.
+# --- 8. Start Queue Worker ---
 echo "Starting Queue Worker..."
 nohup php artisan queue:work --daemon --tries=3 > /dev/null 2>&1 &
-
-# --- 5. Assets (NPM) ---
-# NOTE: In Azure, we do NOT run `npm run dev`.
-# You must have run `npm run build` locally or in your deployment pipeline
-# so the `public/build` folder is already present.

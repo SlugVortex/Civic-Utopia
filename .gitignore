@@ -1,6 +1,6 @@
 /.phpunit.cache
 /node_modules
-/public/build
+# /public/build  <-- COMMENTED OUT: We want to push this now!
 /public/hot
 /public/storage
 /storage/*.key
@@ -34,14 +34,5 @@ yarn-error.log
 /public/css
 /public/js
 /public/mix-manifest.json
-# /public/assets/*
-# But not these files...
-# !/public/assets/json
-# /public/assets/json/*
-# !/public/assets/json/search-vertical.json
-# !/public/assets/json/search-horizontal.json
 
-# Except for 'template-customizer.js' inside 'resources/assets/vendor/js/'
 !/resources/assets/vendor/js/template-customizer.js
-
-
