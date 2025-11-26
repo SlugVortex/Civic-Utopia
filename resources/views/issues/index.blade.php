@@ -8,7 +8,8 @@
         <h4 class="fw-bold py-3 mb-0">
             <span class="text-muted fw-light">CivicUtopia /</span> Civic Lens
         </h4>
-        <a href="{{ route('issues.create') }}" class="btn btn-primary">
+        {{-- ID ADDED: btn-report-issue --}}
+        <a href="{{ route('issues.create') }}" class="btn btn-primary" id="btn-report-issue">
             <i class="ti ti-camera me-1"></i> Report Issue
         </a>
     </div>
@@ -16,7 +17,8 @@
     <div class="row">
         @forelse($issues as $issue)
         <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100">
+            {{-- CLASS ADDED: issue-card --}}
+            <div class="card h-100 issue-card">
                 <div class="position-relative">
                     <img src="{{ asset('storage/' . $issue->image_path) }}" class="card-img-top" style="height: 200px; object-fit: cover;">
                     @if($issue->severity)
@@ -29,7 +31,8 @@
                     <p class="card-text">
                         {{ Str::limit($issue->ai_caption ?? $issue->user_description ?? 'No description yet.', 80) }}
                     </p>
-                    <a href="{{ route('issues.show', $issue->id) }}" class="btn btn-outline-primary w-100">View Status</a>
+                    {{-- CLASS ADDED: btn-view-issue --}}
+                    <a href="{{ route('issues.show', $issue->id) }}" class="btn btn-outline-primary w-100 btn-view-issue">View Status</a>
                 </div>
             </div>
         </div>

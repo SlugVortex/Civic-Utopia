@@ -38,7 +38,8 @@
                         <div class="alert alert-warning">AI has not analyzed this photo yet.</div>
                         <form action="{{ route('issues.analyze', $issue->id) }}" method="POST">
                             @csrf
-                            <button class="btn btn-primary w-100 pulse-button">
+                            {{-- ID ADDED: btn-analyze-issue --}}
+                            <button id="btn-analyze-issue" class="btn btn-primary w-100 pulse-button">
                                 <i class="ti ti-wand me-1"></i> Analyze & Draft Letter
                             </button>
                         </form>
@@ -59,7 +60,8 @@
                     </div>
                     <div>
                         @if($issue->generated_letter)
-                        <button class="btn btn-label-secondary btn-sm rounded-pill btn-icon" onclick="toggleAudio('letter-content', this)">
+                        {{-- ID ADDED: btn-read-letter --}}
+                        <button id="btn-read-letter" class="btn btn-label-secondary btn-sm rounded-pill btn-icon" onclick="toggleAudio('letter-content', this)">
                             <i class="ti ti-volume"></i>
                         </button>
                         @endif
@@ -76,7 +78,6 @@
 
                         <!-- EMAIL LOGIC -->
                         @php
-                            // Agency Directory (Matches Controller)
                             $directory = [
                                 'National Works Agency (Roads)' => 'commsmanager@nwa.gov.jm',
                                 'National Water Commission (Water)' => 'pr@nwc.com.jm',
@@ -85,19 +86,17 @@
                                 'KSAMC (Kingston Corp)' => 'customerservice@ksamc.gov.jm',
                                 'Police (JCF)' => 'contact@jcf.gov.jm',
                             ];
-
                             $targetEmail = '';
                             $targetAgency = request('agency') ?? 'Agency';
-
                             if (array_key_exists($targetAgency, $directory)) {
                                 $targetEmail = $directory[$targetAgency];
                             }
-
                             $mailtoLink = "mailto:$targetEmail?subject=" . rawurlencode("Formal Complaint: " . $issue->title) . "&body=" . rawurlencode($issue->generated_letter);
                         @endphp
 
                         <div class="d-flex gap-2">
-                            <a href="{{ $mailtoLink }}" class="btn btn-primary">
+                            {{-- ID ADDED: btn-email-agency --}}
+                            <a href="{{ $mailtoLink }}" class="btn btn-primary" id="btn-email-agency">
                                 <i class="ti ti-mail me-1"></i> Email {{ $targetEmail ? 'to ' . $targetAgency : 'Agency' }}
                             </a>
                             <button class="btn btn-label-secondary" onclick="window.print()">
@@ -122,24 +121,27 @@
 </div>
 
 <script>
-// --- AUDIO LOGIC (Copied & Simplified) ---
-let currentAudio = null;
-let currentBtn = null;
-let originalIcon = '<i class="ti ti-volume"></i>';
-
+// --- AUDIO LOGIC (Global Sync) ---
+// Note: Using window.civicAudio to sync with Agent
 function toggleAudio(elementId, btnElement) {
     const element = document.getElementById(elementId);
     if (!element) return;
     const text = element.innerText;
 
-    if (currentAudio && currentBtn === btnElement) {
-        stopCurrentAudio();
+    if (window.civicAudio && !window.civicAudio.paused && window.globalAudioBtn === btnElement) {
+        window.civicAudio.pause();
+        window.globalAudioBtn.innerHTML = '<i class="ti ti-volume"></i>';
+        window.civicAudio = null;
+        window.globalAudioBtn = null;
         return;
     }
-    if (currentAudio) stopCurrentAudio();
+    if(window.civicAudio) {
+        window.civicAudio.pause();
+        if(window.globalAudioBtn) window.globalAudioBtn.innerHTML = '<i class="ti ti-volume"></i>';
+    }
 
-    currentBtn = btnElement;
-    originalIcon = btnElement.innerHTML;
+    window.globalAudioBtn = btnElement;
+    const originalIcon = btnElement.innerHTML;
     btnElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
     btnElement.disabled = true;
 
@@ -152,21 +154,28 @@ function toggleAudio(elementId, btnElement) {
     .then(data => {
         if(data.error) throw new Error(data.error);
         const audioSrc = "data:audio/mp3;base64," + data.audio;
-        currentAudio = new Audio(audioSrc);
-        currentAudio.play();
+        window.civicAudio = new Audio(audioSrc);
+        window.civicAudio.play();
+
         btnElement.innerHTML = '<i class="ti ti-player-stop"></i>';
         btnElement.disabled = false;
-        currentAudio.onended = () => stopCurrentAudio();
+
+        // Added class for Agent Sequence
+        btnElement.classList.add('playing-audio');
+
+        window.civicAudio.onended = () => {
+            btnElement.innerHTML = originalIcon;
+            btnElement.classList.remove('playing-audio');
+            window.civicAudio = null;
+            window.globalAudioBtn = null;
+            document.dispatchEvent(new Event('civic-audio-ended'));
+        };
     })
     .catch(err => {
         alert('Speech generation failed.');
-        stopCurrentAudio();
+        btnElement.innerHTML = originalIcon;
+        btnElement.disabled = false;
     });
-}
-
-function stopCurrentAudio() {
-    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    if (currentBtn) { currentBtn.innerHTML = '<i class="ti ti-volume"></i>'; currentBtn.disabled = false; currentBtn = null; }
 }
 </script>
 @endsection
