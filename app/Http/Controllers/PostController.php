@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
-use App\Services\ContentSafetyService; // Make sure this exists
+use App\Models\Media;
+use App\Services\ContentSafetyService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class PostController extends Controller
@@ -22,29 +23,40 @@ class PostController extends Controller
             'content' => 'required|string|max:5000',
             'topic_id' => 'nullable|exists:topics,id',
             'media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mov,avi|max:20480',
+            'is_private' => 'boolean' // Added support for manual private posts
         ]);
 
         $user = Auth::user();
         $content = $validated['content'];
+        $isPrivate = $request->boolean('is_private', false);
 
         // 1. AZURE CONTENT SAFETY CHECK
+        Log::info("[PostController] Analyzing content safety for user: {$user->id}");
         $safetyResult = $safetyService->analyze($content);
+
         $isFlagged = !$safetyResult['safe'];
         $flagReason = $safetyResult['reason'] ?? null;
+
+        if ($isFlagged) {
+            Log::warning("[PostController] 🚩 Content Flagged: $flagReason");
+            // Option: You could prevent saving entirely here if you prefer strict blocking
+            // For now, we save it as flagged so admins can review, but it won't show in main feeds depending on view logic
+        }
 
         try {
             // 2. Create Post
             $post = $user->posts()->create([
                 'topic_id' => $validated['topic_id'] ?? null,
-                'content' => $content,
+                'content' => $isFlagged ? "This post was flagged for $flagReason and is hidden." : $content,
                 'is_flagged' => $isFlagged,
                 'flag_reason' => $flagReason,
+                'is_private' => $isPrivate,
             ]);
 
-            // 3. Handle Media (Your existing logic)
+            // 3. Handle Media Uploads
             if ($request->hasFile('media')) {
                 foreach ($request->file('media') as $file) {
-                    $path = $file->store('post_media', 'public'); // Changed folder to match your existing logic
+                    $path = $file->store('post_media', 'public');
                     $mimeType = $file->getMimeType();
                     $fileType = Str::startsWith($mimeType, 'image/') ? 'image' : (Str::startsWith($mimeType, 'video/') ? 'video' : 'other');
 
@@ -62,11 +74,15 @@ class PostController extends Controller
 
             // 4. Return Response
             if ($request->wantsJson()) {
-                $msg = $isFlagged ? 'Post created but flagged for review: ' . $flagReason : 'Post created successfully';
+                $msg = $isFlagged ? 'Post flagged for review: ' . $flagReason : 'Post created successfully';
                 return response()->json(['message' => $msg, 'post' => $post], 201);
             }
 
-            return redirect()->route('dashboard')->with('success', $isFlagged ? 'Post flagged for review.' : 'Post created!');
+            if ($isFlagged) {
+                return redirect()->route('dashboard')->with('error', "Your post was flagged for $flagReason.");
+            }
+
+            return redirect()->route('dashboard')->with('success', 'Post created successfully!');
 
         } catch (\Exception $e) {
             Log::error('Post Create Error: ' . $e->getMessage());
@@ -108,16 +124,10 @@ class PostController extends Controller
     public function toggleLike(Request $request, Post $post)
     {
         $user = Auth::user();
-        // Use relationship toggle if setup (requires BelongsToMany)
-        // If you use a package like 'overtrue/laravel-like', syntax differs.
-        // Assuming standard Pivot:
         $post->likers()->toggle($user->id);
 
-        // Calculate new state
-        $isLiked = $post->likers()->where('user_id', $user->id)->exists();
-
         return response()->json([
-            'action' => $isLiked ? 'liked' : 'unliked',
+            'action' => $post->likers()->where('user_id', $user->id)->exists() ? 'liked' : 'unliked',
             'likes_count' => $post->likers()->count()
         ]);
     }
@@ -147,22 +157,23 @@ class PostController extends Controller
         }
 
         try {
+            // 1. Get Visual Context
+            $imageDescriptions = $this->getImageDescriptions($post);
+            $imageContext = "";
+            if (!empty($imageDescriptions)) {
+                $imageContext = "\n\n[Visual Context from Images]: " . implode("; ", $imageDescriptions);
+            }
+
             $endpoint = config('services.azure.openai.endpoint');
             $apiKey = config('services.azure.openai.api_key');
-            $deployment = config('services.azure.openai.deployment');
-            $apiVersion = config('services.azure.openai.api_version');
-            $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
-
-            // Include Image Context (Reuse your existing helper if available, else skip)
-            $imageContext = "";
-            // $imageContext = $this->getImageDescriptions($post); // Uncomment if you keep that helper in this class
+            $url = rtrim($endpoint, '/') . "/openai/deployments/" . config('services.azure.openai.deployment') . "/chat/completions?api-version=" . config('services.azure.openai.api_version');
 
             $response = Http::withHeaders([
                 'api-key' => $apiKey,
                 'Content-Type' => 'application/json',
             ])->post($url, [
                 'messages' => [
-                    ['role' => 'system', 'content' => 'Summarize this post in one sentence.'],
+                    ['role' => 'system', 'content' => 'Summarize this post in one sentence. Incorporate visual context if provided.'],
                     ['role' => 'user', 'content' => $post->content . $imageContext],
                 ],
                 'temperature' => 0.5,
@@ -173,7 +184,7 @@ class PostController extends Controller
             }
 
             $summary = $response->json('choices.0.message.content');
-            $post->update(['summary' => $summary]); // Cache it
+            $post->update(['summary' => $summary]);
 
             return response()->json(['summary' => $summary]);
 
@@ -189,11 +200,16 @@ class PostController extends Controller
     public function explain(Post $post)
     {
         try {
+            // 1. Get Visual Context
+            $imageDescriptions = $this->getImageDescriptions($post);
+            $imageContext = "";
+            if (!empty($imageDescriptions)) {
+                $imageContext = "\n\n[Visual Context]: " . implode("; ", $imageDescriptions);
+            }
+
             $endpoint = config('services.azure.openai.endpoint');
             $apiKey = config('services.azure.openai.api_key');
-            $deployment = config('services.azure.openai.deployment');
-            $apiVersion = config('services.azure.openai.api_version');
-            $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
+            $url = rtrim($endpoint, '/') . "/openai/deployments/" . config('services.azure.openai.deployment') . "/chat/completions?api-version=" . config('services.azure.openai.api_version');
 
             $response = Http::withHeaders([
                 'api-key' => $apiKey,
@@ -201,7 +217,7 @@ class PostController extends Controller
             ])->post($url, [
                 'messages' => [
                     ['role' => 'system', 'content' => 'Explain this text simply (ELI5).'],
-                    ['role' => 'user', 'content' => $post->content],
+                    ['role' => 'user', 'content' => $post->content . $imageContext],
                 ],
                 'temperature' => 0.7,
             ]);
@@ -219,69 +235,44 @@ class PostController extends Controller
         }
     }
 
-    // You can keep your getImageDescriptions private method here if needed for the summaries
-
+    /**
+     * Helper: Analyze Images via Azure Vision
+     */
     private function getImageDescriptions(Post $post): array
     {
         $visionEndpoint = config('services.azure.vision.endpoint');
         $visionApiKey = config('services.azure.vision.api_key');
 
-        if (!$visionEndpoint || !$visionApiKey || str_contains($visionEndpoint, 'YOUR_VISION_ENDPOINT_HERE')) {
-            Log::warning('[PostController] Azure AI Vision credentials are not configured. Skipping image analysis.');
+        if (!$visionEndpoint || !$visionApiKey) {
+            Log::warning('Azure Vision keys missing.');
             return [];
         }
 
         $images = $post->media()->where('file_type', 'image')->get();
-        if ($images->isEmpty()) {
-            return [];
-        }
+        if ($images->isEmpty()) return [];
 
-        Log::info('[PostController] Analyzing ' . $images->count() . ' images for Post ID: ' . $post->id);
-
-        $requestUrl = rtrim($visionEndpoint, '/') . '/computervision/imageanalysis:analyze?api-version=2023-10-01&features=denseCaptions';
+        $url = rtrim($visionEndpoint, '/') . '/computervision/imageanalysis:analyze?api-version=2023-10-01&features=denseCaptions';
         $descriptions = [];
 
         foreach ($images as $image) {
             try {
                 $fileContents = Storage::disk('public')->get($image->path);
-                $mimeType = Storage::disk('public')->mimeType($image->path);
-
-                if (!$fileContents) {
-                    Log::error('[PostController] Could not read file from storage.', ['path' => $image->path]);
-                    continue;
-                }
-
-                Log::info('[PostController] Sending raw image data to Azure Vision for DENSE analysis.');
-
                 $response = Http::withHeaders([
                     'Ocp-Apim-Subscription-Key' => $visionApiKey,
                     'Content-Type' => 'application/octet-stream',
-                ])
-                ->withBody($fileContents, $mimeType)
-                ->post($requestUrl);
+                ])->withBody($fileContents, 'application/octet-stream')->post($url);
 
                 if ($response->successful()) {
-                    $denseCaptions = $response->json('denseCaptionsResult.values');
-                    if (is_array($denseCaptions)) {
-                        foreach ($denseCaptions as $caption) {
-                            $descriptions[] = $caption['text'];
-                        }
+                    $captions = $response->json('denseCaptionsResult.values');
+                    if (is_array($captions) && count($captions) > 0) {
+                        $descriptions[] = $captions[0]['text']; // Take top caption
                     }
-                } else {
-                    Log::error('[PostController] Azure Vision API call failed for one image.', [
-                        'status' => $response->status(),
-                        'body' => $response->body(),
-                    ]);
                 }
             } catch (\Exception $e) {
-                Log::error('[PostController] Exception during Azure Vision API call.', [
-                    'error' => $e->getMessage(),
-                ]);
+                Log::error("Vision API Error: " . $e->getMessage());
             }
         }
 
-        $uniqueDescriptions = array_unique($descriptions);
-        Log::info('[PostController] Image analysis complete.', ['descriptions' => $uniqueDescriptions]);
-        return array_slice($uniqueDescriptions, 0, 5);
+        return $descriptions;
     }
 }

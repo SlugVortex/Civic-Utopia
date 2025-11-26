@@ -5,7 +5,7 @@
 
 @extends('layouts/layoutMaster')
 
-@section('title', 'Login Basic - Pages')
+@section('title', 'Login - CivicUtopia')
 
 @section('vendor-style')
   @vite(['resources/assets/vendor/libs/@form-validation/form-validation.scss'])
@@ -32,7 +32,10 @@
           <!-- Logo -->
           <div class="app-brand justify-content-center mt-5">
             <a href="{{ url('/') }}" class="app-brand-link gap-2">
-              <span class="app-brand-logo demo">@include('_partials.macros')</span>
+              <span class="app-brand-logo demo">
+                  {{-- CORRECT LOGO PATH APPLIED --}}
+                  <img src="{{ asset('assets/img/favicon/logo.png') }}" alt="Logo" style="width: 50px; height: auto;">
+              </span>
               <span class="app-brand-text demo text-heading fw-semibold">{{ config('variables.templateName') }}</span>
             </a>
           </div>
@@ -90,32 +93,11 @@
 
             <p class="text-center mb-5">
               <span>New on our platform?</span>
-              <a href="{{ route('register') }}"> {{-- <-- THIS LINK IS NOW FIXED --}}
+              <a href="{{ route('register') }}">
                 <span>Create an account</span>
               </a>
             </p>
 
-            <div class="divider my-5">
-              <div class="divider-text">or</div>
-            </div>
-
-            <div class="d-flex justify-content-center gap-2">
-              <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-facebook">
-                <i class="icon-base ri ri-facebook-fill icon-18px"></i>
-              </a>
-
-              <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-twitter">
-                <i class="icon-base ri ri-twitter-fill icon-18px"></i>
-              </a>
-
-              <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-github">
-                <i class="icon-base ri ri-github-fill icon-18px"></i>
-              </a>
-
-              <a href="javascript:;" class="btn btn-icon btn-lg rounded-pill btn-text-google-plus">
-                <i class="icon-base ri ri-google-fill icon-18px"></i>
-              </a>
-            </div>
           </div>
         </div>
         <!-- /Login -->
