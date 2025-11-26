@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://i.ibb.co/39sW3qF/civic-utopia-banner.png" alt="CivicUtopia Banner" width="100%">
+  <img src="https://chatgpt.com/backend-api/estuary/content?id=file_00000000f8a071f5903b99955816e513&ts=490034&p=fs&cid=1&sig=2920864cd33754db5b7f74ff4d87e4de80a5baf3b373e6ccb865bee82f73b5f1&v=0" alt="CivicUtopia Banner" width="100%">
 </div>
 
 # 🏛️ CivicUtopia: The AI-Powered "Digital Town Square" 🗳️
