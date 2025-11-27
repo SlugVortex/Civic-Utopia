@@ -11,6 +11,7 @@
   'resources/assets/vendor/libs/typeahead-js/typeahead.js',
   'resources/assets/vendor/js/menu.js',
   'resources/assets/js/main.js',
+  'resources/assets/vendor/libs/pickr/pickr.js',
   'resources/js/app.js'
 ])
 

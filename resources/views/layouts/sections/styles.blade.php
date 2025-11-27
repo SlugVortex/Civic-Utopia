@@ -14,6 +14,7 @@
     'resources/assets/vendor/libs/node-waves/node-waves.scss',
     'resources/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.scss',
     'resources/assets/vendor/libs/typeahead-js/typeahead.scss',
+    'resources/assets/vendor/libs/pickr/pickr-themes.scss',
     'resources/css/app.css'
 ])
 
@@ -26,3 +27,12 @@
 
 <!-- Page Styles -->
 @yield('page-style')yield('page-style')yield('page-style')
+
+<!-- CUSTOM CSS: Hide the Template Customizer Gear Icon -->
+<style>
+    .template-customizer-open-btn {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+</style>
