@@ -51,54 +51,24 @@ Route::middleware('auth')->group(function () {
 
     // --- DASHBOARD (Modified to include Polls/Suggestions) ---
     // Dashboard
-      Route::get('/dashboard', function () {
-          // Load dependencies
-          $userId = Auth::id(); // Use Auth facade instead of global auth() helper for clarity
+    Route::get('/dashboard', function () {
 
-          // 1. Existing Posts (Merged Logic: Filter by Public OR (Private AND Owned by User))
-          $posts = Post::with('user', 'comments', 'media', 'topics', 'likers', 'bookmarkers')
-              ->where(function($query) use ($userId) {
-                  // Logic: Show if Public OR (Private AND Owned by User)
-                  $query->where('is_private', false)
-                        ->orWhere(function($q) use ($userId) {
-                            $q->where('is_private', true)
-                              ->where('user_id', $userId);
-                        });
-              })
-              ->latest()
-              ->take(20)
-              ->get();
+        // UPDATED: Use the 'visibleTo' scope to filter out other people's private news
+        $posts = Post::visibleTo(Auth::id())
+            ->with('user', 'comments', 'media', 'topics', 'likers', 'bookmarkers')
+            ->latest()
+            ->take(20)
+            ->get();
 
-          // Topics (From both snippets - identical)
-          $topics = Topic::withCount('posts')->orderBy('name')->get();
+        $topics = Topic::withCount('posts')->orderBy('name')->get();
 
-          // 2. Active Polls (From first snippet)
-          $activePoll = Poll::with(['options.votes', 'votes' => function($q) {
-              $q->where('user_id', Auth::id()); // Use Auth::id() for consistency
-          }])
-          ->where('is_active', true)
-          ->where('expires_at', '>', now())
-          ->latest()
-          ->first();
+        Log::info('[CivicUtopia] Loading dashboard view.', [
+            'user_id' => Auth::id(),
+            'post_count' => $posts->count()
+        ]);
 
-          // 3. Approved Suggestions (From first snippet)
-          $suggestions = Suggestion::with(['votes'])
-              ->where('status', 'approved')
-              ->withCount('votes')
-              ->orderByDesc('votes_count')
-              ->take(5)
-              ->get();
-
-          // Logging (Kept the most detailed log, added poll status)
-          Log::info('[CivicUtopia] Loading dashboard.', [
-              'post_count' => $posts->count(),
-              'poll_active' => $activePoll ? 'yes' : 'no'
-          ]);
-
-          // Return View (Merged all variables and kept the with('showComments', false) from the second snippet)
-          return view('dashboard', compact('posts', 'topics', 'activePoll', 'suggestions'))->with('showComments', false);
-
-      })->name('dashboard');
+        return view('dashboard', compact('posts', 'topics'));
+    })->name('dashboard');
 
     // Posts
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');

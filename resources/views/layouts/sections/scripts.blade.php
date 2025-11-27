@@ -11,7 +11,6 @@
   'resources/assets/vendor/libs/typeahead-js/typeahead.js',
   'resources/assets/vendor/js/menu.js',
   'resources/assets/js/main.js',
-  'resources/assets/vendor/libs/pickr/pickr.js',
   'resources/js/app.js'
 ])
 
@@ -41,7 +40,7 @@
         height: 100%;
         display: flex;
         flex-direction: column;
-        padding: 0 !important;
+        padding: 0 !important; /* Remove padding from body wrapper */
         overflow: hidden;
     }
 
@@ -87,9 +86,9 @@
     .chat-fullscreen .comment-form-wrapper {
         flex-shrink: 0;
         padding: 1rem;
-        background: var(--bs-body-bg);
+        background: var(--bs-body-bg); /* Ensure opaque background */
         border-top: 1px solid var(--bs-border-color);
-        position: relative;
+        position: relative; /* Ensure z-index context */
         z-index: 200001;
     }
 
@@ -135,13 +134,84 @@
 
 <script>
 // --- GLOBAL HELPERS ---
-// Exposed to window so the AI Agent in Navbar can access it
 window.civicAudio = null;
 let globalAudioBtn = null;
 let currentUserName = "{{ auth()->check() ? auth()->user()->name : 'Guest' }}";
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
-// --- 1. BUTTON HANDLERS (Delegated) ---
+// --- 1. INITIALIZATION & EVENT DELEGATION ---
+document.addEventListener('DOMContentLoaded', function() {
+    restoreWidgetState();
+    makeDraggable(document.getElementById("ai-navigator-widget"));
+    makeResizable(document.getElementById("ai-navigator-widget"));
+    setupAutocomplete();
+
+    // AUTO-RESUME MIC IF IT WAS ON
+    if (localStorage.getItem('civicMicState') === 'active') {
+        setTimeout(() => toggleRealTimeMic(), 500);
+    }
+
+    // THEME FIX
+    const themeDropdownItems = document.querySelectorAll('[data-theme]');
+    themeDropdownItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const theme = this.getAttribute('data-theme');
+            setTheme(theme);
+        });
+    });
+
+    // Apply Saved Theme on Load
+    const savedTheme = localStorage.getItem('templateCustomizer-vertical-menu-template--Theme') || 'light';
+    let appliedTheme = savedTheme;
+    if(savedTheme === 'system') {
+         appliedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    applyThemeToDom(appliedTheme);
+
+    // Scroll all comment lists to bottom on load
+    document.querySelectorAll('.comments-list').forEach(list => {
+        list.scrollTop = list.scrollHeight;
+    });
+});
+
+// --- THEME HELPER ---
+function setTheme(theme) {
+    let appliedTheme = theme;
+    if(theme === 'system') {
+            appliedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    localStorage.setItem('templateCustomizer-vertical-menu-template--Theme', theme);
+    document.cookie = `admin-mode=${theme}; path=/; max-age=31536000`;
+    document.cookie = `front-mode=${theme}; path=/; max-age=31536000`;
+    applyThemeToDom(appliedTheme);
+}
+
+function applyThemeToDom(theme) {
+    document.documentElement.setAttribute('data-bs-theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+
+    if (theme === 'dark') {
+        document.documentElement.classList.add('dark-style');
+        document.documentElement.classList.remove('light-style');
+    } else {
+        document.documentElement.classList.add('light-style');
+        document.documentElement.classList.remove('dark-style');
+    }
+
+    const menu = document.getElementById('layout-menu');
+    if(menu) menu.setAttribute('data-bs-theme', theme);
+
+    const toggleLink = document.querySelector('.dropdown-style-switcher .dropdown-toggle i');
+    if(toggleLink) {
+        if(theme === 'light') toggleLink.className = 'ri-sun-line ri-22px';
+        else if(theme === 'dark') toggleLink.className = 'ri-moon-clear-line ri-22px';
+        else toggleLink.className = 'ri-computer-line ri-22px';
+    }
+}
+
+
+// --- 2. BUTTON HANDLERS (Delegated) ---
 document.addEventListener('click', async function(e) {
 
     // LIKE BUTTON
@@ -180,7 +250,7 @@ document.addEventListener('click', async function(e) {
         const postId = sumBtn.dataset.postId;
         const card = document.getElementById(`post-${postId}`);
         const container = card.querySelector('.summary-container');
-        const contentP = container.querySelector('.summary-content'); // Ensure this element exists in _post_card
+        const contentP = container.querySelector('.summary-content');
 
         if(container.style.display === 'block') {
             container.style.display = 'none';
@@ -196,7 +266,7 @@ document.addEventListener('click', async function(e) {
             });
             const data = await res.json();
             if(contentP) contentP.innerText = data.summary;
-            else container.innerText = data.summary; // Fallback if inner p missing
+            else container.innerText = data.summary;
             container.style.display = 'block';
         } catch(err) {
             alert('Summary failed.');
@@ -236,9 +306,8 @@ document.addEventListener('click', async function(e) {
     if(locBtn) {
         if(!navigator.geolocation) return alert('No GPS support.');
 
-        const originalText = locBtn.innerHTML;
         locBtn.disabled = true;
-        locBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Generating (takes ~60s)...';
+        locBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Locating...';
 
         navigator.geolocation.getCurrentPosition(async (pos) => {
             try {
@@ -250,29 +319,47 @@ document.addEventListener('click', async function(e) {
                 const data = await res.json();
 
                 if(data.status === 'success') {
-                    // INCREASED TIMEOUT: Wait 60 seconds for DALL-E to finish
-                    // In a real app, we would use Pusher to listen for "JobFinished" event
-                    // But for hackathon, a long timeout is safer than a short one.
-                    setTimeout(() => {
-                         alert("News feed generated! Reloading...");
-                         window.location.reload();
-                    }, 60000);
+                    // Wait for queue processing then reload (simulated delay)
+                    setTimeout(() => window.location.reload(), 5000);
                 }
             } catch(e) {
                 console.error('News Error:', e);
                 alert('Failed to fetch local news.');
                 locBtn.disabled = false;
-                locBtn.innerHTML = originalText;
+                locBtn.innerHTML = 'Generate Local Feed';
             }
         }, () => {
             alert('GPS Permission Denied');
             locBtn.disabled = false;
-            locBtn.innerHTML = originalText;
+            locBtn.innerHTML = 'Generate Local Feed';
         });
+    }
+
+    // CLICK EVENT DELEGATION (For Quote Clicking)
+    const blockquote = e.target.closest('.comment-text blockquote');
+    if (blockquote) {
+        const text = blockquote.innerText;
+        const parts = text.split(':');
+        if(parts.length > 1) {
+            const searchStr = parts[1].trim().substring(0, 15);
+            const postCard = blockquote.closest('.post-card');
+            const comments = postCard.querySelectorAll('.comment-text');
+
+            for (let comment of comments) {
+                if (comment === blockquote.parentElement) continue;
+                if (comment.innerText.includes(searchStr)) {
+                    comment.closest('.comment-item').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const bubble = comment.closest('.comment-bubble');
+                    bubble.classList.add('highlight-message');
+                    setTimeout(() => bubble.classList.remove('highlight-message'), 2000);
+                    break;
+                }
+            }
+        }
     }
 });
 
-// --- 2. CHAT LOGIC (Realtime + Safety) ---
+// --- 3. REAL-TIME CHAT LOGIC ---
 document.addEventListener('DOMContentLoaded', function() {
 
     // Real-time Pusher
@@ -282,6 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!postCard) return;
 
             const list = postCard.querySelector('.comments-list');
+            const countBtn = postCard.querySelector('.comment-count-btn');
 
             // Remove Ghost
             const loader = document.getElementById(`typing-${e.post_id}`);
@@ -317,6 +405,11 @@ document.addEventListener('DOMContentLoaded', function() {
             list.insertAdjacentHTML('beforeend', html);
             list.scrollTop = list.scrollHeight;
 
+            if(countBtn) {
+                let num = parseInt(countBtn.innerText.replace(/\D/g,'')) || 0;
+                countBtn.innerHTML = `<i class="ri-chat-3-line me-1"></i> ${num + 1}`;
+            }
+
             // Notification
             if (e.content.includes(`@${currentUserName}`)) showToast('Mention', `<strong>${e.user.name}</strong> mentioned you.`);
         });
@@ -336,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!content.trim()) return;
 
             const fullContent = replyContext ? `${replyContext}\n\n${content}` : content;
-            const postId = form.action.split('/').slice(-1)[0]; // Extract ID
+            const postId = form.action.split('/').slice(-1)[0];
 
             // Optimistic UI
             const tempId = Date.now();
@@ -414,8 +507,6 @@ document.addEventListener('DOMContentLoaded', function() {
             e.target.closest('form').querySelector('button[type="submit"]').click();
         }
     });
-
-    setupAutocomplete();
 });
 
 // --- HELPER FUNCTIONS ---
@@ -472,21 +563,19 @@ function toggleGlobalAudio(id, btn) {
     if(!el) return;
     const text = el.innerText;
 
-    // UPDATED: Using window.civicAudio for AI Control
-    if (window.civicAudio && !window.civicAudio.paused && globalAudioBtn === btn) {
+    if (window.civicAudio && !window.civicAudio.paused && window.globalAudioBtn === btn) {
         window.civicAudio.pause();
-        globalAudioBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
+        window.globalAudioBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
         window.civicAudio = null;
-        globalAudioBtn = null;
+        window.globalAudioBtn = null;
         return;
     }
-
     if(window.civicAudio) {
         window.civicAudio.pause();
-        if(globalAudioBtn) globalAudioBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
+        if(window.globalAudioBtn) window.globalAudioBtn.innerHTML = '<i class="ri-volume-up-line"></i>';
     }
 
-    globalAudioBtn = btn;
+    window.globalAudioBtn = btn;
     btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i>';
 
     fetch('{{ route("speech.generate") }}', {
@@ -498,17 +587,10 @@ function toggleGlobalAudio(id, btn) {
         window.civicAudio = new Audio("data:audio/mp3;base64," + data.audio);
         window.civicAudio.play();
         btn.innerHTML = '<i class="ri-stop-circle-line text-danger"></i>';
-
-        // Add class for Agent to track state
-        btn.classList.add('playing-audio');
-
         window.civicAudio.onended = () => {
             btn.innerHTML = '<i class="ri-volume-up-line"></i>';
-            btn.classList.remove('playing-audio');
             window.civicAudio = null;
-            globalAudioBtn = null;
-
-            // DISPATCH EVENT FOR AI AGENT
+            window.globalAudioBtn = null;
             document.dispatchEvent(new Event('civic-audio-ended'));
         };
     })
@@ -577,5 +659,356 @@ function setupAutocomplete() {
         if(e.target.closest('#bot-autocomplete-dropdown')) return;
         dropdown.style.display = 'none';
     });
+}
+
+// --- REAL-TIME SPEECH LOGIC ---
+let recognizer;
+let isListening = false;
+let silenceTimer;
+const SILENCE_TIMEOUT_MS = 5000;
+const MAGIC_WORDS = ["shazam", "boom", "send", "go", "submit"];
+
+async function toggleRealTimeMic(autoStart = false) {
+    const btn = document.getElementById('ai-mic-btn');
+    const status = document.getElementById('mic-status');
+    const input = document.getElementById('ai-widget-input');
+
+    if (isListening && !autoStart) {
+        stopRecognition();
+        return;
+    }
+
+    try {
+        if(btn) btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i>';
+
+        const tokenRes = await fetch('{{ route("ai.voice_token") }}');
+        const tokenData = await tokenRes.json();
+
+        if(tokenData.error) throw new Error(tokenData.error);
+
+        const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(tokenData.token, tokenData.region);
+        speechConfig.speechRecognitionLanguage = "en-US";
+        const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+
+        recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+        recognizer.recognizing = (s, e) => {
+            if(input) input.value = e.result.text;
+            if(status) status.innerText = "Listening...";
+            resetSilenceTimer();
+        };
+
+        recognizer.recognized = (s, e) => {
+            if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                let text = e.result.text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+                if(input) input.value = e.result.text;
+
+                if (MAGIC_WORDS.some(word => text.includes(word))) {
+                    sendAiCommand();
+                    if(input) input.value = '';
+                }
+                resetSilenceTimer();
+            }
+        };
+
+        recognizer.startContinuousRecognitionAsync();
+        isListening = true;
+        localStorage.setItem('civicMicState', 'active');
+
+        if(btn) {
+            btn.innerHTML = '<i class="ri-mic-line"></i>';
+            btn.classList.add('mic-active');
+        }
+        if(status) status.classList.remove('d-none');
+        if(input) input.placeholder = "Speak now...";
+
+        resetSilenceTimer();
+
+    } catch (err) {
+        console.error(err);
+        if(!autoStart) alert("Microphone error: " + err.message);
+        stopRecognition();
+    }
+}
+
+function stopRecognition() {
+    if (recognizer) {
+        recognizer.stopContinuousRecognitionAsync();
+        recognizer.close();
+        recognizer = undefined;
+    }
+    isListening = false;
+    localStorage.setItem('civicMicState', 'inactive');
+    clearTimeout(silenceTimer);
+
+    const btn = document.getElementById('ai-mic-btn');
+    const status = document.getElementById('mic-status');
+    const input = document.getElementById('ai-widget-input');
+
+    if(btn) {
+        btn.classList.remove('mic-active');
+        btn.innerHTML = '<i class="ri-mic-line"></i>';
+    }
+    if(status) status.classList.add('d-none');
+    if(input) input.placeholder = "Type or click mic...";
+}
+
+function resetSilenceTimer() {
+    clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+        const input = document.getElementById('ai-widget-input');
+        if(input && input.value.trim().length > 0) {
+            sendAiCommand();
+        }
+        stopRecognition();
+    }, SILENCE_TIMEOUT_MS);
+}
+
+// --- REST OF AI LOGIC ---
+function restoreWidgetState() {
+    const widget = document.getElementById('ai-navigator-widget');
+    const historyDiv = document.getElementById('ai-chat-history');
+    const savedState = localStorage.getItem('civicAiState');
+    const savedPos = localStorage.getItem('civicAiPos');
+    const savedHistory = localStorage.getItem('civicAiHistory');
+
+    if (savedPos) {
+        const config = JSON.parse(savedPos);
+        widget.style.top = config.top;
+        widget.style.left = config.left;
+        if (config.width) widget.style.width = config.width;
+        if (config.height) widget.style.height = config.height;
+        widget.style.bottom = 'auto';
+        widget.style.right = 'auto';
+    } else {
+        widget.style.bottom = '30px';
+        widget.style.right = '30px';
+    }
+
+    if (savedState === 'open') widget.style.display = 'flex';
+    else widget.style.display = 'none';
+
+    if (savedHistory) {
+        historyDiv.innerHTML = savedHistory;
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+    } else {
+        historyDiv.innerHTML = `<div class="d-flex justify-content-start mb-2"><div class="bg-label-primary p-2 rounded" style="max-width: 85%; font-size: 0.85rem;"><strong>I'm ready!</strong><br>Click the Mic or type to start navigating.</div></div>`;
+    }
+}
+
+function saveChatHistory() {
+    const historyDiv = document.getElementById('ai-chat-history');
+    localStorage.setItem('civicAiHistory', historyDiv.innerHTML);
+}
+
+function saveWidgetState(el) {
+    localStorage.setItem('civicAiPos', JSON.stringify({
+        top: el.style.top,
+        left: el.style.left,
+        width: el.style.width,
+        height: el.style.height
+    }));
+}
+
+function toggleAiWidget() {
+    const widget = document.getElementById('ai-navigator-widget');
+    if (widget.style.display === 'none') {
+        widget.style.display = 'flex';
+        widget.classList.add('animate__animated', 'animate__fadeInUp');
+        localStorage.setItem('civicAiState', 'open');
+        setTimeout(() => document.getElementById('ai-widget-input').focus(), 100);
+    } else {
+        widget.style.display = 'none';
+        localStorage.setItem('civicAiState', 'closed');
+    }
+}
+
+function handleAiEnter(e) { if (e.key === 'Enter') sendAiCommand(); }
+
+function sendAiCommand() {
+    const input = document.getElementById('ai-widget-input');
+    const history = document.getElementById('ai-chat-history');
+    const command = input.value.trim();
+
+    if (!command) return;
+
+    history.innerHTML += `<div class="d-flex justify-content-end mb-2"><div class="bg-primary text-white p-2 rounded text-wrap text-end" style="max-width: 85%; font-size: 0.85rem;">${command}</div></div>`;
+    input.value = '';
+    history.scrollTop = history.scrollHeight;
+    saveChatHistory();
+
+    const loadingId = 'ai-loading-' + Date.now();
+    history.innerHTML += `<div id="${loadingId}" class="d-flex justify-content-start mb-2"><div class="bg-label-secondary p-2 rounded" style="max-width: 85%; font-size: 0.85rem;"><i class="ri-loader-4-line ri-spin"></i> Thinking...</div></div>`;
+    history.scrollTop = history.scrollHeight;
+
+    fetch('{{ route("ai.navigate") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ command: command })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById(loadingId).remove();
+
+        if (data.action === 'clear_chat') {
+            localStorage.removeItem('civicAiHistory');
+            history.innerHTML = `<div class="d-flex justify-content-start mb-2"><div class="bg-label-primary p-2 rounded" style="max-width: 85%; font-size: 0.85rem;">${data.message}</div></div>`;
+        }
+        else if (data.action === 'redirect') {
+            addBotMessage(data.message);
+            setTimeout(() => { window.location.assign(data.target); }, 800);
+        }
+        else if (data.action === 'tool') {
+            addBotMessage(data.message);
+            executeTool(data);
+        }
+        else {
+            addBotMessage(data.message);
+        }
+        saveChatHistory();
+    })
+    .catch(err => {
+        document.getElementById(loadingId)?.remove();
+        addBotMessage("Error connecting to AI.");
+    });
+}
+
+function addBotMessage(msg) {
+    const history = document.getElementById('ai-chat-history');
+    history.innerHTML += `<div class="d-flex justify-content-start mb-2"><div class="bg-label-primary p-2 rounded" style="max-width: 85%; font-size: 0.85rem;">${msg}</div></div>`;
+    history.scrollTop = history.scrollHeight;
+    saveChatHistory();
+}
+
+function executeTool(data) {
+    if (data.tool_type === 'set_value') {
+        const el = document.querySelector(data.selector);
+        if(el) {
+            el.scrollIntoView({behavior: "smooth", block: "center"});
+            el.style.border = "2px solid #696cff";
+            setTimeout(() => {
+                el.value = data.value;
+                el.dispatchEvent(new Event('change'));
+                el.style.border = "";
+            }, 800);
+        } else { addBotMessage("Element not found."); }
+    }
+    else if (data.tool_type === 'sequence') {
+        const els = document.querySelectorAll(data.selector);
+        if(els.length > 0) playSequence(Array.from(els));
+        else addBotMessage("Nothing to read.");
+    }
+    else if (data.tool_type === 'click_match') {
+        const containers = document.querySelectorAll(data.container_selector);
+        let found = false;
+        containers.forEach(container => {
+            if(container.innerText.toLowerCase().includes(data.target_text.toLowerCase())) {
+                const btn = container.querySelector(data.trigger_selector);
+                if(btn) {
+                    btn.scrollIntoView({behavior: "smooth", block: "center"});
+                    container.style.border = "2px solid #696cff";
+                    setTimeout(() => { container.style.border = ""; btn.click(); }, 1000);
+                    found = true;
+                }
+            }
+        });
+        if(!found) addBotMessage("Could not find '" + data.target_text + "'.");
+    }
+    else if (data.tool_type === 'click_index') {
+        const els = document.querySelectorAll(data.selector);
+        const idx = parseInt(data.index) - 1;
+        if(els[idx]) {
+            els[idx].scrollIntoView({behavior: "smooth", block: "center"});
+            setTimeout(() => els[idx].click(), 500);
+        } else { addBotMessage("Item not found."); }
+    }
+    else if (data.tool_type === 'click') {
+        const el = document.querySelector(data.selector);
+        if(el) {
+            el.scrollIntoView({behavior: "smooth", block: "center"});
+            setTimeout(() => el.click(), 500);
+        } else { addBotMessage("Button not found."); }
+    }
+    else if (data.tool_type === 'click_last_dropdown') {
+        const els = document.querySelectorAll(data.selector);
+        if(els.length > 0) {
+            const el = els[0];
+            const dropdown = el.closest('.dropdown');
+            if(dropdown) {
+                const toggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                if(toggle) toggle.click();
+            }
+            setTimeout(() => el.click(), 300);
+        } else { addBotMessage("Button not found."); }
+    }
+}
+
+function playSequence(elements) {
+    if(elements.length === 0) return;
+    const currentBtn = elements.shift();
+    currentBtn.scrollIntoView({behavior: "smooth", block: "center"});
+    currentBtn.click();
+
+    const onEnd = () => {
+        document.removeEventListener('civic-audio-ended', onEnd);
+        setTimeout(() => playSequence(elements), 1000);
+    };
+    document.addEventListener('civic-audio-ended', onEnd);
+}
+
+function makeDraggable(elmnt) {
+    let pos1=0, pos2=0, pos3=0, pos4=0;
+    const header = document.getElementById("ai-widget-header");
+    if(header) header.onmousedown = dragMouseDown;
+
+    function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+        header.style.cursor = 'grabbing';
+    }
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        elmnt.style.bottom = 'auto';
+        elmnt.style.right = 'auto';
+    }
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+        header.style.cursor = 'grab';
+        saveWidgetState(elmnt);
+    }
+}
+
+function makeResizable(elmnt) {
+    const resizer = document.getElementById("ai-widget-resize");
+    if(!resizer) return;
+    resizer.addEventListener('mousedown', initResize, false);
+    function initResize(e) {
+        window.addEventListener('mousemove', Resize, false);
+        window.addEventListener('mouseup', stopResize, false);
+    }
+    function Resize(e) {
+        elmnt.style.width = (e.clientX - elmnt.offsetLeft) + 'px';
+        elmnt.style.height = (e.clientY - elmnt.offsetTop) + 'px';
+    }
+    function stopResize(e) {
+        window.removeEventListener('mousemove', Resize, false);
+        window.removeEventListener('mouseup', stopResize, false);
+        saveWidgetState(elmnt);
+    }
 }
 </script>
