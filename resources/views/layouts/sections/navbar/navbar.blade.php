@@ -185,9 +185,10 @@ document.addEventListener('DOMContentLoaded', function() {
     makeResizable(document.getElementById("ai-navigator-widget"));
 
     // AUTO-RESUME MIC IF IT WAS ON
+    // We add a small delay to ensure the DOM and SDK are ready
     if (localStorage.getItem('civicMicState') === 'active') {
-        // Slight delay to ensure page load
-        setTimeout(() => toggleRealTimeMic(), 500);
+        console.log("Resuming microphone...");
+        setTimeout(() => toggleRealTimeMic(true), 800);
     }
 });
 
@@ -200,19 +201,20 @@ let silenceTimer;
 const SILENCE_TIMEOUT_MS = 5000;
 const MAGIC_WORDS = ["shazam", "boom", "send", "go", "submit"];
 
-async function toggleRealTimeMic() {
+// Updated toggle function accepts 'autoStart' param to bypass toggle logic
+async function toggleRealTimeMic(autoStart = false) {
     const btn = document.getElementById('ai-mic-btn');
     const status = document.getElementById('mic-status');
     const input = document.getElementById('ai-widget-input');
 
-    if (isListening) {
+    if (isListening && !autoStart) {
         // Manual Stop
         stopRecognition();
         return;
     }
 
     try {
-        btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i>';
+        if(btn) btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i>';
 
         // 1. Get Token
         const tokenRes = await fetch('{{ route("ai.voice_token") }}');
@@ -229,8 +231,8 @@ async function toggleRealTimeMic() {
 
         // 3. Event: Recognizing (Updates text while speaking)
         recognizer.recognizing = (s, e) => {
-            input.value = e.result.text;
-            status.innerText = "Listening...";
+            if(input) input.value = e.result.text;
+            if(status) status.innerText = "Listening...";
             resetSilenceTimer(); // Speaking -> Reset timer
         };
 
@@ -238,14 +240,12 @@ async function toggleRealTimeMic() {
         recognizer.recognized = (s, e) => {
             if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                 let text = e.result.text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-                input.value = e.result.text;
+                if(input) input.value = e.result.text;
 
                 if (MAGIC_WORDS.some(word => text.includes(word))) {
                     // Magic Word -> Send immediately but KEEP LISTENING (Continuous)
-                    // Or stop? User asked to "turn off mic" logic implies we should stay on until silence.
-                    // Let's send but keep mic active.
                     sendAiCommand();
-                    input.value = ''; // Clear for next command
+                    if(input) input.value = ''; // Clear for next command
                 }
 
                 // Reset silence timer
@@ -259,10 +259,12 @@ async function toggleRealTimeMic() {
         localStorage.setItem('civicMicState', 'active'); // PERSIST STATE
 
         // UI Updates
-        btn.innerHTML = '<i class="ri-mic-line"></i>';
-        btn.classList.add('mic-active');
-        status.classList.remove('d-none');
-        input.placeholder = "Speak now...";
+        if(btn) {
+            btn.innerHTML = '<i class="ri-mic-line"></i>';
+            btn.classList.add('mic-active');
+        }
+        if(status) status.classList.remove('d-none');
+        if(input) input.placeholder = "Speak now...";
 
         // Start the silence countdown immediately in case they don't speak
         resetSilenceTimer();
@@ -270,7 +272,7 @@ async function toggleRealTimeMic() {
     } catch (err) {
         console.error(err);
         // Only alert if user explicitly clicked, not on auto-resume
-        if(localStorage.getItem('civicMicState') !== 'active') {
+        if(!autoStart) {
              alert("Microphone error: " + err.message);
         }
         stopRecognition();
@@ -307,7 +309,7 @@ function resetSilenceTimer() {
 
         const input = document.getElementById('ai-widget-input');
         // Only send if there is text
-        if(input.value.trim().length > 0) {
+        if(input && input.value.trim().length > 0) {
             sendAiCommand();
         }
         stopRecognition(); // Auto-stop after silence
@@ -315,7 +317,7 @@ function resetSilenceTimer() {
     }, SILENCE_TIMEOUT_MS);
 }
 
-// --- STANDARD AI LOGIC (Unchanged) ---
+// --- REST OF THE AI LOGIC (Unchanged) ---
 function restoreWidgetState() {
     const widget = document.getElementById('ai-navigator-widget');
     const historyDiv = document.getElementById('ai-chat-history');
@@ -391,8 +393,6 @@ function sendAiCommand() {
     const loadingId = 'ai-loading-' + Date.now();
     history.innerHTML += `<div id="${loadingId}" class="d-flex justify-content-start mb-2"><div class="bg-label-secondary p-2 rounded" style="max-width: 85%; font-size: 0.85rem;"><i class="ri-loader-4-line ri-spin"></i> Thinking...</div></div>`;
     history.scrollTop = history.scrollHeight;
-
-    // Note: Don't stop recording here anymore to allow continuous flow until silence
 
     fetch('{{ route("ai.navigate") }}', {
         method: 'POST',
