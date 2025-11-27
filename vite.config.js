@@ -4,6 +4,7 @@ import html from '@rollup/plugin-html';
 import { glob } from 'glob';
 import path from 'path';
 import iconsPlugin from './vite.icons.plugin.js';
+import { VitePWA } from 'vite-plugin-pwa'; // <--- Import is good
 
 /**
  * Get Files from a directory
@@ -11,32 +12,20 @@ import iconsPlugin from './vite.icons.plugin.js';
  * @returns array
  */
 function GetFilesArray(query) {
-  // Use windowsPathsNoEscape to prevent glob issues on Windows
   return glob.sync(query, { windowsPathsNoEscape: true });
 }
 
 // Page JS Files
 const pageJsFiles = GetFilesArray('resources/assets/js/*.js');
-
-// Processing Vendor JS Files
 const vendorJsFiles = GetFilesArray('resources/assets/vendor/js/*.js');
-
-// Processing Libs JS Files
 const LibsJsFiles = GetFilesArray('resources/assets/vendor/libs/**/*.js');
-
-// Processing Libs Scss & Css Files
 const LibsScssFiles = GetFilesArray('resources/assets/vendor/libs/**/!(_)*.scss');
 const LibsCssFiles = GetFilesArray('resources/assets/vendor/libs/**/*.css');
-
-// Processing Core, Themes & Pages Scss Files
 const CoreScssFiles = GetFilesArray('resources/assets/vendor/scss/**/!(_)*.scss');
-
-// Processing Fonts Scss & JS Files
 const FontsScssFiles = GetFilesArray('resources/assets/vendor/fonts/!(_)*.scss');
 const FontsJsFiles = GetFilesArray('resources/assets/vendor/fonts/**/!(_)*.js');
 const FontsCssFiles = GetFilesArray('resources/assets/vendor/fonts/**/!(_)*.css');
 
-// Processing Window Assignment for Libs like jKanban, pdfMake
 function libsWindowAssignment() {
   return {
     name: 'libsWindowAssignment',
@@ -54,7 +43,6 @@ export default defineConfig({
   plugins: [
     laravel({
       input: [
-        // --- Explicitly List Core Assets (Excluding missing theme file) ---
         'resources/assets/vendor/scss/core.scss',
         'resources/assets/css/demo.css',
         'resources/assets/vendor/libs/node-waves/node-waves.scss',
@@ -62,8 +50,6 @@ export default defineConfig({
         'resources/assets/vendor/libs/typeahead-js/typeahead.scss',
         'resources/css/app.css',
         'resources/js/app.js',
-        // ------------------------------------------------------------------
-
         ...pageJsFiles,
         ...vendorJsFiles,
         ...LibsJsFiles,
@@ -79,7 +65,43 @@ export default defineConfig({
     }),
     html(),
     libsWindowAssignment(),
-    iconsPlugin()
+    iconsPlugin(),
+
+    // --- YOU WERE MISSING THIS BLOCK BELOW ---
+    VitePWA({
+      registerType: 'autoUpdate',
+      outDir: 'public',
+      buildBase: '/',
+      scope: '/',
+      workbox: {
+        cleanupOutdatedCaches: true,
+        directoryIndex: null,
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        navigateFallback: null
+      },
+      manifest: {
+        name: 'Civic Utopia',
+        short_name: 'CivicUtopia',
+        description: 'A platform for civic engagement',
+        theme_color: '#666cff',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/',
+        icons: [
+          {
+            src: '/assets/img/pwa/icon-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/assets/img/pwa/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
+      }
+    })
+    // ----------------------------------------
   ],
   resolve: {
     alias: {

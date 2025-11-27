@@ -9,6 +9,11 @@ $configData = Helper::appClasses();
 <html lang="{{ session()->get('locale') ?? app()->getLocale() }}" class="light-style layout-navbar-fixed layout-menu-fixed {{ $configData['theme'] }}" dir="{{ $configData['textDirection'] }}" data-theme="{{ $configData['theme'] }}" data-assets-path="{{ asset('/assets/') . '/' }}" data-base-url="{{url('/')}}" data-framework="laravel" data-template="vertical-menu-laravel-template-starter">
 
 <head>
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#666cff" />
+  <link rel="apple-touch-icon" href="/assets/img/pwa/apple-touch-icon.png">
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
@@ -21,10 +26,6 @@ $configData = Helper::appClasses();
 
   {{-- Include Styles --}}
   @include('layouts/sections/styles')
-
-  {{--! START: ADDED FOR ICONS --}}
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
-  {{--! END: ADDED FOR ICONS --}}
 
   {{--! START: ADDED FOR ICONS --}}
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
