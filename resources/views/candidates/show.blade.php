@@ -3,6 +3,7 @@
 @section('title', $candidate->name)
 
 @section('content')
+@include('_partials.ai-disclaimer')
 <div class="container-xxl flex-grow-1 container-p-y position-relative">
     <!-- HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -305,6 +306,7 @@ function translateProfile(lang) {
         document.body.style.cursor = 'default';
     });
 }
+
 
 // --- CHAT LOGIC ---
 function handleEnter(e) { if (e.key === 'Enter') sendQuestion(); }
