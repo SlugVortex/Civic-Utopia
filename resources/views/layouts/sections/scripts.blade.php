@@ -139,80 +139,121 @@ let globalAudioBtn = null;
 let currentUserName = "{{ auth()->check() ? auth()->user()->name : 'Guest' }}";
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
-// --- 1. INITIALIZATION & EVENT DELEGATION ---
 document.addEventListener('DOMContentLoaded', function() {
+    // 1. Restore AI Widget State
     restoreWidgetState();
     makeDraggable(document.getElementById("ai-navigator-widget"));
     makeResizable(document.getElementById("ai-navigator-widget"));
     setupAutocomplete();
 
-    // AUTO-RESUME MIC IF IT WAS ON
+    // 2. Auto-Resume Mic
     if (localStorage.getItem('civicMicState') === 'active') {
         setTimeout(() => toggleRealTimeMic(), 500);
     }
 
-    // THEME FIX
-    const themeDropdownItems = document.querySelectorAll('[data-theme]');
-    themeDropdownItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const theme = this.getAttribute('data-theme');
-            setTheme(theme);
-        });
-    });
-
-    // Apply Saved Theme on Load
+    // 3. Force Apply Saved Theme on Load
     const savedTheme = localStorage.getItem('templateCustomizer-vertical-menu-template--Theme') || 'light';
-    let appliedTheme = savedTheme;
-    if(savedTheme === 'system') {
-         appliedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    applyThemeToDom(appliedTheme);
+    applyThemeToDom(savedTheme);
 
-    // Scroll all comment lists to bottom on load
+    // 4. Scroll Chat Lists
     document.querySelectorAll('.comments-list').forEach(list => {
         list.scrollTop = list.scrollHeight;
     });
 });
 
-// --- THEME HELPER ---
+
 function setTheme(theme) {
+    // 1. Determine actual visual style (Dark vs Light)
     let appliedTheme = theme;
     if(theme === 'system') {
-            appliedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        appliedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
+
+    // 2. Save Preference everywhere
     localStorage.setItem('templateCustomizer-vertical-menu-template--Theme', theme);
+    // Set cookies for Laravel backend
     document.cookie = `admin-mode=${theme}; path=/; max-age=31536000`;
     document.cookie = `front-mode=${theme}; path=/; max-age=31536000`;
-    applyThemeToDom(appliedTheme);
+
+    // 3. Apply to DOM
+    applyThemeToDom(theme, appliedTheme);
 }
 
-function applyThemeToDom(theme) {
-    document.documentElement.setAttribute('data-bs-theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
-
-    if (theme === 'dark') {
-        document.documentElement.classList.add('dark-style');
-        document.documentElement.classList.remove('light-style');
-    } else {
-        document.documentElement.classList.add('light-style');
-        document.documentElement.classList.remove('dark-style');
+function applyThemeToDom(setting, resolvedTheme = null) {
+    if (!resolvedTheme) {
+        resolvedTheme = setting;
+        if (setting === 'system') {
+            resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
     }
 
-    const menu = document.getElementById('layout-menu');
-    if(menu) menu.setAttribute('data-bs-theme', theme);
+    const html = document.documentElement;
 
+    // Force ALL attributes used by various template versions
+    html.setAttribute('data-bs-theme', resolvedTheme);
+    html.setAttribute('data-theme', resolvedTheme);
+    html.setAttribute('data-style', resolvedTheme);
+
+    // Force Classes
+    if (resolvedTheme === 'dark') {
+        html.classList.add('dark-style');
+        html.classList.remove('light-style');
+    } else {
+        html.classList.add('light-style');
+        html.classList.remove('dark-style');
+    }
+
+    // Update Sidebar specifically (often needed)
+    const menu = document.getElementById('layout-menu');
+    if(menu) menu.setAttribute('data-bs-theme', resolvedTheme);
+
+    // Update Navbar Icon
     const toggleLink = document.querySelector('.dropdown-style-switcher .dropdown-toggle i');
     if(toggleLink) {
-        if(theme === 'light') toggleLink.className = 'ri-sun-line ri-22px';
-        else if(theme === 'dark') toggleLink.className = 'ri-moon-clear-line ri-22px';
-        else toggleLink.className = 'ri-computer-line ri-22px';
+        // Remove old icons
+        toggleLink.classList.remove('ri-sun-line', 'ri-moon-clear-line', 'ri-computer-line');
+
+        // Add new icon
+        if(setting === 'light') toggleLink.classList.add('ri-sun-line');
+        else if(setting === 'dark') toggleLink.classList.add('ri-moon-clear-line');
+        else toggleLink.classList.add('ri-computer-line');
     }
+
+    // Update Active State in Dropdown
+    document.querySelectorAll('[data-theme]').forEach(el => {
+        el.classList.remove('active');
+        if(el.getAttribute('data-theme') === setting) {
+            el.classList.add('active');
+        }
+    });
 }
+
+// Use Event Delegation to catch clicks on the theme dropdown items reliably
+document.addEventListener('click', function(e) {
+    // Check if clicked element is a theme switcher item (or child of one)
+    const themeItem = e.target.closest('[data-theme]');
+
+    if (themeItem) {
+        e.preventDefault();
+        const theme = themeItem.getAttribute('data-theme');
+        console.log("Theme switch requested:", theme); // Debug Log
+        setTheme(theme);
+    }
+});
 
 
 // --- 2. BUTTON HANDLERS (Delegated) ---
 document.addEventListener('click', async function(e) {
+
+// Check if clicked element is a theme switcher item (or child of one)
+    const themeItem = e.target.closest('[data-theme]');
+
+    if (themeItem) {
+        e.preventDefault();
+        const theme = themeItem.getAttribute('data-theme');
+        console.log("Theme switch requested:", theme); // Debug Log
+        setTheme(theme);
+    }
 
     // LIKE BUTTON
     const likeBtn = e.target.closest('.btn-like');
@@ -356,6 +397,8 @@ document.addEventListener('click', async function(e) {
                 }
             }
         }
+
+
     }
 });
 

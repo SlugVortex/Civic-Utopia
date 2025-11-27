@@ -28,3 +28,11 @@
 <!-- Page Styles -->
 @yield('page-style')yield('page-style')yield('page-style')
 
+<!-- CUSTOM CSS: Hide the Template Customizer Gear Icon -->
+<style>
+    .template-customizer-open-btn {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+</style>

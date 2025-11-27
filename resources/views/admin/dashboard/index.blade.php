@@ -2,7 +2,6 @@
 
 @section('title', 'Admin Command Center')
 
-{{-- Use ApexCharts (Matches your theme) --}}
 @section('vendor-script')
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 @endsection
@@ -17,6 +16,10 @@
         <span class="badge bg-label-primary">{{ now()->format('l, F j, Y') }}</span>
     </div>
 
+    @if(session('success'))
+        <div class="alert alert-success mb-4">{{ session('success') }}</div>
+    @endif
+
     <!-- AI Insights Row -->
     <div class="row mb-4">
         <div class="col-12">
@@ -28,12 +31,12 @@
                         </div>
                         <div class="flex-grow-1">
                             <h5 class="card-title text-white mb-1">AI Community Analysis</h5>
-                            <p class="mb-2 opacity-75">Automated insights based on the last 50 user posts.</p>
+                            <p class="mb-2 opacity-75">Automated insights based on recent user activity.</p>
 
                             <div class="d-flex gap-4 mt-3 flex-wrap">
                                 <div class="bg-white bg-opacity-25 rounded p-2 px-3">
                                     <small class="d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Sentiment</small>
-                                    <span class="fs-5">{{ $aiAnalysis['sentiment'] ?? 'Analyzing...' }}</span>
+                                    <span class="fs-5">{{ $aiAnalysis['sentiment'] ?? 'N/A' }}</span>
                                 </div>
                                 <div class="bg-white bg-opacity-25 rounded p-2 px-3 flex-grow-1">
                                     <small class="d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Top Concerns</small>
@@ -42,7 +45,7 @@
                                             <span class="badge bg-white text-primary me-1">{{ $concern }}</span>
                                         @endforeach
                                     @else
-                                        <span>No sufficient data available yet.</span>
+                                        <span>Gathering data...</span>
                                     @endif
                                 </div>
                             </div>
@@ -118,7 +121,6 @@
                     <h5 class="card-title mb-0">Engagement Activity (Last 7 Days)</h5>
                 </div>
                 <div class="card-body">
-                    {{-- ApexChart Container --}}
                     <div id="activityChart"></div>
                 </div>
             </div>
@@ -129,7 +131,6 @@
                     <h5 class="card-title mb-0">Topic Distribution</h5>
                 </div>
                 <div class="card-body">
-                    {{-- ApexChart Container --}}
                     <div id="topicChart"></div>
                 </div>
             </div>
@@ -141,7 +142,7 @@
         <div class="col-md-6 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Community Polls</h5>
+                    <h5 class="card-title mb-0">Active Community Polls</h5>
                     <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createPollModal">
                         <i class="ri-add-line me-1"></i> New Poll
                     </button>
@@ -156,8 +157,8 @@
                             <div class="mt-2">
                                 @foreach($poll->options as $option)
                                     @php
-                                        $totalVotes = $poll->votes->count();
-                                        $optionVotes = $option->votes->count();
+                                        $totalVotes = $poll->votes ? $poll->votes->count() : 0;
+                                        $optionVotes = $option->votes ? $option->votes->count() : 0;
                                         $percent = $totalVotes > 0 ? round(($optionVotes / $totalVotes) * 100) : 0;
                                     @endphp
                                     <div class="mb-2">
@@ -175,7 +176,7 @@
                     @empty
                         <div class="text-center text-muted py-5">
                             <i class="ri-bar-chart-2-line ri-3x mb-2"></i>
-                            <p>No active polls. Create one to engage users.</p>
+                            <p>No active polls.</p>
                         </div>
                     @endforelse
                 </div>
@@ -186,7 +187,7 @@
         <div class="col-md-6 mb-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Pending User Suggestions</h5>
+                    <h5 class="card-title mb-0">Pending Suggestions</h5>
                 </div>
                 <div class="table-responsive text-nowrap">
                     <table class="table table-hover">
@@ -194,7 +195,6 @@
                             <tr>
                                 <th>User</th>
                                 <th>Suggestion</th>
-                                <th class="text-center">Votes</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -203,35 +203,27 @@
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xs me-2">
-                                            <img src="{{ $suggestion->user->profile_photo_url ?? asset('assets/img/avatars/1.png') }}" class="rounded-circle">
-                                        </div>
-                                        <small>{{ $suggestion->user->name }}</small>
+                                        <small class="fw-bold">{{ $suggestion->user->name }}</small>
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="fw-bold d-block text-truncate" style="max-width: 150px;">{{ $suggestion->title }}</span>
-                                    <small class="text-muted text-truncate d-block" style="max-width: 150px;">{{ $suggestion->description }}</small>
+                                    <span class="d-block text-truncate" style="max-width: 200px;" title="{{ $suggestion->title }}">{{ $suggestion->title }}</span>
                                 </td>
-                                <td class="text-center"><span class="badge bg-label-secondary">{{ $suggestion->votes->count() }}</span></td>
                                 <td>
                                     <div class="d-flex gap-1">
-                                        {{-- APPROVE --}}
                                         <form action="{{ route('admin.suggestions.update', $suggestion->id) }}" method="POST">
                                             @csrf @method('PATCH')
                                             <input type="hidden" name="status" value="approved">
-                                            <button class="btn btn-sm btn-icon btn-success" title="Approve/Show"><i class="ri-check-line"></i></button>
+                                            <button class="btn btn-sm btn-icon btn-success" title="Approve"><i class="ri-check-line"></i></button>
                                         </form>
 
-                                        {{-- REJECT (Hide) --}}
                                         <form action="{{ route('admin.suggestions.update', $suggestion->id) }}" method="POST">
                                             @csrf @method('PATCH')
                                             <input type="hidden" name="status" value="rejected">
-                                            <button class="btn btn-sm btn-icon btn-warning" title="Reject/Hide"><i class="ri-close-line"></i></button>
+                                            <button class="btn btn-sm btn-icon btn-warning" title="Reject"><i class="ri-close-line"></i></button>
                                         </form>
 
-                                        {{-- DELETE (Permanently Remove) --}}
-                                        <form action="{{ route('admin.suggestions.destroy', $suggestion->id) }}" method="POST" onsubmit="return confirm('Delete this suggestion permanently?');">
+                                        <form action="{{ route('admin.suggestions.destroy', $suggestion->id) }}" method="POST" onsubmit="return confirm('Delete permanently?');">
                                             @csrf @method('DELETE')
                                             <button class="btn btn-sm btn-icon btn-danger" title="Delete"><i class="ri-delete-bin-line"></i></button>
                                         </form>
@@ -240,9 +232,8 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-5">
-                                    <i class="ri-lightbulb-line ri-3x mb-2"></i>
-                                    <p>No pending suggestions.</p>
+                                <td colspan="3" class="text-center text-muted py-5">
+                                    <p class="mb-0">No pending suggestions.</p>
                                 </td>
                             </tr>
                             @endforelse
@@ -274,7 +265,7 @@
                         <input type="text" name="options[]" class="form-control mb-2" placeholder="Option 1" required>
                         <input type="text" name="options[]" class="form-control mb-2" placeholder="Option 2" required>
                     </div>
-                    <button type="button" class="btn btn-xs btn-outline-primary" onclick="addPollOption()">+ Add Another Option</button>
+                    <button type="button" class="btn btn-xs btn-outline-primary" onclick="addPollOption()">+ Add Option</button>
                 </div>
             </div>
             <div class="modal-footer">
@@ -287,7 +278,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Dynamic Poll Options
+    // Poll Option Logic
     window.addPollOption = function() {
         const container = document.getElementById('poll-options-container');
         const count = container.querySelectorAll('input').length + 1;
@@ -300,83 +291,46 @@ document.addEventListener('DOMContentLoaded', function() {
         input.focus();
     }
 
-    // 2. ApexCharts Implementation (Fixes Blank Charts)
+    // ApexCharts Logic
     const cardColor = '#fff';
     const headingColor = '#566a7f';
     const labelColor = '#a1acb8';
     const borderColor = '#eceef1';
 
-    // Activity Chart (Line)
-    const activityChartEl = document.querySelector('#activityChart');
-    if(activityChartEl) {
-        const activityConfig = {
-            chart: {
-                height: 300,
-                type: 'area',
-                toolbar: { show: false }
-            },
+    // Activity Chart
+    const activityEl = document.querySelector('#activityChart');
+    const activityData = @json($chartData); // Uses safer Blade JSON directive
+
+    if(activityEl && activityData.data.length > 0) {
+        const config = {
+            chart: { height: 300, type: 'area', toolbar: { show: false } },
             dataLabels: { enabled: false },
             stroke: { curve: 'smooth', width: 2 },
-            series: [{
-                name: 'New Posts',
-                data: {!! json_encode($chartData['data']) !!}
-            }],
-            xaxis: {
-                categories: {!! json_encode($chartData['labels']) !!},
-                axisBorder: { show: false },
-                axisTicks: { show: false },
-                labels: { style: { colors: labelColor, fontSize: '13px' } }
-            },
-            yaxis: {
-                labels: { style: { colors: labelColor, fontSize: '13px' } }
-            },
-            grid: { borderColor: borderColor },
+            series: [{ name: 'Posts', data: activityData.data }],
+            xaxis: { categories: activityData.labels, labels: { style: { colors: labelColor } } },
             colors: ['#696cff'],
-            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.9, stops: [0, 90, 100] } }
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.7, opacityTo: 0.2 } }
         };
-        new ApexCharts(activityChartEl, activityConfig).render();
+        new ApexCharts(activityEl, config).render();
+    } else if(activityEl) {
+        activityEl.innerHTML = '<p class="text-center text-muted py-5">Not enough data to display chart.</p>';
     }
 
-    // Topic Chart (Donut)
-    const topicChartEl = document.querySelector('#topicChart');
-    if(topicChartEl) {
-        const topicData = {!! json_encode($topicDistribution) !!};
-        const topicConfig = {
+    // Topic Chart
+    const topicEl = document.querySelector('#topicChart');
+    const topicData = @json($topicDistribution);
+
+    if(topicEl && topicData.length > 0) {
+        const config = {
             chart: { height: 300, type: 'donut' },
             labels: topicData.map(t => t.name),
             series: topicData.map(t => t.count),
             colors: ['#696cff', '#71dd37', '#03c3ec', '#8592a3', '#ff3e1d'],
-            stroke: { show: false, curve: 'straight' },
-            dataLabels: {
-                enabled: true,
-                formatter: function (val) { return parseInt(val) + '%'; }
-            },
-            legend: {
-                show: true,
-                position: 'bottom',
-                markers: { offsetX: -3 },
-                itemMargin: { vertical: 3, horizontal: 10 }
-            },
-            plotOptions: {
-                pie: {
-                    donut: {
-                        labels: {
-                            show: true,
-                            name: { fontSize: '1.5rem', fontFamily: 'Public Sans' },
-                            value: { fontSize: '1rem', fontFamily: 'Public Sans', color: headingColor },
-                            total: {
-                                show: true,
-                                fontSize: '0.9rem',
-                                color: labelColor,
-                                label: 'Topics',
-                                formatter: function (w) { return topicData.length; }
-                            }
-                        }
-                    }
-                }
-            }
+            legend: { position: 'bottom' }
         };
-        new ApexCharts(topicChartEl, topicConfig).render();
+        new ApexCharts(topicEl, config).render();
+    } else if(topicEl) {
+        topicEl.innerHTML = '<p class="text-center text-muted py-5">No topics created yet.</p>';
     }
 });
 </script>
