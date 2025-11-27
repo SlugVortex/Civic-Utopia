@@ -3,6 +3,7 @@
 @section('title', $document->title)
 
 @section('content')
+@include('_partials.ai-disclaimer')
 <style>
     /* === CUSTOM STYLES FOR DOCUMENT VIEWER === */
 

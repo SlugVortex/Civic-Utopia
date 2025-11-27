@@ -3,6 +3,7 @@
 @section('title', $ballot->title)
 
 @section('content')
+@include('_partials.ai-disclaimer')
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">
