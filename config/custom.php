@@ -24,6 +24,7 @@ return [
   'contentWidth' => 'compact', // compact, fluid
   'showMenu' => true,
   'hasCustomizer' => true,
+  'displayCustomizer' => true,
   'customizerStyle' => 'light',
   'isCardShadow' => true,
   'isRippleEffect' => true,
