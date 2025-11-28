@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://chatgpt.com/backend-api/estuary/content?id=file_00000000f8a071f5903b99955816e513&ts=490034&p=fs&cid=1&sig=2920864cd33754db5b7f74ff4d87e4de80a5baf3b373e6ccb865bee82f73b5f1&v=0" alt="CivicUtopia Banner" width="100%">
+  <img src="https://i.ibb.co/C3yq1V3F/civic-chat-banner.png" alt="CivicUtopia Banner" width="100%">
 </div>
 
 # 🏛️ CivicUtopia: The AI-Powered "Digital Town Square" 🗳️
@@ -88,10 +88,8 @@ A location-aware news feed that creates a daily briefing based on where the user
 ## 🏛️ System Architecture
 
 <div align="center">
-  <img src="https://i.ibb.co/d471gPpJ/sys-arch-artemis.png" alt="CivicUtopia Architecture" width="800"/>
+  <img src="https://i.ibb.co/qYDQphn1/utopia-1.jpg" alt="CivicUtopia Architecture" width="800"/>
 </div>
-
-*(Note: You may want to update this image link with a diagram specific to CivicUtopia later)*
 
 ---
 
@@ -167,18 +165,43 @@ A location-aware news feed that creates a daily briefing based on where the user
 
 ## 📸 Project Screenshots
 
-*(Add your screenshots here)*
+### Main Dashboard (Wildfire Officer)
+<div align="center">
+  <img src="https://i.ibb.co/B5K2Fd6r/dashboard.png" alt="Main Dashboard" width="800"/>
+</div>
 
-| Digital Town Square | The AI Council |
-|:---:|:---:|
-| <img src="https://via.placeholder.com/400x200?text=Feed" width="100%"> | <img src="https://via.placeholder.com/400x200?text=Chat" width="100%"> |
+### Dashboard Showcase
 
-| Civic Lens Reporter | Candidate Compass |
-|:---:|:---:|
-| <img src="https://via.placeholder.com/400x200?text=Lens" width="100%"> | <img src="https://via.placeholder.com/400x200?text=Candidates" width="100%"> |
+<table>
+  <tr>
+    <td width="50%">
+      <img src="https://i.ibb.co/0jTy5Z5H/image.png" alt="Historical Fire Dashboard" width="100%"/>
+      <p align="center"><strong>Values Interview</strong></p>
+    </td>
+    <td width="50%">
+      <img src="https://i.ibb.co/SXsXh52X/image.png" alt="User Safety Dashboard" width="100%"/>
+      <p align="center"><strong>Ballot Box</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="https://i.ibb.co/wr2D4FNc/image.png" alt="Firefighter Dashboard" width="100%"/>
+      <p align="center"><strong>Candidate Compass</strong></p>
+    </td>
+    <td width="50%">
+      <img src="https://i.ibb.co/1tP2Cy3r/image.png" alt="Risk Analytics View" width="100%"/>
+      <p align="center"><strong>Command Center</strong></p>
+    </td>
+  </tr>
+</table>
+
+### Mobile Views
+
+<div align="center">
+  <img src="https://i.ibb.co/tpRWW1by/image.png" alt="Mobile Interface" width="250"/>
+</div>
 
 ---
-
 ## 🤝 Responsible AI Commitment
 
 CivicUtopia is built with a "Safety First" approach to AI in democracy:
