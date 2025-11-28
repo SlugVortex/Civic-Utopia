@@ -18,41 +18,65 @@
     @endif
 
     <!-- AI Insights Row -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card bg-primary text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-start">
-                        <div class="avatar me-3">
-                            <span class="avatar-initial rounded bg-white text-primary"><i class="ri-robot-2-line"></i></span>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h5 class="card-title text-white mb-1">AI Community Analysis</h5>
-                            <p class="mb-2 opacity-75">Automated insights based on recent user activity.</p>
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-start">
+                    <div class="avatar avatar-lg me-3">
+                        <span class="avatar-initial rounded bg-label-primary">
+                            <i class="ri-robot-2-line ri-26px"></i>
+                        </span>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="card-title mb-1">
+                            <i class="ri-sparkle-line me-1"></i>AI Community Analysis
+                        </h5>
+                        <p class="text-muted mb-3">Automated insights based on recent user activity</p>
 
-                            <div class="d-flex gap-4 mt-3 flex-wrap">
-                                <div class="bg-white bg-opacity-25 rounded p-2 px-3">
-                                    <small class="d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Sentiment</small>
-                                    <span class="fs-5">{{ $aiAnalysis['sentiment'] ?? 'N/A' }}</span>
-                                </div>
-                                <div class="bg-white bg-opacity-25 rounded p-2 px-3 flex-grow-1">
-                                    <small class="d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Top Concerns</small>
-                                    @if(isset($aiAnalysis['concerns']) && is_array($aiAnalysis['concerns']))
-                                        @foreach($aiAnalysis['concerns'] as $concern)
-                                            <span class="badge bg-white text-primary me-1">{{ $concern }}</span>
-                                        @endforeach
-                                    @else
-                                        <span>Gathering data...</span>
-                                    @endif
+                        <div class="row g-3 mb-3">
+                            <!-- Sentiment Card -->
+                            <div class="col-md-3">
+                                <div class="card bg-label-primary mb-0">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.75rem;">Sentiment</small>
+                                        <h4 class="mb-0">{{ $aiAnalysis['sentiment'] ?? 'N/A' }}</h4>
+                                    </div>
                                 </div>
                             </div>
-                            <p class="mt-3 mb-0 fst-italic">"{{ $aiAnalysis['summary'] ?? 'System is gathering data...' }}"</p>
+
+                            <!-- Top Concerns Card -->
+                            <div class="col-md-9">
+                                <div class="card bg-label-info mb-0">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-2" style="font-size: 0.75rem;">Top Concerns</small>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @if(isset($aiAnalysis['concerns']) && is_array($aiAnalysis['concerns']))
+                                                @foreach($aiAnalysis['concerns'] as $concern)
+                                                    <span class="badge bg-info">{{ $concern }}</span>
+                                                @endforeach
+                                            @else
+                                                <span class="text-muted">Gathering data...</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Summary Quote -->
+                        <div class="alert alert-primary d-flex align-items-center mb-0" role="alert">
+                            <i class="ri-information-line me-2 ri-22px"></i>
+                            <div class="fst-italic">
+                                "{{ $aiAnalysis['summary'] ?? 'System is gathering data...' }}"
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Statistics Row -->
     <div class="row mb-4">
@@ -273,7 +297,7 @@
     </div>
 </div>
 
-@push('page-script')
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
