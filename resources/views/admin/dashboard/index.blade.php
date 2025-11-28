@@ -17,46 +17,60 @@
         <div class="alert alert-success mb-4">{{ session('success') }}</div>
     @endif
 
-    <!-- AI Insights Row -->
+    <!-- AI Insights Row - IMPROVED STYLING -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-body">
-                <div class="d-flex align-items-start">
-                    <div class="avatar avatar-lg me-3">
+                <div class="d-flex align-items-start gap-3">
+                    <!-- Icon -->
+                    <div class="avatar avatar-lg flex-shrink-0">
                         <span class="avatar-initial rounded bg-label-primary">
                             <i class="ri-robot-2-line ri-26px"></i>
                         </span>
                     </div>
-                    <div class="flex-grow-1">
-                        <h5 class="card-title mb-1">
-                            <i class="ri-sparkle-line me-1"></i>AI Community Analysis
-                        </h5>
-                        <p class="text-muted mb-3">Automated insights based on recent user activity</p>
 
+                    <!-- Content -->
+                    <div class="flex-grow-1 w-100">
+                        <!-- Header -->
+                        <div class="mb-3">
+                            <h5 class="card-title mb-1 d-flex align-items-center">
+                                <i class="ri-sparkle-line me-2" style="font-size: 1.25rem;"></i>
+                                AI Community Analysis
+                            </h5>
+                            <p class="text-muted mb-0 small">Automated insights based on recent user activity</p>
+                        </div>
+
+                        <!-- Metrics Row -->
                         <div class="row g-3 mb-3">
                             <!-- Sentiment Card -->
-                            <div class="col-md-3">
-                                <div class="card bg-label-primary mb-0">
+                            <div class="col-12 col-sm-6 col-md-3">
+                                <div class="card bg-label-primary mb-0 h-100">
                                     <div class="card-body p-3">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.75rem;">Sentiment</small>
-                                        <h4 class="mb-0">{{ $aiAnalysis['sentiment'] ?? 'N/A' }}</h4>
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Sentiment</small>
+                                            <i class="ri-emotion-line" style="font-size: 1.2rem; opacity: 0.5;"></i>
+                                        </div>
+                                        <h3 class="mb-0 fw-bold" style="font-size: 1.5rem;">{{ $aiAnalysis['sentiment'] ?? 'N/A' }}</h3>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Top Concerns Card -->
-                            <div class="col-md-9">
-                                <div class="card bg-label-info mb-0">
+                            <div class="col-12 col-sm-6 col-md-9">
+                                <div class="card bg-label-info mb-0 h-100">
                                     <div class="card-body p-3">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-2" style="font-size: 0.75rem;">Top Concerns</small>
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Top Concerns</small>
+                                            <i class="ri-alert-line" style="font-size: 1.2rem; opacity: 0.5;"></i>
+                                        </div>
                                         <div class="d-flex flex-wrap gap-2">
                                             @if(isset($aiAnalysis['concerns']) && is_array($aiAnalysis['concerns']))
                                                 @foreach($aiAnalysis['concerns'] as $concern)
-                                                    <span class="badge bg-info">{{ $concern }}</span>
+                                                    <span class="badge bg-info" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">{{ $concern }}</span>
                                                 @endforeach
                                             @else
-                                                <span class="text-muted">Gathering data...</span>
+                                                <span class="text-muted small">Gathering data...</span>
                                             @endif
                                         </div>
                                     </div>
@@ -65,10 +79,14 @@
                         </div>
 
                         <!-- Summary Quote -->
-                        <div class="alert alert-primary d-flex align-items-center mb-0" role="alert">
-                            <i class="ri-information-line me-2 ri-22px"></i>
-                            <div class="fst-italic">
-                                "{{ $aiAnalysis['summary'] ?? 'System is gathering data...' }}"
+                        <div class="alert alert-primary mb-0" role="alert" style="background-color: rgba(105, 108, 255, 0.08); border: 1px solid rgba(105, 108, 255, 0.2);">
+                            <div class="d-flex gap-2">
+                                <i class="ri-information-line flex-shrink-0" style="font-size: 1.25rem; margin-top: 2px;"></i>
+                                <div class="flex-grow-1">
+                                    <p class="mb-0 fst-italic text-body" style="font-size: 0.9rem; line-height: 1.5;">
+                                        "{{ $aiAnalysis['summary'] ?? 'System is gathering data...' }}"
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -77,7 +95,6 @@
         </div>
     </div>
 </div>
-
     <!-- Statistics Row -->
     <div class="row mb-4">
         <div class="col-md-3 col-sm-6 mb-3">
