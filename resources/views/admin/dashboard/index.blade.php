@@ -2,9 +2,6 @@
 
 @section('title', 'Admin Command Center')
 
-@section('vendor-script')
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-@endsection
 
 @section('content')
 <div class="container-fluid flex-grow-1 container-p-y">
@@ -276,6 +273,8 @@
     </div>
 </div>
 
+@push('page-script')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Poll Option Logic
@@ -297,41 +296,88 @@ document.addEventListener('DOMContentLoaded', function() {
     const labelColor = '#a1acb8';
     const borderColor = '#eceef1';
 
-    // Activity Chart
+    // Activity Chart - WITH DEBUGGING
     const activityEl = document.querySelector('#activityChart');
-    const activityData = @json($chartData); // Uses safer Blade JSON directive
+    const activityData = @json($chartData);
 
-    if(activityEl && activityData.data.length > 0) {
-        const config = {
-            chart: { height: 300, type: 'area', toolbar: { show: false } },
-            dataLabels: { enabled: false },
-            stroke: { curve: 'smooth', width: 2 },
-            series: [{ name: 'Posts', data: activityData.data }],
-            xaxis: { categories: activityData.labels, labels: { style: { colors: labelColor } } },
-            colors: ['#696cff'],
-            fill: { type: 'gradient', gradient: { opacityFrom: 0.7, opacityTo: 0.2 } }
-        };
-        new ApexCharts(activityEl, config).render();
-    } else if(activityEl) {
-        activityEl.innerHTML = '<p class="text-center text-muted py-5">Not enough data to display chart.</p>';
+    console.log('Activity Element:', activityEl);
+    console.log('Activity Data:', activityData);
+    console.log('Activity Data Structure:', {
+        hasData: activityData?.data,
+        dataLength: activityData?.data?.length,
+        labels: activityData?.labels
+    });
+
+    if(activityEl) {
+        if(activityData && activityData.data && activityData.data.length > 0) {
+            console.log('✅ Rendering Activity Chart');
+            const config = {
+                chart: {
+                    height: 300,
+                    type: 'area',
+                    toolbar: { show: false }
+                },
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 2 },
+                series: [{ name: 'Posts', data: activityData.data }],
+                xaxis: {
+                    categories: activityData.labels,
+                    labels: { style: { colors: labelColor } }
+                },
+                colors: ['#696cff'],
+                fill: {
+                    type: 'gradient',
+                    gradient: { opacityFrom: 0.7, opacityTo: 0.2 }
+                }
+            };
+
+            try {
+                new ApexCharts(activityEl, config).render();
+                console.log('✅ Activity Chart rendered successfully');
+            } catch(e) {
+                console.error('❌ Error rendering Activity Chart:', e);
+            }
+        } else {
+            console.log('⚠️ No activity data, showing placeholder');
+            activityEl.innerHTML = '<p class="text-center text-muted py-5">Not enough data to display chart.</p>';
+        }
+    } else {
+        console.error('❌ Activity chart element not found!');
     }
 
-    // Topic Chart
+    // Topic Chart - WITH DEBUGGING
     const topicEl = document.querySelector('#topicChart');
     const topicData = @json($topicDistribution);
 
-    if(topicEl && topicData.length > 0) {
-        const config = {
-            chart: { height: 300, type: 'donut' },
-            labels: topicData.map(t => t.name),
-            series: topicData.map(t => t.count),
-            colors: ['#696cff', '#71dd37', '#03c3ec', '#8592a3', '#ff3e1d'],
-            legend: { position: 'bottom' }
-        };
-        new ApexCharts(topicEl, config).render();
-    } else if(topicEl) {
-        topicEl.innerHTML = '<p class="text-center text-muted py-5">No topics created yet.</p>';
+    console.log('Topic Element:', topicEl);
+    console.log('Topic Data:', topicData);
+
+    if(topicEl) {
+        if(topicData && topicData.length > 0) {
+            console.log('✅ Rendering Topic Chart');
+            const config = {
+                chart: { height: 300, type: 'donut' },
+                labels: topicData.map(t => t.name),
+                series: topicData.map(t => t.count),
+                colors: ['#696cff', '#71dd37', '#03c3ec', '#8592a3', '#ff3e1d'],
+                legend: { position: 'bottom' }
+            };
+
+            try {
+                new ApexCharts(topicEl, config).render();
+                console.log('✅ Topic Chart rendered successfully');
+            } catch(e) {
+                console.error('❌ Error rendering Topic Chart:', e);
+            }
+        } else {
+            console.log('⚠️ No topic data, showing placeholder');
+            topicEl.innerHTML = '<p class="text-center text-muted py-5">No topics created yet.</p>';
+        }
+    } else {
+        console.error('❌ Topic chart element not found!');
     }
 });
 </script>
+@endpush
 @endsection
+

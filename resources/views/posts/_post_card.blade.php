@@ -149,10 +149,10 @@
                     </div>
 
                     {{-- Input Area --}}
-                    {{-- REMOVED: bg-white class. ADDED: bg-transparent --}}
-                    <div class="comment-form-wrapper mt-auto bg-transparent pt-2">
+                    <div class="comment-form-wrapper mt-auto pt-2">
                         <div class="reply-preview-container mb-2" style="display:none;"></div>
 
+                        {{-- FORM WITH 'comment-form' CLASS --}}
                         <form action="{{ route('comments.store', $post->id) }}" method="POST" class="comment-form">
                             @csrf
                             <input type="hidden" name="reply_to_context" value="">
@@ -161,6 +161,7 @@
                                 <img src="{{ auth()->user()->profile_photo_url ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=random' }}" class="rounded-circle user-avatar-img" style="width: 36px; height: 36px; object-fit: cover;">
 
                                 <div class="flex-grow-1 position-relative">
+                                    {{-- TEXTAREA WITH 'comment-textarea' CLASS --}}
                                     <textarea name="content" class="form-control comment-textarea rounded-pill px-4 py-2"
                                               rows="1" placeholder="Type @ to mention bots..." required
                                               style="resize:none; overflow-y:hidden; min-height: 42px; max-height: 120px;"
