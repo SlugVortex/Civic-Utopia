@@ -10,6 +10,46 @@ use Illuminate\Support\Facades\Log;
 class BallotController extends Controller
 {
     /**
+     * AI GENERATOR: Create a ballot question from a user's idea
+     */
+    public function generate(Request $request)
+    {
+        $request->validate(['prompt' => 'required|string']);
+
+        try {
+            $endpoint = config('services.azure.openai.endpoint');
+            $apiKey = config('services.azure.openai.api_key');
+            $deployment = config('services.azure.openai.deployment');
+            $apiVersion = config('services.azure.openai.api_version');
+            $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
+
+            $systemMessage = "You are a legislative drafter and political scientist.
+            Your task is to convert a user's idea into a realistic, neutrally worded ballot question.
+            The 'official_text' should sound formal and legalistic.
+            Output must be valid JSON: { \"title\": \"...\", \"official_text\": \"...\" }";
+
+            $response = Http::withHeaders([
+                'api-key' => $apiKey, 'Content-Type' => 'application/json'
+            ])->post($url, [
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemMessage],
+                    ['role' => 'user', 'content' => "User Idea: " . $request->prompt],
+                ],
+                'temperature' => 0.7,
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+            return response()->json(json_decode($response->json('choices.0.message.content')));
+
+        } catch (\Exception $e) {
+            Log::error("Ballot Generate Error: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to generate ballot text.'], 500);
+        }
+    }
+
+    // ... Keep all your existing methods (index, create, store, etc.) ...
+
+    /**
      * Display a listing of ballot questions with Search & Filter.
      */
     public function index(Request $request)
@@ -145,7 +185,6 @@ class BallotController extends Controller
         $targetLang = $validated['language'];
 
         try {
-            // CASE 1: English (Revert to Original)
             if (strtolower($targetLang) === 'english') {
                 return response()->json([
                     'official_text' => $ballot->official_text,
@@ -158,22 +197,12 @@ class BallotController extends Controller
                 ]);
             }
 
-            // CASE 2: Jamaican Patois (Use stored Patois + Translate Official Text)
-            if (strtolower($targetLang) === 'jamaican patois') {
-                // We likely have the breakdown stored, but we might need to translate the official text if we want that fully translated too.
-                // To keep it simple and consistent, we'll ask AI to handle the official text translation.
-                // But we use the stored summary_patois for the breakdown to save tokens/ensure quality.
-            }
-
             $endpoint = config('services.azure.openai.endpoint');
             $apiKey = config('services.azure.openai.api_key');
             $deployment = config('services.azure.openai.deployment');
             $apiVersion = config('services.azure.openai.api_version');
             $url = rtrim($endpoint, '/') . "/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
 
-            // Prepare Data for Translation
-            // We send the 'official_text' to be translated word-for-word.
-            // We send the 'summary_plain' to be converted into an ELI5 Breakdown in the target language.
             $dataToContext = [
                 'official_text' => $ballot->official_text,
                 'analysis_summary' => $ballot->summary_plain,
@@ -185,21 +214,7 @@ class BallotController extends Controller
 
             $systemMessage = "You are a professional translator and civic educator.
             Translate the provided ballot information into {$targetLang}.
-
-            Required Output JSON format:
-            {
-                'official_text': (Translate the official legal text word-for-word into {$targetLang}),
-                'breakdown_text': (Create an 'Explain Like I am 5' summary of the analysis in {$targetLang}),
-                'yes_vote_meaning': (Translate into {$targetLang}),
-                'no_vote_meaning': (Translate into {$targetLang}),
-                'pros': (Array of strings translated into {$targetLang}),
-                'cons': (Array of strings translated into {$targetLang})
-            }";
-
-            // If user selected Patois, we can hint to use the specific dialect style
-            if(strtolower($targetLang) === 'jamaican patois') {
-                $systemMessage .= " For 'breakdown_text', use authentic Jamaican Patois.";
-            }
+            Output must be a valid JSON object with keys: official_text, breakdown_text, yes_vote_meaning, no_vote_meaning, pros, cons.";
 
             $response = Http::withHeaders([
                 'api-key' => $apiKey,
@@ -217,10 +232,7 @@ class BallotController extends Controller
                 return response()->json(['error' => 'Translation Service Unavailable'], 500);
             }
 
-            $contentString = $response->json('choices.0.message.content');
-            $content = json_decode($contentString, true);
-
-            // Add the label for the frontend
+            $content = json_decode($response->json('choices.0.message.content'), true);
             $content['breakdown_label'] = "{$targetLang} Breakdown (ELI5)";
 
             return response()->json($content);

@@ -38,6 +38,8 @@ Route::get('/terms-of-service', [App\Http\Controllers\PagesController::class, 't
 
 // --- Main Application Routes ---
 Route::middleware('auth')->group(function () {
+  // ... Inside the auth group for Ballot Routes ...
+    Route::post('/ballots/generate', [BallotController::class, 'generate'])->name('ballots.generate');
 
   // --- AI VOICE ---
     Route::post('/ai/voice', [App\Http\Controllers\VoiceController::class, 'transcribe'])->name('ai.voice');

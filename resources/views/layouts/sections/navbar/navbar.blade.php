@@ -103,14 +103,13 @@ $navbarDetached = ($navbarDetached ?? '');
 </nav>
 
 <!-- AI WIDGET -->
-<div id="ai-navigator-widget" class="card shadow-lg border-0" style="display: none;">
-    <div id="ai-widget-header" class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3" style="cursor: grab;">
+<div id="ai-navigator-widget" class="card shadow-lg border-0" style="display: none; cursor: grab;">
+    <div id="ai-widget-header" class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3">
         <div class="d-flex align-items-center">
             <i class="ri-robot-2-line me-2"></i>
             <span class="fw-bold small">Civic Guide</span>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <!-- Live Status Text -->
             <span id="mic-status" class="badge bg-white text-primary small d-none">Listening...</span>
             <button type="button" class="btn btn-icon btn-sm btn-text-white rounded-pill p-0" onclick="toggleAiWidget()">
                 <i class="ri-close-line"></i>
@@ -128,7 +127,7 @@ $navbarDetached = ($navbarDetached ?? '');
                 <i class="ri-mic-line"></i>
             </button>
 
-            <input type="text" id="ai-widget-input" class="form-control form-control-sm border-start-0" placeholder="Type or click mic..." onkeypress="handleAiEnter(event)">
+            <input type="text" id="ai-widget-input" class="form-control form-control-sm border-start-0" placeholder="Type or click mic..." onkeypress="handleAiEnter(event)" style="cursor: text;">
 
             <button class="btn btn-primary btn-sm" type="button" onclick="sendAiCommand()">
                 <i class="ri-send-plane-fill"></i>
@@ -184,10 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
     makeDraggable(document.getElementById("ai-navigator-widget"));
     makeResizable(document.getElementById("ai-navigator-widget"));
 
-    // AUTO-RESUME MIC IF IT WAS ON
-    // We add a small delay to ensure the DOM and SDK are ready
     if (localStorage.getItem('civicMicState') === 'active') {
-        console.log("Resuming microphone...");
         setTimeout(() => toggleRealTimeMic(true), 800);
     }
 });
@@ -197,18 +193,15 @@ let recognizer;
 let isListening = false;
 let silenceTimer;
 
-// CONFIG: Silence Timeout (5 Seconds)
 const SILENCE_TIMEOUT_MS = 5000;
 const MAGIC_WORDS = ["shazam", "boom", "send", "go", "submit"];
 
-// Updated toggle function accepts 'autoStart' param to bypass toggle logic
 async function toggleRealTimeMic(autoStart = false) {
     const btn = document.getElementById('ai-mic-btn');
     const status = document.getElementById('mic-status');
     const input = document.getElementById('ai-widget-input');
 
     if (isListening && !autoStart) {
-        // Manual Stop
         stopRecognition();
         return;
     }
@@ -216,49 +209,41 @@ async function toggleRealTimeMic(autoStart = false) {
     try {
         if(btn) btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i>';
 
-        // 1. Get Token
         const tokenRes = await fetch('{{ route("ai.voice_token") }}');
         const tokenData = await tokenRes.json();
 
         if(tokenData.error) throw new Error(tokenData.error);
 
-        // 2. Configure SDK
         const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(tokenData.token, tokenData.region);
         speechConfig.speechRecognitionLanguage = "en-US";
         const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
 
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
 
-        // 3. Event: Recognizing (Updates text while speaking)
         recognizer.recognizing = (s, e) => {
             if(input) input.value = e.result.text;
             if(status) status.innerText = "Listening...";
-            resetSilenceTimer(); // Speaking -> Reset timer
+            resetSilenceTimer();
         };
 
-        // 4. Event: Recognized (Finished a sentence)
         recognizer.recognized = (s, e) => {
             if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                 let text = e.result.text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
                 if(input) input.value = e.result.text;
 
                 if (MAGIC_WORDS.some(word => text.includes(word))) {
-                    // Magic Word -> Send immediately but KEEP LISTENING (Continuous)
                     sendAiCommand();
-                    if(input) input.value = ''; // Clear for next command
+                    if(input) input.value = '';
                 }
 
-                // Reset silence timer
                 resetSilenceTimer();
             }
         };
 
-        // 5. Start
         recognizer.startContinuousRecognitionAsync();
         isListening = true;
-        localStorage.setItem('civicMicState', 'active'); // PERSIST STATE
+        localStorage.setItem('civicMicState', 'active');
 
-        // UI Updates
         if(btn) {
             btn.innerHTML = '<i class="ri-mic-line"></i>';
             btn.classList.add('mic-active');
@@ -266,12 +251,9 @@ async function toggleRealTimeMic(autoStart = false) {
         if(status) status.classList.remove('d-none');
         if(input) input.placeholder = "Speak now...";
 
-        // Start the silence countdown immediately in case they don't speak
         resetSilenceTimer();
 
     } catch (err) {
-        console.error(err);
-        // Only alert if user explicitly clicked, not on auto-resume
         if(!autoStart) {
              alert("Microphone error: " + err.message);
         }
@@ -286,10 +268,9 @@ function stopRecognition() {
         recognizer = undefined;
     }
     isListening = false;
-    localStorage.setItem('civicMicState', 'inactive'); // CLEAR STATE
+    localStorage.setItem('civicMicState', 'inactive');
     clearTimeout(silenceTimer);
 
-    // UI Reset
     const btn = document.getElementById('ai-mic-btn');
     const status = document.getElementById('mic-status');
     const input = document.getElementById('ai-widget-input');
@@ -305,19 +286,15 @@ function stopRecognition() {
 function resetSilenceTimer() {
     clearTimeout(silenceTimer);
     silenceTimer = setTimeout(() => {
-        console.log("Silence detected (5s). Sending & Stopping.");
-
         const input = document.getElementById('ai-widget-input');
-        // Only send if there is text
         if(input && input.value.trim().length > 0) {
             sendAiCommand();
         }
-        stopRecognition(); // Auto-stop after silence
-
+        stopRecognition();
     }, SILENCE_TIMEOUT_MS);
 }
 
-// --- REST OF THE AI LOGIC (Unchanged) ---
+// --- STANDARD AI LOGIC (Unchanged) ---
 function restoreWidgetState() {
     const widget = document.getElementById('ai-navigator-widget');
     const historyDiv = document.getElementById('ai-chat-history');
@@ -512,19 +489,26 @@ function playSequence(elements) {
     document.addEventListener('civic-audio-ended', onEnd);
 }
 
+// --- DRAG & RESIZE LOGIC (UPDATED) ---
 function makeDraggable(elmnt) {
     let pos1=0, pos2=0, pos3=0, pos4=0;
-    const header = document.getElementById("ai-widget-header");
-    if(header) header.onmousedown = dragMouseDown;
+
+    // The entire widget is the handle
+    elmnt.onmousedown = dragMouseDown;
 
     function dragMouseDown(e) {
+        // PREVENT DRAGGING from input field or buttons
+        if (e.target.matches('input, button, .resize-handle')) {
+            return;
+        }
+
         e = e || window.event;
         e.preventDefault();
         pos3 = e.clientX;
         pos4 = e.clientY;
         document.onmouseup = closeDragElement;
         document.onmousemove = elementDrag;
-        header.style.cursor = 'grabbing';
+        elmnt.style.cursor = 'grabbing';
     }
     function elementDrag(e) {
         e = e || window.event;
@@ -541,7 +525,7 @@ function makeDraggable(elmnt) {
     function closeDragElement() {
         document.onmouseup = null;
         document.onmousemove = null;
-        header.style.cursor = 'grab';
+        elmnt.style.cursor = 'grab';
         saveWidgetState(elmnt);
     }
 }
