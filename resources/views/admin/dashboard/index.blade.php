@@ -17,11 +17,11 @@
         <div class="alert alert-success mb-4">{{ session('success') }}</div>
     @endif
 
-    <!-- AI Insights Row - IMPROVED STYLING -->
+    <!-- AI Insights Row - FINAL FIX -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-body">
+            <div class="card-body p-4">
                 <div class="d-flex align-items-start gap-3">
                     <!-- Icon -->
                     <div class="avatar avatar-lg flex-shrink-0">
@@ -31,27 +31,27 @@
                     </div>
 
                     <!-- Content -->
-                    <div class="flex-grow-1 w-100">
+                    <div class="flex-grow-1" style="min-width: 0;">
                         <!-- Header -->
                         <div class="mb-3">
-                            <h5 class="card-title mb-1 d-flex align-items-center">
-                                <i class="ri-sparkle-line me-2" style="font-size: 1.25rem;"></i>
+                            <h5 class="card-title mb-1 d-flex align-items-center" style="font-size: 1.1rem;">
+                                <i class="ri-sparkle-line me-2" style="font-size: 1.15rem;"></i>
                                 AI Community Analysis
                             </h5>
-                            <p class="text-muted mb-0 small">Automated insights based on recent user activity</p>
+                            <p class="text-muted mb-0" style="font-size: 0.875rem;">Automated insights based on recent user activity</p>
                         </div>
 
                         <!-- Metrics Row -->
-                        <div class="row g-3 mb-3">
+                        <div class="row g-2 mb-3">
                             <!-- Sentiment Card -->
                             <div class="col-12 col-sm-6 col-md-3">
                                 <div class="card bg-label-primary mb-0 h-100">
                                     <div class="card-body p-3">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Sentiment</small>
-                                            <i class="ri-emotion-line" style="font-size: 1.2rem; opacity: 0.5;"></i>
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Sentiment</small>
+                                            <i class="ri-emotion-line text-primary" style="font-size: 1.1rem; opacity: 0.4;"></i>
                                         </div>
-                                        <h3 class="mb-0 fw-bold" style="font-size: 1.5rem;">{{ $aiAnalysis['sentiment'] ?? 'N/A' }}</h3>
+                                        <h3 class="mb-0 fw-bold" style="font-size: 1.4rem;">{{ $aiAnalysis['sentiment'] ?? 'N/A' }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -61,16 +61,16 @@
                                 <div class="card bg-label-info mb-0 h-100">
                                     <div class="card-body p-3">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Top Concerns</small>
-                                            <i class="ri-alert-line" style="font-size: 1.2rem; opacity: 0.5;"></i>
+                                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Top Concerns</small>
+                                            <i class="ri-alert-line text-info flex-shrink-0 ms-2" style="font-size: 1.1rem; opacity: 0.4;"></i>
                                         </div>
-                                        <div class="d-flex flex-wrap gap-2">
+                                        <div class="d-flex flex-wrap gap-2" style="overflow: hidden;">
                                             @if(isset($aiAnalysis['concerns']) && is_array($aiAnalysis['concerns']))
                                                 @foreach($aiAnalysis['concerns'] as $concern)
-                                                    <span class="badge bg-info" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">{{ $concern }}</span>
+                                                    <span class="badge bg-info" style="font-size: 0.7rem; padding: 0.35rem 0.6rem; font-weight: 500; line-height: 1.4;">{{ $concern }}</span>
                                                 @endforeach
                                             @else
-                                                <span class="text-muted small">Gathering data...</span>
+                                                <span class="text-muted" style="font-size: 0.85rem;">Gathering data...</span>
                                             @endif
                                         </div>
                                     </div>
@@ -79,12 +79,12 @@
                         </div>
 
                         <!-- Summary Quote -->
-                        <div class="alert alert-primary mb-0" role="alert" style="background-color: rgba(105, 108, 255, 0.08); border: 1px solid rgba(105, 108, 255, 0.2);">
-                            <div class="d-flex gap-2">
-                                <i class="ri-information-line flex-shrink-0" style="font-size: 1.25rem; margin-top: 2px;"></i>
-                                <div class="flex-grow-1">
-                                    <p class="mb-0 fst-italic text-body" style="font-size: 0.9rem; line-height: 1.5;">
-                                        "{{ $aiAnalysis['summary'] ?? 'System is gathering data...' }}"
+                        <div class="alert alert-primary mb-0 p-3" role="alert" style="background-color: rgba(105, 108, 255, 0.08); border: 1px solid rgba(105, 108, 255, 0.2); border-radius: 0.375rem;">
+                            <div class="d-flex gap-3">
+                                <i class="ri-information-line flex-shrink-0 text-primary" style="font-size: 1.2rem; margin-top: 2px; opacity: 0.8;"></i>
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <p class="mb-0 fst-italic" style="font-size: 0.875rem; line-height: 1.6; color: #566a7f; word-wrap: break-word;">
+                                        "{{ $aiAnalysis['summary'] ?? 'System is gathering data to provide intelligent insights about your community...' }}"
                                     </p>
                                 </div>
                             </div>
@@ -95,6 +95,7 @@
         </div>
     </div>
 </div>
+
     <!-- Statistics Row -->
     <div class="row mb-4">
         <div class="col-md-3 col-sm-6 mb-3">
