@@ -23,14 +23,13 @@ class PostController extends Controller
             'content' => 'required|string|max:5000',
             'topic_id' => 'nullable|exists:topics,id',
             'media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mov,avi|max:20480',
-            'is_private' => 'boolean' // Added support for manual private posts
+            'is_private' => 'boolean'
         ]);
 
         $user = Auth::user();
         $content = $validated['content'];
         $isPrivate = $request->boolean('is_private', false);
 
-        // 1. AZURE CONTENT SAFETY CHECK
         Log::info("[PostController] Analyzing content safety for user: {$user->id}");
         $safetyResult = $safetyService->analyze($content);
 
@@ -39,19 +38,23 @@ class PostController extends Controller
 
         if ($isFlagged) {
             Log::warning("[PostController] 🚩 Content Flagged: $flagReason");
-            // Option: You could prevent saving entirely here if you prefer strict blocking
-            // For now, we save it as flagged so admins can review, but it won't show in main feeds depending on view logic
         }
 
         try {
             // 2. Create Post
+            // FIX: Removed 'topic_id' from this array. It does not exist on the 'posts' table.
             $post = $user->posts()->create([
-                'topic_id' => $validated['topic_id'] ?? null,
-                'content' => $isFlagged ? "This post was flagged for $flagReason and is hidden." : $content,
+                'content' => $isFlagged ? "This post was flagged by AI for $flagReason and is hidden." : $content,
                 'is_flagged' => $isFlagged,
                 'flag_reason' => $flagReason,
                 'is_private' => $isPrivate,
             ]);
+
+            // FIX: Attach the topic using the many-to-many relationship instead.
+            if (!empty($validated['topic_id'])) {
+                $post->topics()->attach($validated['topic_id']);
+                Log::info("[PostController] Attached topic ID {$validated['topic_id']} to Post ID: {$post->id}");
+            }
 
             // 3. Handle Media Uploads
             if ($request->hasFile('media')) {

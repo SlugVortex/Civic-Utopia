@@ -13,6 +13,7 @@ class AiNavigatorController extends Controller
         $request->validate(['command' => 'required|string|max:500']);
         $command = $request->command;
 
+        // 1. Define Site Map (Navigation Targets)
         $siteMap = [
             '/dashboard' => "Town Square, Feed, Social, Posts, Discussion, Home",
             '/ballots' => "Ballot Box, Laws, Voting, Referendum, Bills, Legislation",
@@ -21,12 +22,14 @@ class AiNavigatorController extends Controller
             '/candidates/compare' => "Compare Candidates, Head to Head, Versus",
             '/issues' => "Civic Lens, Report Issue, Pothole, Garbage, Complaint, Camera",
             '/documents' => "Legal Library, Documents, PDFs, Research, Archives",
-            '/interview' => "Political Interview, Simulation, Talk to Politician",
+            '/documents/create' => "Upload Document, Add PDF, New File",
+            '/interview' => "Political Interview, Simulation, Talk to Politician, Values Test",
         ];
 
+        // 2. Define Page Tools (Interactive Actions)
         $toolsInstructions = "
         GLOBAL TOOLS:
-        - 'read all' -> { \"action\": \"tool\", \"tool_type\": \"sequence\", \"selector\": \".btn-read-aloud\", \"message\": \"Reading items...\" }
+        - 'read all' / 'read posts' -> { \"action\": \"tool\", \"tool_type\": \"sequence\", \"selector\": \".btn-read-aloud\", \"message\": \"Reading items...\" }
         - 'clear chat' -> { \"action\": \"clear_chat\", \"message\": \"Chat cleared.\" }
 
         DASHBOARD TOOLS:
@@ -52,7 +55,7 @@ class AiNavigatorController extends Controller
         - 'compare' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-compare-candidates\", \"message\": \"Go to comparison tool...\" }
 
         CANDIDATE PROFILE TOOLS:
-        - 'research [Topic]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".stance-card\", \"target_text\": \"[Topic]\", \"trigger_selector\": \".btn-research-stance\", \"message\": \"Researching [Topic]...\" }
+        - 'research [Topic]' / 'deep dive [Topic]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".stance-card\", \"target_text\": \"[Topic]\", \"trigger_selector\": \".btn-research-stance\", \"message\": \"Researching [Topic]...\" }
         - 'read [Topic]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".stance-card\", \"target_text\": \"[Topic]\", \"trigger_selector\": \".btn-read-stance\", \"message\": \"Reading stance on [Topic]...\" }
         - 'read summary' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-read-summary\", \"message\": \"Reading summary...\" }
         - 'analyze' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-analyze-profile\", \"message\": \"Running initial analysis...\" }
@@ -61,7 +64,7 @@ class AiNavigatorController extends Controller
 
         COMPARE PAGE TOOLS:
         - 'select [Name]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".selection-card\", \"target_text\": \"[Name]\", \"trigger_selector\": \".candidate-checkbox\", \"message\": \"Selecting [Name]...\" }
-        - 'run analysis' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#compare-btn\", \"message\": \"Comparing...\" }
+        - 'run analysis' / 'compare now' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#compare-btn\", \"message\": \"Comparing...\" }
 
         ISSUE LIST TOOLS:
         - 'report issue' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-report-issue\", \"message\": \"Starting report...\" }
@@ -71,6 +74,10 @@ class AiNavigatorController extends Controller
         - 'analyze' / 'draft letter' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-analyze-issue\", \"message\": \"Analyzing photo...\" }
         - 'read letter' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-read-letter\", \"message\": \"Reading letter...\" }
         - 'email' -> { \"action\": \"tool\", \"tool_type\": \"click\", \"selector\": \"#btn-email-agency\", \"message\": \"Opening email client...\" }
+
+        DOCUMENT LIBRARY TOOLS:
+        - 'upload' -> { \"action\": \"redirect\", \"target\": \"/documents/create\", \"message\": \"Going to upload page...\" }
+        - 'open [X]' -> { \"action\": \"tool\", \"tool_type\": \"click_match\", \"container_selector\": \".card\", \"target_text\": \"[X]\", \"trigger_selector\": \".btn-outline-primary\", \"message\": \"Opening [X]...\" }
         ";
 
         try {
@@ -87,8 +94,15 @@ class AiNavigatorController extends Controller
             TOOLS: " . $toolsInstructions . "
 
             INSTRUCTIONS:
-            1. If the user wants to GO somewhere, return: { \"action\": \"redirect\", \"target\": \"/exact/url\", \"message\": \"Navigating...\" }
-            2. If the user wants to DO something, return: { \"action\": \"tool\", \"tool_type\": \"...\", \"selector\": \"...\", \"message\": \"...\" }
+            1. If the user wants to GO somewhere, check the SITE MAP.
+               - Use '/interview' ONLY if the user wants to take a quiz, find their alignment, or interview themselves.
+               - Use '/candidates' if the user wants to see politicians or chat with a politician.
+               Return: { \"action\": \"redirect\", \"target\": \"/exact/url\", \"message\": \"Navigating...\" }
+
+            2. If the user wants to DO something (read, click, translate), check the TOOLS list.
+               Return: { \"action\": \"tool\", \"tool_type\": \"...\", \"selector\": \"...\", \"message\": \"...\" }
+               - If using 'click_match', verify 'container_selector', 'target_text', and 'trigger_selector'.
+
             3. If general chat, return: { \"action\": \"message\", \"message\": \"...\" }
             ";
 
@@ -103,11 +117,21 @@ class AiNavigatorController extends Controller
                 'response_format' => ['type' => 'json_object'],
             ]);
 
-            $aiData = json_decode($response->json('choices.0.message.content'), true);
+            if ($response->failed()) {
+                Log::error("AI Navigator Azure Error: Status " . $response->status() . " - " . $response->body());
+                return response()->json(['action' => 'message', 'message' => 'My brain is unreachable right now.']);
+            }
 
-            if (!$aiData) return response()->json(['action' => 'message', 'message' => 'I got confused.']);
+            $content = $response->json('choices.0.message.content');
 
-            // Failsafe
+            // Robust JSON decoding
+            $aiData = json_decode($content, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::error("AI Navigator JSON Decode Error: " . json_last_error_msg());
+                return response()->json(['action' => 'message', 'message' => 'I got confused.']);
+            }
+
+            // Failsafe for redirect URL formatting
             if (isset($aiData['action']) && $aiData['action'] === 'redirect') {
                 if (!str_starts_with($aiData['target'], '/')) {
                     $aiData['target'] = '/' . $aiData['target'];
@@ -117,6 +141,7 @@ class AiNavigatorController extends Controller
             return response()->json($aiData);
 
         } catch (\Exception $e) {
+            Log::error("AI Navigator System Error: " . $e->getMessage());
             return response()->json(['action' => 'message', 'message' => 'System error.']);
         }
     }
