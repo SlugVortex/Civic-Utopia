@@ -165,7 +165,7 @@ A location-aware news feed that creates a daily briefing based on where the user
 
 ## 📸 Project Screenshots
 
-### Main Dashboard (Wildfire Officer)
+### Main Dashboard (Town Square)
 <div align="center">
   <img src="https://i.ibb.co/B5K2Fd6r/dashboard.png" alt="Main Dashboard" width="800"/>
 </div>
