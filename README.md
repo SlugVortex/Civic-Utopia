@@ -83,6 +83,10 @@ A "GitHub for Laws" where users upload PDFs, and the AI parses them for interact
 A location-aware news feed that creates a daily briefing based on where the user is standing.
 *   **How it works:** The system captures GPS coordinates, reverse geocodes them to a city/town, and queries **Bing News Search** for headlines specific to that community.
 
+### 8. Values Interview (Personalized Civic Profiler) 👤
+An interactive, conversational AI agent that helps users discover and articulate their own political and civic beliefs.
+*   **How it works:** A user engages in a guided chat with the "Civic Guide" persona, powered by **Azure OpenAI**. The AI asks open-ended questions about key issues (e.g., economy, public safety). Based on the user's responses (spoken via the **Azure Speech SDK** or typed), the AI generates a neutral "Civic Profile" summarizing their core values, which can then be used for personalized candidate matching.
+  
 ---
 
 ## 🏛️ System Architecture
