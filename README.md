@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://i.ibb.co/C3yq1V3F/civic-chat-banner.png" alt="CivicUtopia Banner" width="100%">
+  <img src="https://i.ibb.co/WWfY2zk2/image.png" alt="CivicUtopia Banner" width="100%">
 </div>
 
 # 🏛️ CivicUtopia: The AI-Powered "Digital Town Square" 🗳️
@@ -88,7 +88,7 @@ A location-aware news feed that creates a daily briefing based on where the user
 ## 🏛️ System Architecture
 
 <div align="center">
-  <img src="https://i.ibb.co/qYDQphn1/utopia-1.jpg" alt="CivicUtopia Architecture" width="800"/>
+  <img src="https://i.ibb.co/k2gd9nnN/utopia-revamp-1.jpg" alt="CivicUtopia Architecture" width="800"/>
 </div>
 
 ---
